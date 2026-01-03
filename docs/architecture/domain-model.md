@@ -10,9 +10,9 @@ The goal is to enforce **clear ownership**, enable **polyglot persistence**, and
 
 In high-volume financial systems:
 
-* Ambiguous ownership leads to data corruption
-* Shared databases destroy scalability
-* “Convenience joins” become systemic bottlenecks
+- Ambiguous ownership leads to data corruption
+- Shared databases destroy scalability
+- “Convenience joins” become systemic bottlenecks
 
 Therefore, **each domain owns its data, schemas, pipelines, and SLAs**.
 
@@ -20,7 +20,7 @@ Therefore, **each domain owns its data, schemas, pipelines, and SLAs**.
 
 ## 2. Top-Level Domain Map
 
-```
+```text
 ┌──────────────────────────┐
 │      Ingestion Domain     │
 └────────────┬─────────────┘
@@ -48,216 +48,240 @@ Therefore, **each domain owns its data, schemas, pipelines, and SLAs**.
         (Cross-cutting: Governance & Infra)
 ```
 
-Data flows **downstream only**. Upstream domains are immutable.
+### Flow Guarantees
+
+- Data flows **strictly downstream**
+- Upstream domains are **immutable**
+- No domain can require synchronous access to an upstream domain
 
 ---
 
 ## 3. Ingestion Domain
 
-### Purpose
+### Ingestion Purpose
 
-Acquire data from external sources **as-is**, without interpretation.
+Acquire external data **exactly as provided by the source**, without interpretation.
 
-### Responsibilities
+### Ingestion Responsibilities
 
-* NSE scraping (prices, volumes, derivatives)
-* Corporate announcements & PDFs
-* API-based ingestion
-* Source metadata capture
+- NSE scraping (prices, volumes, derivatives)
+- Corporate announcements and PDFs
+- API-based ingestion
+- Capture of source metadata and delivery timestamps
+- Source-level idempotency
 
-### Owns
+### Ingestion Owns
 
-* Raw schemas
-* Kafka raw topics
-* Source-specific idempotency
+- Raw schemas
+- Kafka raw topics
+- Source adapters
 
-### Does NOT
+### Ingestion Explicitly Does NOT
 
-* Normalize symbols
-* Adjust prices
-* Drop or correct data
+- Normalize symbols
+- Adjust prices
+- Drop, correct, or infer data
+- Join with reference data
 
-### Output
+### Ingestion Output
 
-* Immutable raw events
+Immutable raw events (`raw.*`)
 
 ---
 
 ## 4. Normalization & Enrichment Domain
 
-### Purpose
+### Normalization Purpose
 
-Convert raw data into **financially meaningful, consistent records**.
+Convert raw events into **financially consistent, standardized representations**.
 
-### Responsibilities
+### Normalization Responsibilities
 
-* Symbol / ISIN normalization
-* Corporate action adjustments
-* FX normalization (future)
-* Trading calendar alignment
+- Symbol / ISIN normalization
+- Corporate action application
+- Trading calendar alignment
+- FX normalization (future)
 
-### Owns
+### Normalization Owns
 
-* Normalized schemas
-* Enrichment logic
-* Reference data caches
+- Normalized schemas
+- Enrichment and transformation logic
+- Reference data caches
 
-### Does NOT
+### Normalization Explicitly Does NOT
 
-* Persist final truth
-* Serve data to users
+- Mutate raw data
+- Act as a system of record
+- Serve data directly to users
 
-### Output
+### Normalization Output
 
-* Clean, enriched events
+Deterministic, reproducible normalized events
 
 ---
 
 ## 5. Storage Domain
 
-### Purpose
+### Storage Purpose
 
-Persist data durably in **query-optimized and replayable forms**.
+Persist events into **durable, replayable, and query-optimized projections**.
 
-### Responsibilities
+### Storage Responsibilities
 
-* Bronze / Silver / Gold layers
-* Partitioning strategy
-* Retention & compaction
+- Bronze / Silver / Gold data layers
+- Partitioning, compaction, and retention
+- Backfills and historical reprocessing
 
-### Owns
+### Storage Owns
 
-* Hudi tables
-* ClickHouse schemas
-* OLAP materializations
+- Hudi table layouts
+- ClickHouse schemas
+- OLAP-optimized materializations
 
-### Does NOT
+### Storage Explicitly Does NOT
 
-* Compute business metrics
-* Interpret analytics
+- Interpret business meaning
+- Compute analytics
+- Act as a source of truth
+
+> Storage is a **projection of events**, never a domain of meaning.
 
 ---
 
 ## 6. Analytics Domain
 
-### Purpose
+### Analytics Purpose
 
-Transform stored data into **features, aggregates, and insights**.
+Transform stored data into **features, aggregates, and research-grade datasets**.
 
-### Responsibilities
+### Analytics Responsibilities
 
-* Batch analytics
-* Feature computation
-* Research datasets
-* Feature Store
+- Batch analytics
+- Feature computation
+- Research datasets
+- Feature Store construction
 
-### Owns
+### Analytics Owns
 
-* Feature definitions
-* Batch pipelines
-* Analytical correctness
+- Feature definitions
+- Analytical pipelines
+- Statistical correctness
 
-### Does NOT
+### Analytics Explicitly Does NOT
 
-* Execute trading logic
-* Serve real-time APIs
+- Execute trading logic
+- Serve real-time APIs
+- Mutate storage
 
 ---
 
 ## 7. Intelligence Domain
 
-### Purpose
+### Intelligence Purpose
 
-Generate **signals, anomalies, and models** from analytics outputs.
+Generate **signals, models, and anomaly detections** from analytics outputs.
 
-### Responsibilities
+### Intelligence Responsibilities
 
-* Rule-based signals
-* Statistical detection
-* ML models
+- Rule-based signals
+- Statistical detection
+- Machine learning models
+- Model evaluation
 
-### Owns
+### Intelligence Owns
 
-* Signal definitions
-* Model artifacts
-* Evaluation metrics
+- Signal definitions
+- Model artifacts
+- Evaluation metrics
 
-### Does NOT
+### Intelligence Explicitly Does NOT
 
-* Persist raw data
-* Provide dashboards
+- Persist raw or normalized data
+- Provide dashboards or APIs
 
 ---
 
 ## 8. Serving Domain
 
-### Purpose
+### Serving Purpose
 
-Expose data and insights **efficiently and safely**.
+Expose data and insights **safely, efficiently, and predictably**.
 
-### Responsibilities
+### Serving Responsibilities
 
-* Read-optimized APIs
-* Caching
-* Dashboard backends
+- Read-optimized APIs
+- Caching strategies
+- Query orchestration
+- Response SLAs
 
-### Owns
+### Serving Owns
 
-* API contracts
-* Query orchestration
-* Response SLAs
+- API contracts
+- Serving-layer schemas
+- Performance guarantees
 
-### Does NOT
+### Serving Explicitly Does NOT
 
-* Compute analytics
-* Mutate upstream data
+- Compute analytics
+- Train models
+- Mutate upstream data
 
 ---
 
 ## 9. Governance (Cross-Cutting)
 
-### Responsibilities
+### Governance Responsibilities
 
-* Data lineage
-* Quality checks
-* Reconciliation
-* Auditability
+- Data lineage
+- Quality checks
+- Reconciliation
+- Auditability
+- Compliance visibility
 
-Governance can **observe all domains** but **own none**.
+### Governance Authority
 
----
-
-## 10. Infra (Cross-Cutting)
-
-### Responsibilities
-
-* Kafka
-* Kubernetes
-* CI/CD
-* Secrets & configs
-
-Infra provides platforms; domains consume them.
+- Can **observe all domains**
+- Can **block releases**
+- Can **own no data**
 
 ---
 
-## 11. Explicit Interaction Rules
+## 10. Infrastructure (Cross-Cutting)
 
-1. Domains communicate **only via events or contracts**
-2. No domain reads another domain’s database directly
-3. Storage is not a business logic layer
-4. Analytics never mutate storage
-5. Serving never recomputes analytics
+### Infrastructure Responsibilities
 
-Violations require explicit architectural approval.
+- Kafka
+- Kubernetes
+- CI/CD
+- Secrets, configs, observability
+
+Infrastructure provides **platform capabilities**. Domains provide **business value**.
+
+---
+
+## 11. Explicit Interaction Rules (Non-Negotiable)
+
+1. Domains communicate **only via events or published contracts**.
+2. No domain may read another domain’s database directly.
+3. Storage is not a business-logic layer.
+4. Analytics never mutate stored data.
+5. Serving never recomputes analytics.
+
+Violations require **explicit architectural approval** and documentation.
 
 ---
 
 ## 12. Evolution Strategy
 
-* Domains may split internally over time
-* Cross-domain coupling must always decrease
-* Schemas evolve via versioning, never breaking changes
+- Domains may split internally over time.
+- Cross-domain coupling must strictly decrease.
+- Schema evolution occurs via versioning only.
+- Replayability must be preserved indefinitely.
 
 ---
 
-This domain model is **foundational**. All future pipelines, schemas, and services must align with it.
+## Final Note
+
+This domain model is **foundational**. All future schemas, pipelines, services, and storage layouts must align with these boundaries.
+
+> **When in doubt: preserve contracts, isolate domains, and defer interpretation downstream.**

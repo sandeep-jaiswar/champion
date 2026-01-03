@@ -2,13 +2,7 @@
 
 ## Purpose
 
-This directory contains the **canonical data schemas** for the Stock Market Intelligence Platform.
-
-Schemas defined here are **contracts**, not implementation details.
-
-All ingestion services, streaming pipelines, storage layers (Hudi, ClickHouse), and analytics systems **must conform** to these schemas.
-
-If code and schema disagree, **the schema is correct**.
+This directory contains the **canonical data schemas** for the Stock Market Intelligence Platform. Schemas defined here are **contracts**, not implementation details. All ingestion services, streaming pipelines, storage layers (Hudi, ClickHouse), and analytics systems **must conform** to these schemas. If code and schema disagree, **the schema is correct**.
 
 ---
 
@@ -23,28 +17,13 @@ If code and schema disagree, **the schema is correct**.
 
 > Treat schemas with the same rigor as public APIs.
 
----
-
 ### 2. Schema-first, everywhere
 
-Before writing:
-- Producers
-- Consumers
-- Spark jobs
-- Flink jobs
-- Storage mappings
-
-…the schema **must already exist**.
-
-No schema → no code.
-
----
+Before writing producers, consumers, Spark jobs, Flink jobs, or storage mappings, the schema **must already exist**. No schema → no code.
 
 ### 3. Raw ≠ Normalized
 
-This directory will contain **multiple schema families**.
-
-Each family has strict rules.
+This directory will contain **multiple schema families**. Each family has strict rules.
 
 ---
 
@@ -52,49 +31,52 @@ Each family has strict rules.
 
 ### 1. Raw Market Data (`raw.*`)
 
-**Purpose**
+#### Raw Purpose
+
 - Preserve exchange source truth
 - Enable deterministic replay
 - Support auditability
 
-**Rules**
+#### Raw Rules
+
 - Immutable
 - No enrichment
 - No normalization
 - No derived fields
 - Mirrors exchange payloads exactly
 
-**Examples**
+#### Raw Examples
+
 - `raw.market.equity.ohlc`
 - `raw.market.equity.trade`
 - `raw.market.index.ohlc`
 
 If NSE does not provide a field, **it must not appear here**.
 
----
-
 ### 2. Normalized Market Data (`normalized.*`) *(future)*
 
-**Purpose**
+#### Normalized Purpose
+
 - Standardize symbols
 - Align timestamps
 - Apply corporate actions
 - Enable cross-asset analytics
 
-**Rules**
+#### Normalized Rules
+
 - Derived from raw data only
 - Fully reproducible from raw streams
 - Explicit transformation logic
 
----
-
 ### 3. Reference & Corporate Actions *(future)*
 
-**Purpose**
+#### Reference Purpose
+
 - Capture slow-moving, authoritative data
 - Enable financial correctness
 
 Examples:
+
 - Symbol mappings
 - ISIN changes
 - Splits, bonuses, dividends
@@ -117,69 +99,57 @@ Indicative structure:
   "entity_id": "string",
   "payload": {}
 }
+```
 
+### Semantics
 
-Semantics
+- `event_id` → globally unique
+- `event_time` → exchange / market timestamp
+- `ingest_time` → platform ingestion time
+- `entity_id` → Kafka partition key
+- `schema_version` → immutable once published
 
-event_id → globally uniqueschemas/
+---
+
+## File & Naming Conventions
+
+- Format: Avro (`.avsc`)
+- One schema per file
+- One Kafka topic per schema
+- One event type per topic
+
+### Directory layout (example)
+
+```text
+schemas/
 └── market-data/
     ├── raw_equity_ohlc.avsc
     ├── raw_equity_trade.avsc
     └── raw_index_ohlc.avsc
-
-
-event_time → exchange / market timestamp
-
-ingest_time → platform ingestion time
-
-entity_id → Kafka partition key
-
-schema_version → immutable once published
+```
 
 ---
 
-File & Naming Conventions
+## Schema Evolution Rules
 
-Format: Avro (.avsc)
+### Allowed
 
-One schema per file
+- Adding optional fields
+- Adding new schema versions
+- Creating new topics
 
-One Kafka topic per schema
+### Forbidden
 
-One event type per topic
-
-Directory layout (example)
-
-Schema Evolution Rules
-
-Allowed:
-
-Adding optional fields
-
-Adding new schema versions
-
-Creating new topics
-
-Forbidden:
-
-Removing fields
-
-Changing field meanings
-
-Changing field types
-
-Reinterpreting existing data
+- Removing fields
+- Changing field meanings
+- Changing field types
+- Reinterpreting existing data
 
 ---
 
-Governance
+## Governance
 
-All schema changes require an architecture ticket
-
-Schema reviews prioritize correctness over convenience
-
-Temporary fields do not exist
-
-Experimental schemas must be explicitly labeled
-
----
+- All schema changes require an architecture ticket
+- Schema reviews prioritize correctness over convenience
+- Temporary fields do not exist
+- Experimental schemas must be explicitly labeled
