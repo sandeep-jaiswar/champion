@@ -7,6 +7,7 @@
 - Let each domain choose the right store and compute model while enforcing contracts.
 
 This blueprint ties together the architecture suite:
+
 - [compute-strategy.md](./compute-strategy.md) for determinism implementation details
 - [data-flow.md](./data-flow.md) for end-to-end data movement
 - [feature-store.md](./feature-store.md) for offline/online serving patterns
