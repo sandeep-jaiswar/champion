@@ -5,14 +5,14 @@
 This repository contains the foundations of a **production-grade, event-driven stock market analysis platform**, inspired by large-scale systems at companies like Uber.
 
 The platform is designed to:
+
 - Ingest raw exchange data (starting with NSE)
 - Preserve immutable source truth
 - Support real-time and batch analytics
 - Enable financial correctness at scale
 - Power research, modeling, and trading intelligence
 
-This is **not** a monolithic application.  
-It is a **polyglot data platform** built around **schemas, events, and contracts**.
+This is **not** a monolithic application. It is a **polyglot data platform** built around **schemas, events, and contracts**.
 
 ---
 
@@ -20,18 +20,16 @@ It is a **polyglot data platform** built around **schemas, events, and contracts
 
 ### 1. Schema-first, code-second
 
-Schemas are **APIs**.  
-All systems (Kafka, Hudi, ClickHouse, Spark, Flink, services) derive from schemas.
+Schemas are **APIs**. All systems (Kafka, Hudi, ClickHouse, Spark, Flink, services) derive from schemas.
 
 - Breaking schema changes are forbidden
 - Evolution happens via versioning
 - Code must conform to schemas, never the reverse
 
----
-
 ### 2. Raw data is sacred
 
 Raw market data:
+
 - Is immutable
 - Is replayable
 - Mirrors the exchange exactly
@@ -39,11 +37,10 @@ Raw market data:
 
 Any transformation, normalization, or adjustment happens **downstream**.
 
----
-
 ### 3. Event-driven by default
 
 The system is built around:
+
 - Kafka as the event backbone
 - Explicit topic ownership
 - Deterministic replay
@@ -51,11 +48,10 @@ The system is built around:
 
 No service talks to another service directly for market data.
 
----
-
 ### 4. Financial correctness > convenience
 
 This platform optimizes for:
+
 - Auditability
 - Reproducibility
 - Traceability
@@ -67,37 +63,40 @@ Low latency is important — but never at the cost of correctness.
 
 ## High-level Architecture
 
+```text
 [ Exchange / NSE ]
-|
-v
+      |
+      v
 [ Ingestion Services ]
-|
-v
+      |
+      v
 [ Kafka (Raw Topics) ]
-|
-+--> [ Hudi Bronze (Immutable) ]
-|
-+--> [ Normalization Pipelines ]
-|
-v
+      |
+      +--> [ Hudi Bronze (Immutable) ]
+      |
+      +--> [ Normalization Pipelines ]
+      |
+      v
 [ Hudi Silver / Gold ]
-|
-+--> ClickHouse
-+--> Analytics / Models
+      |
+      +--> ClickHouse
+      +--> Analytics / Models
+```
 
 ---
 
 ## Repository Structure
 
+```text
 ├── README.md
 ├── docs/
-│ ├── architecture/ # System design & contracts
-│ ├── decisions/ # Technology Decision Records (TDRs)
-│ └── issues/ # Canonical issue definitions
-├── schemas/ # Avro schemas (source of truth)
+│   ├── architecture/   # System design & contracts
+│   ├── decisions/      # Technology Decision Records (TDRs)
+│   └── issues/         # Canonical issue definitions
+├── schemas/            # Avro schemas (source of truth)
 └── .github/
-└── ISSUE_TEMPLATE/ # Enforced issue discipline
-
+    └── ISSUE_TEMPLATE/ # Enforced issue discipline
+```
 
 ---
 
@@ -105,20 +104,11 @@ v
 
 This repository enforces **strict domain separation**:
 
-- **Ingestion**  
-  Fetches and emits raw exchange events
-
-- **Market Data (Raw)**  
-  Immutable, replayable event streams
-
-- **Normalization**  
-  Symbol mapping, corporate actions, alignment
-
-- **Storage**  
-  Hudi (lakehouse) and ClickHouse (serving)
-
-- **Analytics & Intelligence**  
-  Indicators, signals, models (out of scope initially)
+- **Ingestion** — fetches and emits raw exchange events
+- **Market Data (Raw)** — immutable, replayable event streams
+- **Normalization** — symbol mapping, corporate actions, alignment
+- **Storage** — Hudi (lakehouse) and ClickHouse (serving)
+- **Analytics & Intelligence** — indicators, signals, models (out of scope initially)
 
 Cross-domain shortcuts are explicitly forbidden.
 
@@ -156,6 +146,7 @@ If something is unclear, it belongs in `docs/architecture/`, not in code comment
 - No “temporary” hacks
 
 When in doubt:
+
 > **Preserve data. Defer decisions. Document intent.**
 
 ---
@@ -165,6 +156,7 @@ When in doubt:
 🚧 **Active planning & foundation phase**
 
 The current focus is on:
+
 - Architecture
 - Schemas
 - Event contracts

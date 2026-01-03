@@ -18,7 +18,7 @@ All market data enters the platform as **immutable events** and flows downstream
 
 ## 2. High-Level Flow
 
-```
+```text
 External Sources (NSE, APIs, PDFs)
             │
             ▼
@@ -69,20 +69,20 @@ External Sources (NSE, APIs, PDFs)
 
 ### Key Characteristics
 
-* Stateless ingestion services
-* Source-specific idempotency
-* No transformations
+- Stateless ingestion services
+- Source-specific idempotency
+- No transformations
 
-### Output
+### Output (Ingestion)
 
-* Kafka **raw topics**
-* Schemas reflect source payloads
+- Kafka **raw topics**
+- Schemas reflect source payloads
 
 ### Guarantees
 
-* At-least-once delivery
-* No data loss
-* Ordering preserved per symbol
+- At-least-once delivery
+- No data loss
+- Ordering preserved per symbol
 
 ---
 
@@ -90,15 +90,15 @@ External Sources (NSE, APIs, PDFs)
 
 Kafka is the **only** system allowed to:
 
-* Decouple producers and consumers
-* Buffer bursts
-* Enable replay
+- Decouple producers and consumers
+- Buffer bursts
+- Enable replay
 
 ### Topic Categories
 
-* `raw.*`
-* `normalized.*`
-* `analytics.*` (derived events)
+- `raw.*`
+- `normalized.*`
+- `analytics.*` (derived events)
 
 Kafka topics are **append-only** and **versioned by schema**, never by topic deletion.
 
@@ -108,19 +108,19 @@ Kafka topics are **append-only** and **versioned by schema**, never by topic del
 
 ### Modes
 
-* **Streaming**: near–real-time normalization
-* **Batch**: historical backfills and corrections
+- **Streaming**: near–real-time normalization
+- **Batch**: historical backfills and corrections
 
 ### Responsibilities
 
-* Symbol / ISIN resolution
-* Corporate action application
-* Data standardization
+- Symbol / ISIN resolution
+- Corporate action application
+- Data standardization
 
-### Output
+### Output (Normalization)
 
-* Clean events to Kafka
-* Optional write-through to Silver storage
+- Clean events to Kafka
+- Optional write-through to Silver storage
 
 ---
 
@@ -128,21 +128,21 @@ Kafka topics are **append-only** and **versioned by schema**, never by topic del
 
 ### Bronze (Raw)
 
-* Immutable
-* Source-aligned
-* Full replay capability
+- Immutable
+- Source-aligned
+- Full replay capability
 
 ### Silver (Normalized)
 
-* Cleaned & enriched
-* Queryable
-* Stable schemas
+- Cleaned & enriched
+- Queryable
+- Stable schemas
 
 ### Gold (Curated)
 
-* Aggregates
-* Analytical views
-* Feature-aligned
+- Aggregates
+- Analytical views
+- Feature-aligned
 
 Each layer can be **fully recomputed from upstream data**.
 
@@ -152,21 +152,19 @@ Each layer can be **fully recomputed from upstream data**.
 
 ### Real-Time Path
 
-* Kafka → Stream Processor → ClickHouse / Pinot
-* Used for:
-
-  * Monitoring
-  * Dashboards
-  * Alerts
+- Kafka → Stream Processor → ClickHouse / Pinot
+- Used for:
+  - Monitoring
+  - Dashboards
+  - Alerts
 
 ### Batch Path
 
-* Hudi → Spark
-* Used for:
-
-  * Research
-  * Backtesting
-  * Feature generation
+- Hudi → Spark
+- Used for:
+  - Research
+  - Backtesting
+  - Feature generation
 
 Both paths share schemas but differ in latency and guarantees.
 
@@ -174,7 +172,7 @@ Both paths share schemas but differ in latency and guarantees.
 
 ## 8. Analytics & Feature Flow
 
-```
+```text
 Gold Data
    │
    ├─ Batch Feature Jobs
@@ -187,9 +185,9 @@ Feature Store
 
 Features are:
 
-* Deterministic
-* Versioned
-* Recomputable
+- Deterministic
+- Versioned
+- Recomputable
 
 ---
 
@@ -197,15 +195,15 @@ Features are:
 
 Signals and models consume **features**, not raw market data.
 
-```
+```text
 Features → Signals / Models → Scores / Alerts
 ```
 
 This separation ensures:
 
-* Explainability
-* Testability
-* Independent evolution
+- Explainability
+- Testability
+- Independent evolution
 
 ---
 
@@ -213,13 +211,13 @@ This separation ensures:
 
 ### Principles
 
-* Read-only
-* No heavy computation
-* Aggressively cached
+- Read-only
+- No heavy computation
+- Aggressively cached
 
 ### Query Pattern
 
-```
+```text
 Client → API → Cache → OLAP Store
 ```
 
@@ -235,9 +233,9 @@ Any correction follows this rule:
 
 ### Supported Operations
 
-* Replay Kafka topics
-* Rebuild Hudi tables
-* Recompute analytics
+- Replay Kafka topics
+- Rebuild Hudi tables
+- Recompute analytics
 
 ---
 
@@ -245,8 +243,8 @@ Any correction follows this rule:
 
 Failures are contained within domains:
 
-* Ingestion failure ≠ analytics failure
-* Analytics delay ≠ serving outage
+- Ingestion failure ≠ analytics failure
+- Analytics delay ≠ serving outage
 
 Kafka acts as the shock absorber.
 
@@ -254,10 +252,10 @@ Kafka acts as the shock absorber.
 
 ## 13. What This Enables
 
-* Polyglot persistence without chaos
-* Independent scaling of compute and storage
-* Strong auditability
-* Safe experimentation
+- Polyglot persistence without chaos
+- Independent scaling of compute and storage
+- Strong auditability
+- Safe experimentation
 
 ---
 

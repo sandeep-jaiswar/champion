@@ -18,20 +18,20 @@ Kafka topics are treated as **public, versioned APIs** between domains.
 
 ## 2. Topic Naming Convention
 
-```
+```text
 <layer>.<domain>.<entity>.<event_type>
-```
+```text
 
 ### Components
 
-* **layer**: `raw`, `normalized`, `analytics`
-* **domain**: `market`, `corporate`, `reference`, `system`
-* **entity**: logical business entity
-* **event_type**: semantic action
+- **layer**: `raw`, `normalized`, `analytics`
+- **domain**: `market`, `corporate`, `reference`, `system`
+- **entity**: logical business entity
+- **event_type**: semantic action
 
 ### Examples
 
-```
+```text
 raw.market.equity.trade
 raw.market.index.ohlc
 raw.corporate.announcement.pdf
@@ -49,55 +49,55 @@ analytics.market.signals.anomaly
 
 ### 3.1 Raw Topics (`raw.*`)
 
-**Owned by:** Ingestion Domain
+**Owned by:** Ingestion Domain  
 **Purpose:** Preserve source truth exactly as received
 
 Characteristics:
 
-* Source-aligned schemas
-* No enrichment
-* No correction
+- Source-aligned schemas
+- No enrichment
+- No correction
 
 Examples:
 
-* `raw.market.equity.trade`
-* `raw.market.equity.ohlc`
-* `raw.corporate.announcement.pdf`
+- `raw.market.equity.trade`
+- `raw.market.equity.ohlc`
+- `raw.corporate.announcement.pdf`
 
 ---
 
 ### 3.2 Normalized Topics (`normalized.*`)
 
-**Owned by:** Normalization Domain
+**Owned by:** Normalization Domain  
 **Purpose:** Financially consistent, cleaned events
 
 Characteristics:
 
-* Canonical symbols
-* Adjusted prices
-* Stable schemas
+- Canonical symbols
+- Adjusted prices
+- Stable schemas
 
 Examples:
 
-* `normalized.market.equity.ohlc`
-* `normalized.market.index.ohlc`
+- `normalized.market.equity.ohlc`
+- `normalized.market.index.ohlc`
 
 ---
 
 ### 3.3 Analytics Topics (`analytics.*`)
 
-**Owned by:** Analytics Domain
+**Owned by:** Analytics Domain  
 **Purpose:** Derived metrics and features
 
 Characteristics:
 
-* Deterministic outputs
-* Versioned feature definitions
+- Deterministic outputs
+- Versioned feature definitions
 
 Examples:
 
-* `analytics.market.equity.features`
-* `analytics.market.equity.returns`
+- `analytics.market.equity.features`
+- `analytics.market.equity.returns`
 
 ---
 
@@ -121,9 +121,9 @@ All events must conform to a **standard envelope** to support lineage, replay, a
 
 ### Notes
 
-* `event_time` = market time
-* `ingest_time` = system time
-* `entity_id` used as Kafka key
+- `event_time` = market time
+- `ingest_time` = system time
+- `entity_id` used as Kafka key
 
 ---
 
@@ -142,12 +142,12 @@ Schema changes are recorded as **Technology Decision Records (TDRs)**.
 
 ### Kafka Key
 
-* Primary key: `entity_id` (e.g., symbol + exchange)
+- Primary key: `entity_id` (e.g., symbol + exchange)
 
 ### Guarantees
 
-* Ordering preserved per symbol
-* Horizontal scalability
+- Ordering preserved per symbol
+- Horizontal scalability
 
 ---
 
@@ -165,19 +165,19 @@ Actual retention depends on cost and compliance requirements.
 
 ## 8. Anti-Patterns (Explicitly Forbidden)
 
-* Multiple event types in one topic
-* Schema-less JSON
-* Downstream mutation of events
-* Ad-hoc topic creation
+- Multiple event types in one topic
+- Schema-less JSON
+- Downstream mutation of events
+- Ad-hoc topic creation
 
 ---
 
 ## 9. What This Enables
 
-* Clean domain boundaries
-* Safe replay & backfills
-* Independent consumer evolution
-* Polyglot storage integration
+- Clean domain boundaries
+- Safe replay & backfills
+- Independent consumer evolution
+- Polyglot storage integration
 
 ---
 
