@@ -38,8 +38,10 @@ Kafka raw.* → Hudi Bronze (append) → Spark Normalize → Hudi Silver
 ## Event Contracts and Validation
 
 - Envelope required: `event_id`, `event_time`, `ingest_time`, `source`, `schema_version`, `entity_id`, `payload`.
-- Validation: schema registry + DQ checks per domain (nullability, ranges, monotonic time where applicable).
+- Validation: schema registry + DQ checks per domain (nullability, ranges, monotonic ordering of event_time when applicable—meaning event_time must not decrease within a given entity/stream partition).
 - Rejections: routed to quarantine topics/tables with reason codes.
+
+**Note:** "CA adjustments" refer to Corporate Actions adjustments for events like stock splits, dividends, and mergers that require historical price/volume corrections.
 
 ## Latency and Ordering
 
