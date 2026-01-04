@@ -12,7 +12,7 @@ Reference data schemas define the contracts for slowly-changing dimensional data
 **Owner**: Reference Data Domain  
 **Update Pattern**: SCD Type 2 (temporal validity with valid_from/valid_to)
 
-#### Purpose
+#### Purpose (Symbol Master)
 
 - Canonical mapping: exchange symbol → instrument_id
 - Direct source: NSE EQUITY_L.csv (2223 listed instruments)
@@ -21,7 +21,7 @@ Reference data schemas define the contracts for slowly-changing dimensional data
 - Trading lot size and face value validation
 - Validation source for normalization pipeline
 
-#### Key Fields
+#### Key Fields (Symbol Master)
 
 - `instrument_id`: Canonical identifier (SYMBOL:EXCHANGE)
 - `symbol`: From EQUITY_L SYMBOL column
@@ -35,7 +35,7 @@ Reference data schemas define the contracts for slowly-changing dimensional data
 - `status`: ACTIVE, SUSPENDED, DELISTED
 - `valid_from`, `valid_to`: Temporal validity window (SCD Type 2)
 
-#### Usage
+#### Usage (Symbol Master)
 
 ```python
 # Normalization pipeline lookup
@@ -58,7 +58,7 @@ if event_type == "CORPORATE_ACTION":
 **Owner**: Reference Data Domain  
 **Update Pattern**: Event-sourced (immutable, append-only)
 
-#### Purpose
+#### Purpose (Corporate Actions)
 
 - Historical record of all corporate actions from NSE CA file (1923 events, Jan 2025 - Jan 2026)
 - Fields: SYMBOL, COMPANY NAME, SERIES, PURPOSE, FACE VALUE, EX-DATE, RECORD DATE, BOOK CLOSURE START DATE, BOOK CLOSURE END DATE
@@ -67,7 +67,7 @@ if event_type == "CORPORATE_ACTION":
 - Backfill and replay-safe design (event-sourced, immutable, append-only)
 - Audit trail for all price adjustments
 
-#### Corporate Action Types
+#### Corporate Action Types (Parsed PURPOSE)
 
 - **SPLIT**: Face Value Split (Sub-Division) - e.g., Rs 10 → Re 1 per share
 - **BONUS**: Bonus issue - e.g., Bonus 2:1 (2 new shares for 1 existing)
@@ -77,7 +77,7 @@ if event_type == "CORPORATE_ACTION":
 - **EGMMEETING**: Extraordinary General Meeting (no price adjustment)
 - **MERGER**, **DEMERGER**, **BUYBACK**: Other corporate events
 
-#### Key Fields
+#### Key Fields (Corporate Actions)
 
 - `ca_id`: Composite key (symbol:exchange:ex_date:purpose)
 - `symbol`: From NSE CA SYMBOL
@@ -93,7 +93,7 @@ if event_type == "CORPORATE_ACTION":
 - `adjustment_factor`: Computed multiplicative factor (default 1.0)
 - `raw_purpose`: Full PURPOSE text for audit and debugging
 
-#### Adjustment Factor Computation
+#### Adjustment Factor Computation (Corporate Actions)
 
 **Split (10:1 to 1:1 consolidation)**: `adjustment_factor = 10` (old prices × 10)
 **Split (1:10 sub-division)**: `adjustment_factor = 0.1` (old prices × 0.1)  
@@ -115,7 +115,7 @@ adjusted_price = raw_price * cumulative_factor
 **Owner**: Reference Data Domain  
 **Update Pattern**: SCD Type 1 (upsert by exchange + trade_date)
 
-#### Purpose
+#### Purpose (Trading Calendar)
 
 - Identify trading days vs. holidays
 - Validate `is_trading_day` flag in normalized OHLC
@@ -132,7 +132,7 @@ adjusted_price = raw_price * cumulative_factor
 - **HALF_DAY**: Shortened trading session
 - **MUHURAT_TRADING**: Diwali special session
 
-#### Key Fields
+#### Key Fields (Trading Calendar)
 
 - `exchange`: NSE, BSE
 - `trade_date`: Date in question
@@ -141,7 +141,7 @@ adjusted_price = raw_price * cumulative_factor
 - `segments`: Array of segment-specific session timings
 - `clearing_date`, `settlement_date`: T+1, T+2 dates
 
-#### Usage
+#### Usage (Trading Calendar)
 
 ```python
 # Validate normalized OHLC against calendar
@@ -155,21 +155,21 @@ else:
 
 ## Kafka Topics
 
-### Symbol Master
+### Symbol Master (Kafka Topic)
 
 - **Topic**: `reference.nse.symbol_master`
 - **Key**: `instrument_id` (e.g., "RELIANCE:NSE")
 - **Compaction**: Log compacted (retain latest per key)
 - **Partitions**: 4 (low volume, ref data)
 
-### Corporate Actions
+### Corporate Actions (Kafka Topic)
 
 - **Topic**: `reference.nse.corporate_actions`
 - **Key**: `instrument_id` (for ordering)
 - **Compaction**: None (event-sourced, retain all)
 - **Partitions**: 8 (partition by instrument_id for ordering guarantee)
 
-### Trading Calendar
+### Trading Calendar (Kafka Topic)
 
 - **Topic**: `reference.nse.trading_calendar`
 - **Key**: `exchange:trade_date` (e.g., "NSE:2026-01-26")
