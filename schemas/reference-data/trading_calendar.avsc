@@ -1,0 +1,188 @@
+{
+  "type": "record",
+  "name": "TradingCalendar",
+  "namespace": "com.champion.reference",
+  "doc": "Trading calendar reference data - market holidays and special trading sessions for validation",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp when calendar entry was created/updated (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_trading_calendar', 'bse_trading_calendar')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Kafka partition key: exchange + date (e.g., 'NSE:2026-01-26')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "TradingCalendarPayload",
+        "doc": "Trading calendar entry with session details and holiday information",
+        "fields": [
+          {
+            "name": "exchange",
+            "type": "string",
+            "doc": "Exchange code (NSE, BSE)"
+          },
+          {
+            "name": "trade_date",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Calendar date (days since epoch)"
+          },
+          {
+            "name": "is_trading_day",
+            "type": "boolean",
+            "doc": "Whether the exchange is open for trading on this date"
+          },
+          {
+            "name": "day_type",
+            "type": {
+              "type": "enum",
+              "name": "DayType",
+              "symbols": [
+                "NORMAL_TRADING",
+                "WEEKEND",
+                "PUBLIC_HOLIDAY",
+                "MARKET_HOLIDAY",
+                "SPECIAL_TRADING",
+                "HALF_DAY",
+                "MUHURAT_TRADING"
+              ]
+            },
+            "doc": "Type of day"
+          },
+          {
+            "name": "holiday_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Name of the holiday if applicable (e.g., 'Republic Day', 'Diwali')"
+          },
+          {
+            "name": "segments",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "TradingSegment",
+                "fields": [
+                  {
+                    "name": "segment",
+                    "type": "string",
+                    "doc": "Market segment (CM=Capital Market, FO=Futures & Options, CD=Currency Derivatives)"
+                  },
+                  {
+                    "name": "is_open",
+                    "type": "boolean",
+                    "doc": "Whether this segment is open for trading"
+                  },
+                  {
+                    "name": "pre_open_start",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Pre-open session start time (HH:MM:SS format, exchange timezone)"
+                  },
+                  {
+                    "name": "pre_open_end",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Pre-open session end time (HH:MM:SS format)"
+                  },
+                  {
+                    "name": "normal_open",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Normal trading session start time (HH:MM:SS format)"
+                  },
+                  {
+                    "name": "normal_close",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Normal trading session end time (HH:MM:SS format)"
+                  },
+                  {
+                    "name": "post_close_start",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Post-close session start time (HH:MM:SS format)"
+                  },
+                  {
+                    "name": "post_close_end",
+                    "type": ["null", "string"],
+                    "default": null,
+                    "doc": "Post-close session end time (HH:MM:SS format)"
+                  }
+                ]
+              }
+            },
+            "doc": "Trading hours for each market segment"
+          },
+          {
+            "name": "clearing_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Clearing/settlement date for trades executed on this date (T+1, T+2, etc.)"
+          },
+          {
+            "name": "settlement_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Final settlement date for this trading day"
+          },
+          {
+            "name": "notes",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Additional notes or special instructions for this trading day"
+          },
+          {
+            "name": "metadata",
+            "type": ["null", {
+              "type": "map",
+              "values": "string"
+            }],
+            "default": null,
+            "doc": "Additional metadata as key-value pairs"
+          }
+        ]
+      },
+      "doc": "Trading calendar entry for validation of is_trading_day flag"
+    }
+  ]
+}

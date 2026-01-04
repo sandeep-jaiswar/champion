@@ -1,0 +1,284 @@
+{
+  "type": "record",
+  "name": "CorporateAction",
+  "namespace": "com.champion.reference",
+  "doc": "Corporate action events - immutable event-sourced history for price adjustments (splits, bonuses, dividends, rights)",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp when corporate action was announced/confirmed (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_corporate_actions', 'bse_corporate_actions')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Kafka partition key: instrument_id (e.g., 'RELIANCE:NSE') for ordering guarantee"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "CorporateActionPayload",
+        "doc": "Corporate action event details for price adjustment computation",
+        "fields": [
+          {
+            "name": "ca_id",
+            "type": "string",
+            "doc": "Corporate action identifier (unique per instrument + ex_date + action_type)"
+          },
+          {
+            "name": "instrument_id",
+            "type": "string",
+            "doc": "Canonical instrument identifier (symbol:exchange)"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "doc": "Trading symbol - from NSE CA SYMBOL field"
+          },
+          {
+            "name": "exchange",
+            "type": "string",
+            "default": "NSE",
+            "doc": "Exchange code (NSE, BSE)"
+          },
+          {
+            "name": "company_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Company name - from NSE CA COMPANY NAME field"
+          },
+          {
+            "name": "series",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ, GS, etc.) - from NSE CA SERIES field"
+          },
+          {
+            "name": "isin",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number (if available)"
+          },
+          {
+            "name": "purpose",
+            "type": "string",
+            "doc": "Corporate action purpose - from NSE CA PURPOSE field (parsed for type detection)"
+          },
+          {
+            "name": "action_type",
+            "type": {
+              "type": "enum",
+              "name": "CorporateActionType",
+              "symbols": [
+                "SPLIT",
+                "BONUS",
+                "DIVIDEND",
+                "RIGHTS",
+                "INTEREST_PAYMENT",
+                "EGMMEETING",
+                "DEMERGER",
+                "MERGER",
+                "BUYBACK",
+                "OTHER"
+              ]
+            },
+            "doc": "Parsed corporate action type from PURPOSE (SPLIT, BONUS, DIVIDEND, RIGHTS, INTEREST_PAYMENT, EGMMEETING, etc.)"
+          },
+          {
+            "name": "face_value",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Face value per share in INR - from NSE CA FACE VALUE"
+          },
+          {
+            "name": "ex_date",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Ex-date: first trading day without entitlement (days since epoch) - from NSE CA EX-DATE"
+          },
+          {
+            "name": "record_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Record date for eligibility (days since epoch) - from NSE CA RECORD DATE"
+          },
+          {
+            "name": "book_closure_start_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Book closure start date (days since epoch) - from NSE CA BOOK CLOSURE START DATE"
+          },
+          {
+            "name": "book_closure_end_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Book closure end date (days since epoch) - from NSE CA BOOK CLOSURE END DATE"
+          },
+          {
+            "name": "announcement_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Date when corporate action was announced (days since epoch)"
+          },
+          {
+            "name": "split_ratio",
+            "type": ["null", {
+              "type": "record",
+              "name": "SplitRatio",
+              "fields": [
+                {
+                  "name": "old_shares",
+                  "type": "long",
+                  "doc": "Number of old shares (e.g., 1 for 1:5 split)"
+                },
+                {
+                  "name": "new_shares",
+                  "type": "long",
+                  "doc": "Number of new shares (e.g., 5 for 1:5 split)"
+                }
+              ]
+            }],
+            "default": null,
+            "doc": "Split/consolidation ratio (old:new)"
+          },
+          {
+            "name": "bonus_ratio",
+            "type": ["null", {
+              "type": "record",
+              "name": "BonusRatio",
+              "fields": [
+                {
+                  "name": "new_shares",
+                  "type": "long",
+                  "doc": "Number of bonus shares (e.g., 1 for 1:2 bonus)"
+                },
+                {
+                  "name": "existing_shares",
+                  "type": "long",
+                  "doc": "Number of existing shares (e.g., 2 for 1:2 bonus)"
+                }
+              ]
+            }],
+            "default": null,
+            "doc": "Bonus issue ratio (new:existing)"
+          },
+          {
+            "name": "dividend_amount",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Dividend amount per share in INR"
+          },
+          {
+            "name": "dividend_type",
+            "type": ["null", {
+              "type": "enum",
+              "name": "DividendType",
+              "symbols": ["INTERIM", "FINAL", "SPECIAL"]
+            }],
+            "default": null,
+            "doc": "Type of dividend"
+          },
+          {
+            "name": "rights_ratio",
+            "type": ["null", {
+              "type": "record",
+              "name": "RightsRatio",
+              "fields": [
+                {
+                  "name": "rights_shares",
+                  "type": "long",
+                  "doc": "Number of rights shares offered"
+                },
+                {
+                  "name": "existing_shares",
+                  "type": "long",
+                  "doc": "Number of existing shares held"
+                }
+              ]
+            }],
+            "default": null,
+            "doc": "Rights issue ratio (rights:existing)"
+          },
+          {
+            "name": "rights_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Rights issue subscription price per share in INR"
+          },
+          {
+            "name": "adjustment_factor",
+            "type": "double",
+            "default": 1.0,
+            "doc": "Multiplicative adjustment factor for historical prices (1.0 = no adjustment)"
+          },
+          {
+            "name": "status",
+            "type": {
+              "type": "enum",
+              "name": "CorporateActionStatus",
+              "symbols": ["ANNOUNCED", "CONFIRMED", "EXECUTED", "CANCELLED"]
+            },
+            "default": "ANNOUNCED",
+            "doc": "Status of the corporate action"
+          },
+          {
+            "name": "raw_purpose",
+            "type": "string",
+            "doc": "Raw PURPOSE text from NSE CA file (for audit and parsing debugging)"
+          },
+          {
+            "name": "metadata",
+            "type": ["null", {
+              "type": "map",
+              "values": "string"
+            }],
+            "default": null,
+            "doc": "Additional metadata as key-value pairs"
+          }
+        ]
+      },
+      "doc": "Immutable corporate action event - append-only for accurate historical adjustment computation"
+    }
+  ]
+}
