@@ -1,0 +1,169 @@
+{
+  "type": "record",
+  "name": "NormalizedEquityOHLC",
+  "namespace": "com.champion.market.normalized",
+  "doc": "Normalized equity OHLC - standardized, CA-adjusted, financially consistent",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Market timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Original data source"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Canonical instrument identifier (e.g., 'RELIANCE:NSE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "NormalizedOHLCPayload",
+        "doc": "Normalized OHLC payload with standardized fields and CA adjustments",
+        "fields": [
+          {
+            "name": "instrument_id",
+            "type": "string",
+            "doc": "Canonical instrument identifier (symbol:exchange)"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "doc": "Standardized trading symbol"
+          },
+          {
+            "name": "exchange",
+            "type": "string",
+            "doc": "Exchange code (NSE, BSE)"
+          },
+          {
+            "name": "isin",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number - from NSE ISIN field"
+          },
+          {
+            "name": "instrument_type",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index) - from NSE FinInstrmTp"
+          },
+          {
+            "name": "series",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ=Equity, BE=Book Entry, GB=Government Bonds) - from NSE SctySrs"
+          },
+          {
+            "name": "trade_date",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Trading date (days since epoch) - parsed from NSE TradDt"
+          },
+          {
+            "name": "prev_close",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Previous close (CA-adjusted, INR) - from NSE PrvsClsgPric"
+          },
+          {
+            "name": "open",
+            "type": "double",
+            "doc": "Opening price (CA-adjusted, INR) - from NSE OpnPric"
+          },
+          {
+            "name": "high",
+            "type": "double",
+            "doc": "Highest price (CA-adjusted, INR) - from NSE HghPric"
+          },
+          {
+            "name": "low",
+            "type": "double",
+            "doc": "Lowest price (CA-adjusted, INR) - from NSE LwPric"
+          },
+          {
+            "name": "close",
+            "type": "double",
+            "doc": "Closing price (CA-adjusted, INR) - from NSE ClsPric"
+          },
+          {
+            "name": "last_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Last traded price (CA-adjusted, INR) - from NSE LastPric"
+          },
+          {
+            "name": "settlement_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Settlement price (CA-adjusted, INR) - from NSE SttlmPric"
+          },
+          {
+            "name": "volume",
+            "type": "long",
+            "doc": "Total traded quantity (shares/contracts) - from NSE TtlTradgVol"
+          },
+          {
+            "name": "turnover",
+            "type": "double",
+            "doc": "Total turnover in INR - from NSE TtlTrfVal"
+          },
+          {
+            "name": "trades",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total number of trades - from NSE TtlNbOfTxsExctd"
+          },
+          {
+            "name": "adjustment_factor",
+            "type": "double",
+            "default": 1.0,
+            "doc": "Cumulative CA adjustment factor applied (1.0 = no adjustment)"
+          },
+          {
+            "name": "adjustment_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Last corporate action date applied (if any)"
+          },
+          {
+            "name": "is_trading_day",
+            "type": "boolean",
+            "doc": "Whether this was a valid trading day (aligned with calendar)"
+          }
+        ]
+      }
+    }
+  ]
+}
