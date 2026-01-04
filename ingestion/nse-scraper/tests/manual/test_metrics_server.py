@@ -5,8 +5,9 @@ Usage:
 """
 
 import time
-from src.utils.metrics import start_metrics_server
+
 from src.utils.logger import configure_logging, get_logger
+from src.utils.metrics import start_metrics_server
 
 configure_logging()
 logger = get_logger(__name__)

@@ -4,7 +4,7 @@ This directory contains the test suite for the NSE Scraper project.
 
 ## Directory Structure
 
-```
+```text
 tests/
 ├── manual/              # Manual test scripts for development
 │   ├── test_all_endpoints.py       # Comprehensive endpoint test
@@ -29,6 +29,7 @@ python -m tests.manual.test_all_endpoints
 ```
 
 This will:
+
 - Start Prometheus metrics server on port 9090
 - Test bhavcopy scraper with sample data
 - Display metrics at <http://localhost:9090/metrics>
@@ -69,7 +70,7 @@ pytest tests/unit/
 pytest --cov=src tests/unit/
 ```
 
-### Test Structure (Planned)
+### Unit Test Structure (Planned)
 
 - `test_parsers.py` - Test CSV parsers (bhavcopy, symbol master, CA)
 - `test_config.py` - Test configuration loading and validation
@@ -89,7 +90,7 @@ docker-compose up -d
 pytest tests/integration/
 ```
 
-### Test Structure (Planned)
+### Integration Test Structure (Planned)
 
 - `test_scrape_workflow.py` - Test download → parse → produce pipeline
 - `test_kafka_integration.py` - Test Kafka/Schema Registry integration

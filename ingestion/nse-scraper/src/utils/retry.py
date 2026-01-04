@@ -1,7 +1,7 @@
 """Retry utilities with exponential backoff."""
 
-from functools import wraps
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from tenacity import (
     retry,
@@ -17,14 +17,16 @@ logger = get_logger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def retry_on_network_error(max_attempts: int = 3, min_wait: int = 1, max_wait: int = 60) -> Callable[[F], F]:
+def retry_on_network_error(
+    max_attempts: int = 3, min_wait: int = 1, max_wait: int = 60
+) -> Callable[[F], F]:
     """Decorator to retry on network errors with exponential backoff.
-    
+
     Args:
         max_attempts: Maximum retry attempts
         min_wait: Minimum wait time between retries (seconds)
         max_wait: Maximum wait time between retries (seconds)
-        
+
     Returns:
         Decorated function with retry logic
     """

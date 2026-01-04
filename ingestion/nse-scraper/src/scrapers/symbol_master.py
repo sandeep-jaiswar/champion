@@ -16,7 +16,7 @@ class SymbolMasterScraper(BaseScraper):
 
     def scrape(self, dry_run: bool = False) -> None:
         """Scrape symbol master data.
-        
+
         Args:
             dry_run: If True, parse without producing to Kafka
         """
@@ -29,6 +29,6 @@ class SymbolMasterScraper(BaseScraper):
             raise RuntimeError("Failed to download symbol master")
 
         self.logger.info("Symbol master scrape complete")
-        
+
         if dry_run:
             self.logger.info("Dry run - skipped parsing and Kafka production")
