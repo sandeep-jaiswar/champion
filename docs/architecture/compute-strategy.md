@@ -23,7 +23,7 @@
 ## Streaming vs Batch Decision Guide
 
 - Latency < ~10s → streaming; latency minutes+ or full history → batch.
-- If transformation requires full window recomputation (e.g., CA restatement) → batch backfill.
+- If transformation requires full window recomputation (e.g., corporate actions/restatements such as stock splits, dividends, mergers) → batch backfill.
 - If output must be exactly reproducible historically → ensure streaming logic mirrors batch and is replay-tested.
 
 ## Feature Computation Patterns
@@ -31,6 +31,7 @@
 - Rolling windows: prefer batch for large windows; streaming for short/near-now with periodic reconciliation.
 - Point-in-time correctness: store event_time and processing_time; avoid lookahead by enforcing watermarking.
 - Versioned feature definitions: include `feature_version` in outputs; never overwrite prior definitions.
+- **State schema migrations:** Plan backwards compatibility when evolving streaming state; version state snapshots; test recovery from older checkpoints to ensure seamless upgrades without data loss.
 
 ## Orchestration
 
@@ -41,10 +42,13 @@
 
 - Autoscale streaming based on lag and CPU; autoscale batch clusters per job size.
 - Optimize Spark shuffle (partition sizing) and Hudi write configs for compaction windows.
-- Cache hot dimensions in memory-side stores if needed, but keep canonical values in the lake.
+- Cache hot dimensions in memory stores (Redis, Memcached) or local streaming task state if needed, but keep canonical values in the lake as the source of truth.
 
 ## Observability for Compute
 
 - Metrics: throughput, lag, checkpoint age, failed records, DQ failures, watermark delay.
 - Logs: structured with `event_id` and `entity_id` for joinability.
 - Traces: critical paths from ingest through serve; include job version in trace attributes.
+- **Idempotency validation:** Alert on duplicate `event_id` processing; reconcile streaming/batch outputs post-replay to ensure consistency.
+
+See [observability.md](./observability.md) for detailed observability architecture.

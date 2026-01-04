@@ -5,11 +5,15 @@
 - Provide end-to-end visibility across ingest, normalize, derive, store, and serve.
 - Detect regressions early, isolate faults by domain, and enable confident replay/backfill.
 
+This document complements [compute-strategy.md](./compute-strategy.md) (deterministic outputs and watermark policies), [security.md](./security.md) (audit logging), and [data-flow.md](./data-flow.md) (end-to-end visibility).
+
 ## Pillars
 
-- **Metrics:** Throughput, lag, error rates, DQ failures, watermark delay, replay/backfill outcomes.
+- **Metrics:** Throughput, lag, error rates, DQ failures, watermark delay (the lag between the watermark and current wall-clock time), checkpoint age (time since last successful streaming checkpoint), replay/backfill outcomes.
 - **Traces:** Critical request paths (ingest → normalize → serve) and batch/stream jobs with version tags.
 - **Logs:** Structured, entity-keyed (`entity_id`, `event_id`), with reason codes for drops/quarantine.
+
+For more details on streaming concepts, see [compute-strategy.md](./compute-strategy.md).
 
 ## Data Quality Checks
 
@@ -23,6 +27,11 @@
 
 - Dedicated quarantine topics/tables per domain with reason codes and payload.
 - Replay jobs consume quarantine after fixes; all replays recorded with window and job version.
+- **Workflow:** Fixes validated in staging; replay jobs are idempotent (using deterministic job IDs) and track replay attempts per window.
+- **SLA:** Quarantine items addressed within defined domain-specific timelines; escalation if backlog exceeds threshold.
+- **Idempotency:** Replay jobs use deterministic job IDs and skip already-processed windows to ensure safe reruns.
+
+See [compute-strategy.md](./compute-strategy.md) for deterministic compute patterns and [security.md](./security.md) for replay audit requirements.
 
 ## SLOs and Alerting
 

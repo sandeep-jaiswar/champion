@@ -20,7 +20,7 @@
 ## ClickHouse (Serving OLAP)
 
 - **Use:** API/query serving for dashboards and client requests.
-- **Schema:** columnar, minimized low-cardinality string explosion (use codecs/dictionaries where appropriate).
+- **Schema:** columnar, minimize memory/storage bloat from low-cardinality strings by using dictionary encoding and appropriate codecs.
 - **Order/Partition keys:** `entity_id`, `event_date` (or bucketed by date), plus scenario-specific sort keys.
 - **Materialized views:** for rollups (e.g., OHLC aggregates, factor windows); refresh from Hudi or Kafka.
 - **TTL:** set per table; consider moving cold segments back to lake.
@@ -40,7 +40,7 @@
 
 ## Artifacts and Lineage
 
-- Model artifacts, TDRs, and replay manifests stored in object storage with versioned paths.
+- Model artifacts, Technical Design Reviews (TDRs), and replay manifests stored in object storage with versioned paths.
 - Lineage tracked via envelope fields plus job metadata; emit lineage events to governance tooling.
 
 ## Access Control and Compliance

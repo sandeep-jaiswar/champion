@@ -25,7 +25,7 @@
 ## Serving Patterns
 
 - Point lookups (online): key by `entity_id`; fetch latest by `event_time` <= request_time.
-- Time-travel (offline): query Hudi Gold with `event_time` predicates; ensure PIT correctness for backtests.
+- Time-travel (offline): query Hudi Gold with `event_time` predicates; ensure point-in-time (PIT) correctness for backtests.
 - Aggregated features: publish both raw components and aggregates for auditability.
 
 ## Freshness and SLAs
