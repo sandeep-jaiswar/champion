@@ -88,6 +88,25 @@ class ObservabilityConfig(BaseSettings):
     tracing_enabled: bool = Field(default=False)
     jaeger_agent_host: str = Field(default="localhost")
     jaeger_agent_port: int = Field(default=6831)
+    
+    @field_validator("log_level")
+    def validate_log_level(cls, v: str) -> str:
+        """Validate log level is a valid logging level.
+        
+        Args:
+            v: Log level string
+            
+        Returns:
+            Normalized uppercase log level
+            
+        Raises:
+            ValueError: If log level is invalid
+        """
+        valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        v_upper = v.upper()
+        if v_upper not in valid_levels:
+            raise ValueError(f"Invalid log level: {v}. Must be one of {valid_levels}")
+        return v_upper
 
     model_config = SettingsConfigDict(env_prefix="")
 

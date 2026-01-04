@@ -24,11 +24,22 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_format: Output format ('json' or 'console')
+    
+    Raises:
+        ValueError: If log_level is not a valid logging level
     """
+    # Validate log level
+    valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+    log_level_upper = log_level.upper()
+    if log_level_upper not in valid_levels:
+        raise ValueError(
+            f"Invalid log_level '{log_level}'. Must be one of: {', '.join(valid_levels)}"
+        )
+    
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=getattr(logging, log_level.upper()),
+        level=getattr(logging, log_level_upper),
     )
 
     processors = [
@@ -46,7 +57,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
 
     structlog.configure(
         processors=processors,
-        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level.upper())),
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level_upper)),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=True,
