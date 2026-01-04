@@ -24,7 +24,7 @@ These schemas define the contract for equity OHLC (Open-High-Low-Close) data flo
 - `event_id`: UUID for global uniqueness
 - `event_time`: Market timestamp from NSE
 - `ingest_time`: Platform capture time
-- `source`: `"nse_bhavcopy"` or `"nse_api"`
+- `source`: `"nse_cm_bhavcopy"` (CM segment file), `"nse_fo_bhavcopy"` (F&O segment), or `"nse_api"` (real-time)
 - `schema_version`: `"v1"`
 - `entity_id`: Kafka partition key (`"SYMBOL:NSE"`)
 
@@ -171,7 +171,7 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
 ### Raw Schema
 
 - `event_id` must be unique
-- `event_time` <= `ingest_time` (within skew tolerance)
+- `event_time` <= `ingest_time` (skew tolerance: 5 minutes for end-of-day files, 30 seconds for real-time)
 - `TckrSymb` must be non-empty when present
 - `TradDt` must be valid date format (YYYY-MM-DD)
 - All payload fields nullable for graceful handling of malformed data
@@ -182,7 +182,7 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
 - `high` >= `low`
 - `volume` >= 0
 - `adjustment_factor` > 0
-- `trade_date` must align with trading calendar
+- `trade_date` must align with NSE trading calendar (ref: `reference.nse.trading_calendar`)
 
 ## Evolution Strategy
 
