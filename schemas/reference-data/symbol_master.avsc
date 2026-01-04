@@ -1,0 +1,195 @@
+{
+  "type": "record",
+  "name": "SymbolMaster",
+  "namespace": "com.champion.reference",
+  "doc": "Symbol master reference data - canonical instrument metadata for validation and enrichment",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp when symbol metadata was updated (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_symbol_master', 'bse_symbol_master')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Kafka partition key: canonical instrument_id (e.g., 'RELIANCE:NSE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "SymbolMasterPayload",
+        "doc": "Symbol master payload with canonical identifiers and classification metadata",
+        "fields": [
+          {
+            "name": "instrument_id",
+            "type": "string",
+            "doc": "Canonical instrument identifier (symbol:exchange) - primary key"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "doc": "Trading symbol (e.g., 'RELIANCE', '20MICRONS') - from EQUITY_L SYMBOL column"
+          },
+          {
+            "name": "exchange",
+            "type": "string",
+            "doc": "Exchange code (NSE, BSE) - inferred from data source"
+          },
+          {
+            "name": "company_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Full company name - from EQUITY_L NAME OF COMPANY"
+          },
+          {
+            "name": "isin",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number - from EQUITY_L ISIN NUMBER"
+          },
+          {
+            "name": "series",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ, BE, GB, etc.) - from EQUITY_L SERIES"
+          },
+          {
+            "name": "listing_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Listing date (days since epoch) - from EQUITY_L DATE OF LISTING"
+          },
+          {
+            "name": "face_value",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Face value per share in INR - from EQUITY_L FACE VALUE"
+          },
+          {
+            "name": "paid_up_value",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Paid up value per share in INR - from EQUITY_L PAID UP VALUE"
+          },
+          {
+            "name": "lot_size",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Trading lot size (board lot quantity) - from EQUITY_L MARKET LOT"
+          },
+          {
+            "name": "sector",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Industry sector (enriched from external sources, not in EQUITY_L)"
+          },
+          {
+            "name": "industry",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Industry classification (enriched from external sources, not in EQUITY_L)"
+          },
+          {
+            "name": "market_cap_category",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Market cap category (LARGE_CAP, MID_CAP, SMALL_CAP) - enriched, not in EQUITY_L"
+          },
+          {
+            "name": "tick_size",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Minimum price movement (tick size) in INR - enriched from market data"
+          },
+          {
+            "name": "is_index_constituent",
+            "type": ["null", "boolean"],
+            "default": null,
+            "doc": "Whether constituent of major indices (NIFTY50, SENSEX, etc.)"
+          },
+          {
+            "name": "indices",
+            "type": ["null", {
+              "type": "array",
+              "items": "string"
+            }],
+            "default": null,
+            "doc": "List of indices this symbol belongs to (e.g., ['NIFTY50', 'NIFTYBANK'])"
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "default": "ACTIVE",
+            "doc": "Trading status (ACTIVE, SUSPENDED, DELISTED)"
+          },
+          {
+            "name": "delisting_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Delisting date if applicable (days since epoch)"
+          },
+          {
+            "name": "metadata",
+            "type": ["null", {
+              "type": "map",
+              "values": "string"
+            }],
+            "default": null,
+            "doc": "Additional metadata as key-value pairs"
+          },
+          {
+            "name": "valid_from",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Effective date for this version of metadata (days since epoch)"
+          },
+          {
+            "name": "valid_to",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Expiry date for this version (null = current, days since epoch)"
+          }
+        ]
+      },
+      "doc": "Symbol master reference data with temporal validity"
+    }
+  ]
+}
