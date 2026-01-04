@@ -144,29 +144,20 @@ def health() -> None:
     """Check scraper health and dependencies."""
     console.print("[bold]NSE Scraper Health Check[/bold]\n")
 
-    # Check Kafka connectivity via Schema Registry
-    try:
-        import httpx
-
-        response = httpx.get(f"{config.kafka.schema_registry_url}/subjects", timeout=5.0)
-        if response.status_code == 200:
-            console.print("[green]✓[/green] Kafka connection: OK")
-        else:
-            console.print(f"[red]✗[/red] Kafka connection: FAILED ({response.status_code})")
-    except Exception as e:
-        console.print(f"[red]✗[/red] Kafka connection: FAILED ({e})")
-
-    # Check Schema Registry
+    # Check Schema Registry (which also validates Kafka connectivity)
     try:
         import httpx
 
         response = httpx.get(f"{config.kafka.schema_registry_url}/subjects", timeout=5.0)
         if response.status_code == 200:
             console.print("[green]✓[/green] Schema Registry: OK")
+            console.print("[green]✓[/green] Kafka connection: OK (via Schema Registry)")
         else:
             console.print(f"[red]✗[/red] Schema Registry: FAILED ({response.status_code})")
+            console.print("[red]✗[/red] Kafka connection: Cannot verify")
     except Exception as e:
         console.print(f"[red]✗[/red] Schema Registry: FAILED ({e})")
+        console.print("[red]✗[/red] Kafka connection: Cannot verify")
 
     # Check data directory
     if config.storage.data_dir.exists():

@@ -66,7 +66,7 @@ def main():
         print(f"\nPayload fields: {len(payload)} total, {non_null_fields} non-null in sample")
     else:
         print("\nNo events parsed - cannot display symbol or payload statistics")
-    
+
     print("=" * 80 + "\n")
 
 
