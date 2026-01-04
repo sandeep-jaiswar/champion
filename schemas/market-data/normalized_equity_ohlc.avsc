@@ -1,0 +1,171 @@
+{
+  "type": "record",
+  "name": "NormalizedEquityOHLC",
+  "namespace": "com.champion.market.normalized",
+  "doc": "Normalized equity OHLC - standardized, CA-adjusted, financially consistent",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Market timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Original data source"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Canonical instrument identifier (e.g., 'RELIANCE:NSE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "NormalizedOHLCPayload",
+        "doc": "Normalized OHLC payload with standardized fields and CA adjustments",
+        "fields": [
+          {
+            "name": "instrument_id",
+            "type": "string",
+            "doc": "Canonical instrument identifier (symbol:exchange)"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "doc": "Standardized trading symbol"
+          },
+          {
+            "name": "exchange",
+            "type": "string",
+            "doc": "Exchange code (NSE, BSE)"
+          },
+          {
+            "name": "series",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ=Equity, BE=Book Entry, GS=Government Securities)"
+          },
+          {
+            "name": "trade_date",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Trading date (days since epoch) - parsed from NSE DATE1"
+          },
+          {
+            "name": "prev_close",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Previous close (CA-adjusted, INR) - from NSE PREV_CLOSE"
+          },
+          {
+            "name": "open",
+            "type": "double",
+            "doc": "Opening price (CA-adjusted, INR)"
+          },
+          {
+            "name": "high",
+            "type": "double",
+            "doc": "Highest price (CA-adjusted, INR)"
+          },
+          {
+            "name": "low",
+            "type": "double",
+            "doc": "Lowest price (CA-adjusted, INR)"
+          },
+          {
+            "name": "close",
+            "type": "double",
+            "doc": "Closing price (CA-adjusted, INR) - from NSE CLOSE_PRICE"
+          },
+          {
+            "name": "last_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Last traded price (CA-adjusted, INR) - from NSE LAST_PRICE"
+          },
+          {
+            "name": "avg_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Average traded price (VWAP from NSE AVG_PRICE, CA-adjusted)"
+          },
+          {
+            "name": "volume",
+            "type": "long",
+            "doc": "Total traded quantity (shares) - from NSE TTL_TRD_QNTY"
+          },
+          {
+            "name": "turnover",
+            "type": "double",
+            "doc": "Total turnover in INR - converted from NSE TURNOVER_LACS (lakhs to INR)"
+          },
+          {
+            "name": "trades",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total number of trades - from NSE NO_OF_TRADES"
+          },
+          {
+            "name": "deliverable_volume",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Deliverable quantity - from NSE DELIV_QTY"
+          },
+          {
+            "name": "deliverable_percentage",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Deliverable percentage - from NSE DELIV_PER"
+          },
+          {
+            "name": "adjustment_factor",
+            "type": {
+              "type": "double",
+              "default": 1.0
+            },
+            "doc": "Cumulative CA adjustment factor applied (1.0 = no adjustment)"
+          },
+          {
+            "name": "adjustment_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Last corporate action date applied (if any)"
+          },
+          {
+            "name": "is_trading_day",
+            "type": "boolean",
+            "doc": "Whether this was a valid trading day (aligned with calendar)"
+          }
+        ]
+      }
+    }
+  ]
+}

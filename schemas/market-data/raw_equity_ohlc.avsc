@@ -1,0 +1,145 @@
+{
+  "type": "record",
+  "name": "RawEquityOHLC",
+  "namespace": "com.champion.market.raw",
+  "doc": "Raw equity OHLC data from NSE bhavcopy - preserves source truth exactly as received",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Market/exchange timestamp when data was generated (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_bhavcopy', 'nse_api')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Kafka partition key: symbol + exchange composite (e.g., 'RELIANCE:NSE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "NSEEquityOHLCPayload",
+        "doc": "NSE bhavcopy equity OHLC payload - mirrors sec_bhavdata_full format exactly",
+        "fields": [
+          {
+            "name": "SYMBOL",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Trading symbol as provided by NSE (e.g., 'RELIANCE', 'TCS')"
+          },
+          {
+            "name": "SERIES",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ=Equity, GS=Government Securities, etc.)"
+          },
+          {
+            "name": "DATE1",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Trading date in NSE format (DD-MMM-YYYY, e.g., '02-Jan-2026')"
+          },
+          {
+            "name": "PREV_CLOSE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Previous day closing price in INR"
+          },
+          {
+            "name": "OPEN_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Opening price in INR"
+          },
+          {
+            "name": "HIGH_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Highest price in INR"
+          },
+          {
+            "name": "LOW_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Lowest price in INR"
+          },
+          {
+            "name": "LAST_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Last traded price in INR"
+          },
+          {
+            "name": "CLOSE_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Closing price in INR"
+          },
+          {
+            "name": "AVG_PRICE",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Average traded price in INR (VWAP provided by NSE)"
+          },
+          {
+            "name": "TTL_TRD_QNTY",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total traded quantity (number of shares)"
+          },
+          {
+            "name": "TURNOVER_LACS",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Total turnover in lakhs of INR (1 lakh = 100,000)"
+          },
+          {
+            "name": "NO_OF_TRADES",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total number of trades executed"
+          },
+          {
+            "name": "DELIV_QTY",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Deliverable quantity (shares)"
+          },
+          {
+            "name": "DELIV_PER",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Deliverable percentage (% of TTL_TRD_QNTY)"
+          }
+        ]
+      },
+      "doc": "Raw payload from NSE sec_bhavdata_full - all fields nullable, field names match CSV exactly"
+    }
+  ]
+}
