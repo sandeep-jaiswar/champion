@@ -30,15 +30,20 @@ These schemas define the contract for equity OHLC (Open-High-Low-Close) data flo
 
 #### Raw Payload Fields
 
-Based on NSE sec_bhavdata_full format (fields match CSV exactly):
+Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bonds):
 
-- `SYMBOL`: Trading symbol (e.g., `"RELIANCE"`)
-- `SERIES`: Security series (typically `"EQ"`, `"BE"`, `"GS"`)
-- `DATE1`: Date string in NSE format (`"DD-MMM-YYYY"`)
-- OHLC prices: `OPEN_PRICE`, `HIGH_PRICE`, `LOW_PRICE`, `CLOSE_PRICE`, `LAST_PRICE`, `PREV_CLOSE`
-- Volume data: `TTL_TRD_QNTY`, `TURNOVER_LACS`, `NO_OF_TRADES`
-- Deliverables: `DELIV_QTY`, `DELIV_PER`
-- `AVG_PRICE`: Volume-weighted average price provided by NSE
+- `TradDt`, `BizDt`: Trade and business dates (YYYY-MM-DD)
+- `Sgmt`: Segment (CM=Capital Market)
+- `FinInstrmTp`: Instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index)
+- `FinInstrmId`: NSE internal instrument ID
+- `ISIN`: International Securities Identification Number
+- `TckrSymb`: Ticker symbol (e.g., `"RELIANCE"`)
+- `SctySrs`: Security series (`"EQ"`, `"BE"`, `"GB"`, etc.)
+- OHLC prices: `OpnPric`, `HghPric`, `LwPric`, `ClsPric`, `LastPric`, `PrvsClsgPric`
+- `SttlmPric`: Settlement price
+- Volume data: `TtlTradgVol`, `TtlTrfVal` (turnover in INR), `TtlNbOfTxsExctd`
+- Derivatives: `XpryDt`, `StrkPric`, `OptnTp`, `OpnIntrst`, `ChngInOpnIntrst`
+- Reserved: `Rsvd1`, `Rsvd2`, `Rsvd3`, `Rsvd4`
 
 ### 2. `normalized_equity_ohlc.avsc`
 
@@ -56,22 +61,22 @@ Based on NSE sec_bhavdata_full format (fields match CSV exactly):
 
 #### Transformations Applied
 
-1. **Symbol Normalization**: `"RELIANCE"` → `"RELIANCE:NSE"`
-2. **Date Standardization**: `DATE1` string → Avro date type (days since epoch)
+1. **Symbol Normalization**: `TckrSymb` "RELIANCE" → `"RELIANCE:NSE"`
+2. **Date Standardization**: `TradDt` string → Avro date type (days since epoch)
 3. **CA Adjustment**: All prices adjusted for splits, bonuses, dividends
-4. **Field Mapping**: `TTL_TRD_QNTY` → `volume`, `TURNOVER_LACS` → `turnover` (lakhs to INR)
-5. **Unit Conversion**: `TURNOVER_LACS` × 100,000 → turnover in INR
+4. **Field Mapping**: `TtlTradgVol` → `volume`, `TtlTrfVal` → `turnover`
+5. **Instrument Classification**: `FinInstrmTp` + `SctySrs` → standardized type
 6. **Metadata**: `adjustment_factor`, `adjustment_date`, `is_trading_day`
 
 #### Normalized Payload Fields
 
 - `instrument_id`: Canonical ID (`"SYMBOL:EXCHANGE"`)
-- `symbol`, `exchange`, `series`
+- `symbol`, `exchange`, `isin`, `instrument_type`, `series`
 - `trade_date`: Avro date type (days since epoch)
 - `prev_close`: Previous close (CA-adjusted)
 - OHLC: `open`, `high`, `low`, `close` (all CA-adjusted, non-nullable)
-- Prices: `last_price`, `avg_price` (NSE VWAP, CA-adjusted)
-- Volume: `volume`, `turnover`, `trades`, `deliverable_volume`, `deliverable_percentage`
+- Prices: `last_price`, `settlement_price` (CA-adjusted)
+- Volume: `volume`, `turnover`, `trades`
 - Adjustments: `adjustment_factor`, `adjustment_date`
 - Validation: `is_trading_day`
 
@@ -82,27 +87,46 @@ Based on NSE sec_bhavdata_full format (fields match CSV exactly):
 ```json
 {
   "event_id": "550e8400-e29b-41d4-a716-446655440000",
-  "event_time": 1704297600000,
-  "ingest_time": 1704297660000,
-  "source": "nse_bhavcopy",
+  "event_time": 1735776000000,
+  "ingest_time": 1735776060000,
+  "source": "nse_cm_bhavcopy",
   "schema_version": "v1",
   "entity_id": "RELIANCE:NSE",
   "payload": {
-    "SYMBOL": "RELIANCE",
-    "SERIES": "EQ",
-    "DATE1": "02-Jan-2026",
-    "PREV_CLOSE": 2455.20,
-    "OPEN_PRICE": 2450.50,
-    "HIGH_PRICE": 2478.90,
-    "LOW_PRICE": 2445.00,
-    "LAST_PRICE": 2470.00,
-    "CLOSE_PRICE": 2470.35,
-    "AVG_PRICE": 2464.04,
-    "TTL_TRD_QNTY": 12500000,
-    "TURNOVER_LACS": 30800.50,
-    "NO_OF_TRADES": 125000,
-    "DELIV_QTY": 6250000,
-    "DELIV_PER": 50.0
+    "TradDt": "2026-01-02",
+    "BizDt": "2026-01-02",
+    "Sgmt": "CM",
+    "Src": "NSE",
+    "FinInstrmTp": "STK",
+    "FinInstrmId": 2885,
+    "ISIN": "INE002A01018",
+    "TckrSymb": "RELIANCE",
+    "SctySrs": "EQ",
+    "XpryDt": null,
+    "FininstrmActlXpryDt": null,
+    "StrkPric": null,
+    "OptnTp": null,
+    "FinInstrmNm": "Reliance Industries Limited",
+    "OpnPric": 2450.50,
+    "HghPric": 2478.90,
+    "LwPric": 2445.00,
+    "ClsPric": 2470.35,
+    "LastPric": 2470.00,
+    "PrvsClsgPric": 2455.20,
+    "UndrlygPric": null,
+    "SttlmPric": 2470.35,
+    "OpnIntrst": null,
+    "ChngInOpnIntrst": null,
+    "TtlTradgVol": 12500000,
+    "TtlTrfVal": 3080050000.0,
+    "TtlNbOfTxsExctd": 125000,
+    "SsnId": "F1",
+    "NewBrdLotQty": 1,
+    "Rmks": null,
+    "Rsvd1": null,
+    "Rsvd2": null,
+    "Rsvd3": null,
+    "Rsvd4": null
   }
 }
 ```
@@ -112,29 +136,29 @@ Based on NSE sec_bhavdata_full format (fields match CSV exactly):
 ```json
 {
   "event_id": "550e8400-e29b-41d4-a716-446655440000",
-  "event_time": 1704297600000,
-  "ingest_time": 1704297660000,
-  "source": "nse_bhavcopy",
+  "event_time": 1735776000000,
+  "ingest_time": 1735776060000,
+  "source": "nse_cm_bhavcopy",
   "schema_version": "v1",
   "entity_id": "RELIANCE:NSE",
   "payload": {
     "instrument_id": "RELIANCE:NSE",
     "symbol": "RELIANCE",
     "exchange": "NSE",
+    "isin": "INE002A01018",
+    "instrument_type": "STK",
     "series": "EQ",
-    "trade_date": 20476,
+    "trade_date": 20454,
     "prev_close": 2455.20,
     "open": 2450.50,
     "high": 2478.90,
     "low": 2445.00,
     "close": 2470.35,
     "last_price": 2470.00,
-    "avg_price": 2464.04,
+    "settlement_price": 2470.35,
     "volume": 12500000,
     "turnover": 3080050000.0,
     "trades": 125000,
-    "deliverable_volume": 6250000,
-    "deliverable_percentage": 50.0,
     "adjustment_factor": 1.0,
     "adjustment_date": null,
     "is_trading_day": true
@@ -148,8 +172,8 @@ Based on NSE sec_bhavdata_full format (fields match CSV exactly):
 
 - `event_id` must be unique
 - `event_time` <= `ingest_time` (within skew tolerance)
-- `SYMBOL` must be non-empty when present
-- `DATE1` must be valid NSE date format (`DD-MMM-YYYY`)
+- `TckrSymb` must be non-empty when present
+- `TradDt` must be valid date format (YYYY-MM-DD)
 - All payload fields nullable for graceful handling of malformed data
 
 ### Normalized Schema

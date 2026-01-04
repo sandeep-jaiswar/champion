@@ -63,10 +63,22 @@
             "doc": "Exchange code (NSE, BSE)"
           },
           {
+            "name": "isin",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number - from NSE ISIN field"
+          },
+          {
+            "name": "instrument_type",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index) - from NSE FinInstrmTp"
+          },
+          {
             "name": "series",
             "type": ["null", "string"],
             "default": null,
-            "doc": "Security series (EQ=Equity, BE=Book Entry, GS=Government Securities)"
+            "doc": "Security series (EQ=Equity, BE=Book Entry, GB=Government Bonds) - from NSE SctySrs"
           },
           {
             "name": "trade_date",
@@ -74,73 +86,61 @@
               "type": "int",
               "logicalType": "date"
             },
-            "doc": "Trading date (days since epoch) - parsed from NSE DATE1"
+            "doc": "Trading date (days since epoch) - parsed from NSE TradDt"
           },
           {
             "name": "prev_close",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Previous close (CA-adjusted, INR) - from NSE PREV_CLOSE"
+            "doc": "Previous close (CA-adjusted, INR) - from NSE PrvsClsgPric"
           },
           {
             "name": "open",
             "type": "double",
-            "doc": "Opening price (CA-adjusted, INR)"
+            "doc": "Opening price (CA-adjusted, INR) - from NSE OpnPric"
           },
           {
             "name": "high",
             "type": "double",
-            "doc": "Highest price (CA-adjusted, INR)"
+            "doc": "Highest price (CA-adjusted, INR) - from NSE HghPric"
           },
           {
             "name": "low",
             "type": "double",
-            "doc": "Lowest price (CA-adjusted, INR)"
+            "doc": "Lowest price (CA-adjusted, INR) - from NSE LwPric"
           },
           {
             "name": "close",
             "type": "double",
-            "doc": "Closing price (CA-adjusted, INR) - from NSE CLOSE_PRICE"
+            "doc": "Closing price (CA-adjusted, INR) - from NSE ClsPric"
           },
           {
             "name": "last_price",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Last traded price (CA-adjusted, INR) - from NSE LAST_PRICE"
+            "doc": "Last traded price (CA-adjusted, INR) - from NSE LastPric"
           },
           {
-            "name": "avg_price",
+            "name": "settlement_price",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Average traded price (VWAP from NSE AVG_PRICE, CA-adjusted)"
+            "doc": "Settlement price (CA-adjusted, INR) - from NSE SttlmPric"
           },
           {
             "name": "volume",
             "type": "long",
-            "doc": "Total traded quantity (shares) - from NSE TTL_TRD_QNTY"
+            "doc": "Total traded quantity (shares/contracts) - from NSE TtlTradgVol"
           },
           {
             "name": "turnover",
             "type": "double",
-            "doc": "Total turnover in INR - converted from NSE TURNOVER_LACS (lakhs to INR)"
+            "doc": "Total turnover in INR - from NSE TtlTrfVal"
           },
           {
             "name": "trades",
             "type": ["null", "long"],
             "default": null,
-            "doc": "Total number of trades - from NSE NO_OF_TRADES"
-          },
-          {
-            "name": "deliverable_volume",
-            "type": ["null", "long"],
-            "default": null,
-            "doc": "Deliverable quantity - from NSE DELIV_QTY"
-          },
-          {
-            "name": "deliverable_percentage",
-            "type": ["null", "double"],
-            "default": null,
-            "doc": "Deliverable percentage - from NSE DELIV_PER"
+            "doc": "Total number of trades - from NSE TtlNbOfTxsExctd"
           },
           {
             "name": "adjustment_factor",

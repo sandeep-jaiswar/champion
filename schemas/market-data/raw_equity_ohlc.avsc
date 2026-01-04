@@ -44,102 +44,216 @@
       "name": "payload",
       "type": {
         "type": "record",
-        "name": "NSEEquityOHLCPayload",
-        "doc": "NSE bhavcopy equity OHLC payload - mirrors sec_bhavdata_full format exactly",
+        "name": "NSECMBhavcopyPayload",
+        "doc": "NSE CM segment bhavcopy payload - mirrors BhavCopy_NSE_CM format exactly (covers equity, derivatives, government bonds)",
         "fields": [
           {
-            "name": "SYMBOL",
+            "name": "TradDt",
             "type": ["null", "string"],
             "default": null,
-            "doc": "Trading symbol as provided by NSE (e.g., 'RELIANCE', 'TCS')"
+            "doc": "Trade date (YYYY-MM-DD format)"
           },
           {
-            "name": "SERIES",
+            "name": "BizDt",
             "type": ["null", "string"],
             "default": null,
-            "doc": "Security series (EQ=Equity, GS=Government Securities, etc.)"
+            "doc": "Business date (YYYY-MM-DD format)"
           },
           {
-            "name": "DATE1",
+            "name": "Sgmt",
             "type": ["null", "string"],
             "default": null,
-            "doc": "Trading date in NSE format (DD-MMM-YYYY, e.g., '02-Jan-2026')"
+            "doc": "Segment code (CM=Capital Market)"
           },
           {
-            "name": "PREV_CLOSE",
+            "name": "Src",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Source (NSE)"
+          },
+          {
+            "name": "FinInstrmTp",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Financial instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index)"
+          },
+          {
+            "name": "FinInstrmId",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Financial instrument ID (NSE internal identifier)"
+          },
+          {
+            "name": "ISIN",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number"
+          },
+          {
+            "name": "TckrSymb",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Ticker symbol (trading symbol)"
+          },
+          {
+            "name": "SctySrs",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Security series (EQ=Equity, BE=Book Entry, GB=Government Bonds, etc.)"
+          },
+          {
+            "name": "XpryDt",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Expiry date for derivatives (YYYY-MM-DD format, blank for equity)"
+          },
+          {
+            "name": "FininstrmActlXpryDt",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Financial instrument actual expiry date"
+          },
+          {
+            "name": "StrkPric",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Previous day closing price in INR"
+            "doc": "Strike price (for options, blank for equity)"
           },
           {
-            "name": "OPEN_PRICE",
+            "name": "OptnTp",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Option type (CE=Call European, PE=Put European, blank for equity)"
+          },
+          {
+            "name": "FinInstrmNm",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Financial instrument name/description"
+          },
+          {
+            "name": "OpnPric",
             "type": ["null", "double"],
             "default": null,
             "doc": "Opening price in INR"
           },
           {
-            "name": "HIGH_PRICE",
+            "name": "HghPric",
             "type": ["null", "double"],
             "default": null,
             "doc": "Highest price in INR"
           },
           {
-            "name": "LOW_PRICE",
+            "name": "LwPric",
             "type": ["null", "double"],
             "default": null,
             "doc": "Lowest price in INR"
           },
           {
-            "name": "LAST_PRICE",
-            "type": ["null", "double"],
-            "default": null,
-            "doc": "Last traded price in INR"
-          },
-          {
-            "name": "CLOSE_PRICE",
+            "name": "ClsPric",
             "type": ["null", "double"],
             "default": null,
             "doc": "Closing price in INR"
           },
           {
-            "name": "AVG_PRICE",
+            "name": "LastPric",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Average traded price in INR (VWAP provided by NSE)"
+            "doc": "Last traded price in INR"
           },
           {
-            "name": "TTL_TRD_QNTY",
-            "type": ["null", "long"],
-            "default": null,
-            "doc": "Total traded quantity (number of shares)"
-          },
-          {
-            "name": "TURNOVER_LACS",
+            "name": "PrvsClsgPric",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Total turnover in lakhs of INR (1 lakh = 100,000)"
+            "doc": "Previous closing price in INR"
           },
           {
-            "name": "NO_OF_TRADES",
-            "type": ["null", "long"],
-            "default": null,
-            "doc": "Total number of trades executed"
-          },
-          {
-            "name": "DELIV_QTY",
-            "type": ["null", "long"],
-            "default": null,
-            "doc": "Deliverable quantity (shares)"
-          },
-          {
-            "name": "DELIV_PER",
+            "name": "UndrlygPric",
             "type": ["null", "double"],
             "default": null,
-            "doc": "Deliverable percentage (% of TTL_TRD_QNTY)"
+            "doc": "Underlying price (for derivatives, blank for equity)"
+          },
+          {
+            "name": "SttlmPric",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Settlement price in INR"
+          },
+          {
+            "name": "OpnIntrst",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Open interest (for derivatives, blank for equity)"
+          },
+          {
+            "name": "ChngInOpnIntrst",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Change in open interest (for derivatives)"
+          },
+          {
+            "name": "TtlTradgVol",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total trading volume (number of shares/contracts)"
+          },
+          {
+            "name": "TtlTrfVal",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Total transfer value (turnover in INR)"
+          },
+          {
+            "name": "TtlNbOfTxsExctd",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total number of transactions executed"
+          },
+          {
+            "name": "SsnId",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Session ID (F1=Final session)"
+          },
+          {
+            "name": "NewBrdLotQty",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "New board lot quantity"
+          },
+          {
+            "name": "Rmks",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Remarks"
+          },
+          {
+            "name": "Rsvd1",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Reserved field 1"
+          },
+          {
+            "name": "Rsvd2",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Reserved field 2"
+          },
+          {
+            "name": "Rsvd3",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Reserved field 3"
+          },
+          {
+            "name": "Rsvd4",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Reserved field 4"
           }
         ]
       },
-      "doc": "Raw payload from NSE sec_bhavdata_full - all fields nullable, field names match CSV exactly"
+      "doc": "Raw payload from NSE BhavCopy_NSE_CM file - all fields nullable, covers equity + derivatives + bonds"
     }
   ]
 }
