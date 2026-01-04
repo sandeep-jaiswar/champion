@@ -42,7 +42,7 @@ last_successful_scrape = Gauge(
 
 def start_metrics_server(port: int = 9090) -> None:
     """Start Prometheus metrics HTTP server.
-    
+
     Args:
         port: Port to expose metrics on
     """

@@ -1,7 +1,6 @@
 """Configuration management using Pydantic settings."""
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,8 +13,8 @@ class KafkaConfig(BaseSettings):
     schema_registry_url: str = Field(default="http://localhost:8081")
     security_protocol: str = Field(default="PLAINTEXT")
     sasl_mechanism: str = Field(default="PLAIN")
-    sasl_username: Optional[str] = Field(default=None)
-    sasl_password: Optional[str] = Field(default=None)
+    sasl_username: str | None = Field(default=None)
+    sasl_password: str | None = Field(default=None)
 
     # Producer configs
     enable_idempotence: bool = Field(default=True)
@@ -96,8 +95,8 @@ class ObservabilityConfig(BaseSettings):
 class MonitoringConfig(BaseSettings):
     """Monitoring and alerting configuration."""
 
-    alert_webhook_url: Optional[str] = Field(default=None)
-    slack_webhook_url: Optional[str] = Field(default=None)
+    alert_webhook_url: str | None = Field(default=None)
+    slack_webhook_url: str | None = Field(default=None)
 
     model_config = SettingsConfigDict(env_prefix="")
 

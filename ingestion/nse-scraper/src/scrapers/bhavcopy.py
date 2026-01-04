@@ -1,7 +1,6 @@
 """NSE CM Bhavcopy scraper."""
 
 from datetime import date
-from pathlib import Path
 
 from src.config import config
 from src.scrapers.base import BaseScraper
@@ -20,7 +19,7 @@ class BhavcopyScraper(BaseScraper):
 
     def scrape(self, target_date: date, dry_run: bool = False) -> None:
         """Scrape bhavcopy for a specific date.
-        
+
         Args:
             target_date: Date to scrape
             dry_run: If True, parse without producing to Kafka
@@ -31,10 +30,10 @@ class BhavcopyScraper(BaseScraper):
             # Format date for NSE URL (YYYYMMDD)
             date_str = target_date.strftime("%Y%m%d")
             url = config.nse.bhavcopy_url.format(date=date_str)
-            
+
             # Download file
             local_path = config.storage.data_dir / f"BhavCopy_NSE_CM_{date_str}.csv"
-            
+
             if not self.download_file(url, str(local_path)):
                 raise RuntimeError(f"Failed to download bhavcopy for {target_date}")
 
@@ -42,16 +41,20 @@ class BhavcopyScraper(BaseScraper):
 
             # Parse file
             from src.parsers.bhavcopy_parser import BhavcopyParser
+
             parser = BhavcopyParser()
             events = parser.parse(local_path, target_date)
 
-            self.logger.info(f"Parsed {len(events)} events", date=str(target_date), count=len(events))
+            self.logger.info(
+                f"Parsed {len(events)} events", date=str(target_date), count=len(events)
+            )
 
             if not dry_run:
                 # Produce to Kafka
                 from src.producers.avro_producer import AvroProducer
+
                 producer = AvroProducer(config.topics.raw_ohlc)
-                
+
                 success_count = 0
                 failed_count = 0
 
@@ -61,16 +64,22 @@ class BhavcopyScraper(BaseScraper):
                         success_count += 1
                     except Exception as e:
                         failed_count += 1
-                        self.logger.error(f"Failed to produce event", symbol=event.get("entity_id"), error=str(e))
+                        self.logger.error(
+                            "Failed to produce event", symbol=event.get("entity_id"), error=str(e)
+                        )
 
                 producer.flush()
-                self.logger.info(f"Produced events to Kafka", 
-                               success=success_count, 
-                               failed=failed_count,
-                               topic=config.topics.raw_ohlc)
+                self.logger.info(
+                    "Produced events to Kafka",
+                    success=success_count,
+                    failed=failed_count,
+                    topic=config.topics.raw_ohlc,
+                )
             else:
                 self.logger.info("Dry run - skipped Kafka production", count=len(events))
 
-            from src.utils.metrics import last_successful_scrape
             import time
+
+            from src.utils.metrics import last_successful_scrape
+
             last_successful_scrape.labels(scraper=self.name).set(time.time())
