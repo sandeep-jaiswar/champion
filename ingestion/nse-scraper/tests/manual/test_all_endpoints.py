@@ -46,6 +46,7 @@ def main():
         logger.info(f"✓ Successfully scraped and parsed {test_date}")
     except Exception as e:
         logger.error(f"✗ Failed to scrape {test_date}: {e}")
+        raise RuntimeError(f"Scrape failed for {test_date}") from e
 
     # Test 3: Display current metrics
     logger.info("\n[TEST 3] Current Metrics")

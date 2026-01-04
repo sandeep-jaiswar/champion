@@ -191,8 +191,11 @@ poetry run python -m src.main scrape bhavcopy --date 2026-01-02 --dry-run
 
 ### Scheduled Execution (Airflow DAG)
 
+Airflow DAG orchestration is planned for future implementation.
+
 ```python
-# See ../airflow/dags/nse_ingestion_dag.py for orchestration
+# DAG file will be added in a future release
+# See ../airflow/dags/nse_ingestion_dag.py (coming soon)
 ```
 
 ## Data Quality
@@ -298,8 +301,8 @@ docker build -t champion/nse-scraper:latest .
 # Push to registry
 docker push champion/nse-scraper:latest
 
-# Deploy CronJob
-kubectl apply -f k8s/nse-scraper-cronjob.yaml
+# Deploy CronJob (Kubernetes manifests to be added)
+# kubectl apply -f k8s/nse-scraper-cronjob.yaml
 
 # Monitor logs
 kubectl logs -f job/nse-scraper-bhavcopy-20260102
@@ -308,7 +311,8 @@ kubectl logs -f job/nse-scraper-bhavcopy-20260102
 ### Docker Compose (Staging)
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+# Production compose file (to be added in future release)
+# docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## Troubleshooting

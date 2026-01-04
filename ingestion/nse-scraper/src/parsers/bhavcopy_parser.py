@@ -4,7 +4,7 @@ import csv
 import uuid
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from src.utils.logger import get_logger
 from src.utils.metrics import rows_parsed
@@ -50,7 +50,7 @@ class BhavcopyParser:
         logger.info("Parsed bhavcopy file", path=str(file_path), events=len(events))
         return events
 
-    def _row_to_event(self, row: dict[str, str], trade_date: date) -> dict[str, Any]:
+    def _row_to_event(self, row: dict[str, str], trade_date: date) -> Optional[dict[str, Any]]:
         """Convert CSV row to event structure.
 
         Args:
@@ -58,7 +58,7 @@ class BhavcopyParser:
             trade_date: Trading date
 
         Returns:
-            Event dictionary with envelope and payload
+            Event dictionary with envelope and payload, or None if row should be skipped
         """
         # Skip if symbol is empty
         symbol = row.get("TckrSymb", "").strip()
@@ -94,12 +94,12 @@ class BhavcopyParser:
             Payload dictionary matching Avro schema
         """
 
-        def safe_str(value: str) -> str:
+        def safe_str(value: str) -> Optional[str]:
             """Get string value or None."""
             val = value.strip() if value else None
             return val if val and val != "-" else None
 
-        def safe_float(value: str) -> float:
+        def safe_float(value: str) -> Optional[float]:
             """Get float value or None."""
             try:
                 return (
@@ -110,7 +110,7 @@ class BhavcopyParser:
             except (ValueError, AttributeError):
                 return None
 
-        def safe_int(value: str) -> int:
+        def safe_int(value: str) -> Optional[int]:
             """Get int value or None."""
             try:
                 return (

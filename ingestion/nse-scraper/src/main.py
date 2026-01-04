@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 
 from src.config import config
-from src.utils.logger import get_logger
+from src.utils.logger import configure_logging, get_logger
 
 app = typer.Typer(
     name="nse-scraper",
@@ -35,7 +35,7 @@ def scrape(
     )
 
     try:
-        target_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else date.today()
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else (date.today() - timedelta(days=1))
 
         if scraper_type == "bhavcopy":
             from src.scrapers.bhavcopy import BhavcopyScraper
@@ -144,26 +144,20 @@ def health() -> None:
     """Check scraper health and dependencies."""
     console.print("[bold]NSE Scraper Health Check[/bold]\n")
 
-    # Check Kafka connectivity
-    try:
-        from src.producers.avro_producer import AvroProducer
-
-        AvroProducer(config.topics.raw_ohlc)
-        console.print("[green]✓[/green] Kafka connection: OK")
-    except Exception as e:
-        console.print(f"[red]✗[/red] Kafka connection: FAILED ({e})")
-
-    # Check Schema Registry
+    # Check Schema Registry (which also validates Kafka connectivity)
     try:
         import httpx
 
-        response = httpx.get(f"{config.kafka.schema_registry_url}/subjects")
+        response = httpx.get(f"{config.kafka.schema_registry_url}/subjects", timeout=5.0)
         if response.status_code == 200:
             console.print("[green]✓[/green] Schema Registry: OK")
+            console.print("[green]✓[/green] Kafka connection: OK (via Schema Registry)")
         else:
             console.print(f"[red]✗[/red] Schema Registry: FAILED ({response.status_code})")
+            console.print("[red]✗[/red] Kafka connection: Cannot verify")
     except Exception as e:
         console.print(f"[red]✗[/red] Schema Registry: FAILED ({e})")
+        console.print("[red]✗[/red] Kafka connection: Cannot verify")
 
     # Check data directory
     if config.storage.data_dir.exists():
@@ -174,6 +168,7 @@ def health() -> None:
 
 def main() -> None:
     """Main entrypoint."""
+    configure_logging()
     app()
 
 

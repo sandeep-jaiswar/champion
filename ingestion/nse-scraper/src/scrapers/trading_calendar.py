@@ -1,9 +1,6 @@
 """Trading Calendar scraper."""
 
 from src.scrapers.base import BaseScraper
-from src.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class TradingCalendarScraper(BaseScraper):

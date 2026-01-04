@@ -23,7 +23,7 @@ COPY pyproject.toml poetry.lock ./
 
 # Install dependencies (without dev dependencies)
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-interaction --no-ansi
+    poetry install --without dev --no-interaction --no-ansi
 
 # Copy application code
 COPY src/ ./src/
@@ -34,7 +34,7 @@ USER scraper
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9090/health || exit 1
+    CMD curl -f http://localhost:9090/metrics || exit 1
 
 # Expose metrics port
 EXPOSE 9090

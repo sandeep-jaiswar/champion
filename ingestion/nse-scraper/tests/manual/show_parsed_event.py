@@ -55,14 +55,18 @@ def main():
     print("Source: nse_cm_bhavcopy")
     print("Schema version: v1")
 
-    # Show symbol distribution
-    symbols = [e["entity_id"].split(":")[0] for e in events[:10]]
-    print(f"\nFirst 10 symbols: {', '.join(symbols)}")
+    # Show symbol distribution (only if events exist)
+    if events:
+        symbols = [e["entity_id"].split(":")[0] for e in events[:10]]
+        print(f"\nFirst 10 symbols: {', '.join(symbols)}")
 
-    # Payload field statistics
-    payload = events[0]["payload"]
-    non_null_fields = sum(1 for v in payload.values() if v is not None)
-    print(f"\nPayload fields: {len(payload)} total, {non_null_fields} non-null in sample")
+        # Payload field statistics
+        payload = events[0]["payload"]
+        non_null_fields = sum(1 for v in payload.values() if v is not None)
+        print(f"\nPayload fields: {len(payload)} total, {non_null_fields} non-null in sample")
+    else:
+        print("\nNo events parsed - cannot display symbol or payload statistics")
+
     print("=" * 80 + "\n")
 
 
