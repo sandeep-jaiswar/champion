@@ -6,10 +6,10 @@ on:
       - main
       - develop
     paths:
-      - '**.md'
+      - '**/*.md'
   pull_request:
     paths:
-      - '**.md'
+      - '**/*.md'
 
 jobs:
   markdownlint:
