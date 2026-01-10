@@ -133,11 +133,12 @@ def test_nse_bhavcopy_etl_flow_with_mock_scraper(sample_csv_file, test_output_di
 
     monkeypatch.setattr("src.orchestration.flows.scrape_bhavcopy", mock_scrape)
 
-    # Run the flow (without ClickHouse load)
+    # Run the flow (without ClickHouse load and without starting metrics server)
     result = nse_bhavcopy_etl_flow(
         trade_date=trade_date,
         output_base_path=str(test_output_dir),
         load_to_clickhouse=False,  # Skip ClickHouse
+        start_metrics_server_flag=False,  # Skip metrics server
     )
 
     assert result is not None
@@ -145,6 +146,66 @@ def test_nse_bhavcopy_etl_flow_with_mock_scraper(sample_csv_file, test_output_di
     assert result["rows_processed"] == 3
     assert "parquet_file" in result
     assert Path(result["parquet_file"]).exists()
+
+
+def test_prometheus_metrics_tracking(sample_csv_file, test_output_dir, monkeypatch):
+    """Test that Prometheus metrics are properly tracked during flow execution."""
+    from prometheus_client import REGISTRY
+    from src.utils import metrics
+    from contextlib import contextmanager
+
+    trade_date = date(2024, 1, 2)
+
+    # Mock the scrape_bhavcopy task to return our sample CSV
+    def mock_scrape(trade_date):
+        return str(sample_csv_file)
+
+    # Mock MLflow to avoid connection issues
+    import mlflow
+    
+    @contextmanager
+    def mock_start_run(**kwargs):
+        yield None
+    
+    monkeypatch.setattr(mlflow, "start_run", mock_start_run)
+    monkeypatch.setattr(mlflow, "log_metric", lambda *args, **kwargs: None)
+    monkeypatch.setattr(mlflow, "log_param", lambda *args, **kwargs: None)
+    
+    monkeypatch.setattr("src.orchestration.flows.scrape_bhavcopy", mock_scrape)
+
+    # Get initial metric values
+    try:
+        initial_parquet_success = metrics.parquet_write_success.labels(
+            table="normalized_equity_ohlc"
+        )._value.get()
+    except Exception:
+        initial_parquet_success = 0
+    
+    # Run the flow (without ClickHouse load and without starting metrics server)
+    result = nse_bhavcopy_etl_flow(
+        trade_date=trade_date,
+        output_base_path=str(test_output_dir),
+        load_to_clickhouse=False,
+        start_metrics_server_flag=False,
+    )
+
+    # Verify the flow succeeded
+    assert result["status"] == "success"
+
+    # Verify parquet_write_success metric was incremented
+    final_parquet_success = metrics.parquet_write_success.labels(
+        table="normalized_equity_ohlc"
+    )._value.get()
+    assert final_parquet_success > initial_parquet_success, "parquet_write_success should be incremented"
+
+    # Verify flow_duration metric was recorded
+    # Check that the histogram has samples
+    flow_duration_samples = REGISTRY.get_sample_value(
+        'nse_pipeline_flow_duration_seconds_count',
+        {'flow_name': 'nse-bhavcopy-etl', 'status': 'success'}
+    )
+    assert flow_duration_samples is not None and flow_duration_samples > 0, \
+        "flow_duration should be recorded"
 
 
 if __name__ == "__main__":

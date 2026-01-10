@@ -1,0 +1,320 @@
+{
+  "dashboard": {
+    "title": "NSE Pipeline Metrics",
+    "description": "Monitoring dashboard for NSE data pipeline stages",
+    "tags": ["nse", "pipeline", "etl", "prometheus"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Parquet Write Operations",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "rate(nse_pipeline_parquet_write_success_total[5m])",
+            "legendFormat": "Success Rate - {{table}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(nse_pipeline_parquet_write_failed_total[5m])",
+            "legendFormat": "Failure Rate - {{table}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Operations/sec",
+            "format": "short"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "ClickHouse Load Operations",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "rate(nse_pipeline_clickhouse_load_success_total[5m])",
+            "legendFormat": "Success Rate - {{table}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(nse_pipeline_clickhouse_load_failed_total[5m])",
+            "legendFormat": "Failure Rate - {{table}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Operations/sec",
+            "format": "short"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Flow Duration (50th, 95th, 99th percentile)",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(nse_pipeline_flow_duration_seconds_bucket{status=\"success\"}[5m]))",
+            "legendFormat": "p50 - {{flow_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nse_pipeline_flow_duration_seconds_bucket{status=\"success\"}[5m]))",
+            "legendFormat": "p95 - {{flow_name}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(nse_pipeline_flow_duration_seconds_bucket{status=\"success\"}[5m]))",
+            "legendFormat": "p99 - {{flow_name}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "label": "Duration (seconds)",
+            "format": "s"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Success vs Failed Flows",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(nse_pipeline_flow_duration_seconds_count{status=\"success\"}[5m]))",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(nse_pipeline_flow_duration_seconds_count{status=\"failed\"}[5m]))",
+            "legendFormat": "Failure Rate",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "orientation": "auto"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Parquet Write Success Count",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "nse_pipeline_parquet_write_success_total",
+            "legendFormat": "{{table}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 6,
+        "title": "Parquet Write Failed Count",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "nse_pipeline_parquet_write_failed_total",
+            "legendFormat": "{{table}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 7,
+        "title": "ClickHouse Load Success Count",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "nse_pipeline_clickhouse_load_success_total",
+            "legendFormat": "{{table}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 8,
+        "title": "ClickHouse Load Failed Count",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "nse_pipeline_clickhouse_load_failed_total",
+            "legendFormat": "{{table}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "orientation": "auto",
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 9,
+        "title": "Average Flow Duration (Last Hour)",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "targets": [
+          {
+            "expr": "avg(rate(nse_pipeline_flow_duration_seconds_sum{status=\"success\"}[1h]) / rate(nse_pipeline_flow_duration_seconds_count{status=\"success\"}[1h]))",
+            "legendFormat": "Avg Duration",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "orientation": "auto",
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Error Rate (All Operations)",
+        "type": "gauge",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(nse_pipeline_parquet_write_failed_total[5m]) + rate(nse_pipeline_clickhouse_load_failed_total[5m])) / sum(rate(nse_pipeline_parquet_write_success_total[5m]) + rate(nse_pipeline_parquet_write_failed_total[5m]) + rate(nse_pipeline_clickhouse_load_success_total[5m]) + rate(nse_pipeline_clickhouse_load_failed_total[5m])) * 100",
+            "legendFormat": "Error %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    }
+  }
+}
