@@ -246,7 +246,14 @@ class PolarsBhavcopyParser:
         day = trade_date.day
 
         # Create partition path (Hive-style partitioning)
-        partition_path = base_path / "normalized" / "ohlc" / f"year={year}" / f"month={month:02d}" / f"day={day:02d}"
+        partition_path = (
+            base_path
+            / "normalized"
+            / "ohlc"
+            / f"year={year}"
+            / f"month={month:02d}"
+            / f"day={day:02d}"
+        )
         partition_path.mkdir(parents=True, exist_ok=True)
 
         # Write to Parquet with compression

@@ -57,6 +57,7 @@ def test_prefect_task_stub():
     finally:
         # Cleanup
         import shutil
+
         shutil.rmtree(test_dir)
 
 
