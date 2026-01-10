@@ -39,6 +39,37 @@ last_successful_scrape = Gauge(
     ["scraper"],
 )
 
+# Pipeline metrics
+parquet_write_success = Counter(
+    "nse_pipeline_parquet_write_success_total",
+    "Total successful Parquet writes",
+    ["table"],
+)
+
+parquet_write_failed = Counter(
+    "nse_pipeline_parquet_write_failed_total",
+    "Total failed Parquet writes",
+    ["table"],
+)
+
+clickhouse_load_success = Counter(
+    "nse_pipeline_clickhouse_load_success_total",
+    "Total successful ClickHouse loads",
+    ["table"],
+)
+
+clickhouse_load_failed = Counter(
+    "nse_pipeline_clickhouse_load_failed_total",
+    "Total failed ClickHouse loads",
+    ["table"],
+)
+
+flow_duration = Histogram(
+    "nse_pipeline_flow_duration_seconds",
+    "Time spent executing complete ETL flow",
+    ["flow_name", "status"],
+)
+
 
 def start_metrics_server(port: int = 9090) -> None:
     """Start Prometheus metrics HTTP server.
