@@ -10,7 +10,6 @@ Usage:
 """
 
 import time
-from pathlib import Path
 
 from src.utils.logger import configure_logging, get_logger
 from src.utils.metrics import (

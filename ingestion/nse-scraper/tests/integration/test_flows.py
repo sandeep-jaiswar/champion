@@ -150,9 +150,11 @@ def test_nse_bhavcopy_etl_flow_with_mock_scraper(sample_csv_file, test_output_di
 
 def test_prometheus_metrics_tracking(sample_csv_file, test_output_dir, monkeypatch):
     """Test that Prometheus metrics are properly tracked during flow execution."""
-    from prometheus_client import REGISTRY
-    from src.utils import metrics
     from contextlib import contextmanager
+
+    from prometheus_client import REGISTRY
+
+    from src.utils import metrics
 
     trade_date = date(2024, 1, 2)
 
@@ -162,15 +164,15 @@ def test_prometheus_metrics_tracking(sample_csv_file, test_output_dir, monkeypat
 
     # Mock MLflow to avoid connection issues
     import mlflow
-    
+
     @contextmanager
     def mock_start_run(**kwargs):
         yield None
-    
+
     monkeypatch.setattr(mlflow, "start_run", mock_start_run)
     monkeypatch.setattr(mlflow, "log_metric", lambda *args, **kwargs: None)
     monkeypatch.setattr(mlflow, "log_param", lambda *args, **kwargs: None)
-    
+
     monkeypatch.setattr("src.orchestration.flows.scrape_bhavcopy", mock_scrape)
 
     # Get initial metric values
@@ -180,7 +182,7 @@ def test_prometheus_metrics_tracking(sample_csv_file, test_output_dir, monkeypat
         )._value.get()
     except Exception:
         initial_parquet_success = 0
-    
+
     # Run the flow (without ClickHouse load and without starting metrics server)
     result = nse_bhavcopy_etl_flow(
         trade_date=trade_date,
