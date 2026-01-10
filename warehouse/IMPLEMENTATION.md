@@ -5,18 +5,21 @@
 This implementation provides a complete ClickHouse data warehouse solution for the Champion market data platform with:
 
 ✅ **Docker Compose Configuration**
+
 - ClickHouse 24.1 with HTTP (8123) and native (9000) ports exposed
 - Persistent volumes for data and logs
 - Healthcheck configuration
 - User authentication and role-based access control
 
 ✅ **Database Schemas (DDL)**
+
 - **raw_equity_ohlc**: Raw NSE bhavcopy data (5-year retention)
 - **normalized_equity_ohlc**: Clean, CA-adjusted data (3-year retention)
 - **features_equity_indicators**: Technical indicators (1-year retention)
 - **equity_ohlc_daily_summary**: Materialized view for aggregations
 
 ✅ **Batch Loader**
+
 - Python-based loader supporting all three tables
 - Batch processing with configurable batch sizes
 - Automatic type conversions (dates, timestamps)
@@ -24,12 +27,14 @@ This implementation provides a complete ClickHouse data warehouse solution for t
 - Comprehensive error handling and logging
 
 ✅ **Sample Data Generator**
+
 - Generates realistic market data samples
 - Creates partitioned Parquet files
 - Supports all three data layers (raw, normalized, features)
 - Configurable number of symbols and days
 
 ✅ **Documentation**
+
 - Complete README with setup instructions
 - Testing guide with acceptance criteria
 - Example queries for validation
@@ -37,7 +42,7 @@ This implementation provides a complete ClickHouse data warehouse solution for t
 
 ## Files Created
 
-```
+```text
 /home/runner/work/champion/champion/
 ├── docker-compose.yml                     # ClickHouse service definition
 └── warehouse/
@@ -139,6 +144,7 @@ ORDER BY trade_date DESC;
 ### Table Design
 
 All tables use:
+
 - **MergeTree** engine family (efficient for analytics)
 - **Monthly partitioning** (YYYYMM) for data lifecycle management
 - **TTL policies** for automatic data expiration
@@ -147,7 +153,7 @@ All tables use:
 
 ### Data Flow
 
-```
+```text
 Parquet Files → Batch Loader → ClickHouse Tables
      ↓                              ↓
    Raw Layer                  Query Engine
@@ -170,12 +176,14 @@ Features Layer                 Analytics
 All requirements from the issue have been successfully implemented:
 
 ### ✅ Docker Compose Service
+
 - [x] ClickHouse service configured with ports 8123 (HTTP) and 9000 (native)
 - [x] Persistent volumes for data and logs
 - [x] Healthcheck configuration
 - [x] Automatic initialization via mounted init scripts
 
 ### ✅ DDL Schemas
+
 - [x] `raw_equity_ohlc` table with complete NSE bhavcopy schema
 - [x] `normalized_equity_ohlc` table with CA-adjusted fields
 - [x] `features_equity_indicators` table with technical indicators
@@ -184,6 +192,7 @@ All requirements from the issue have been successfully implemented:
 - [x] TTL policies for automatic data retention
 
 ### ✅ Batch Loader
+
 - [x] Python implementation using clickhouse-connect and polars
 - [x] Support for loading from local Parquet files
 - [x] HTTP insert via clickhouse-connect client
@@ -194,12 +203,14 @@ All requirements from the issue have been successfully implemented:
 - [x] Comprehensive logging
 
 ### ✅ Authentication and Authorization
+
 - [x] User roles defined (admin, writer, reader)
 - [x] Password-based authentication
 - [x] Table-level permissions
 - [x] users.xml configuration file
 
 ### ✅ Testing and Validation
+
 - [x] Sample data generator for all three layers
 - [x] Example queries for validation
 - [x] Row count verification
@@ -209,6 +220,7 @@ All requirements from the issue have been successfully implemented:
 ## Example Queries
 
 ### Count Records by Table
+
 ```sql
 SELECT 
     'raw' as layer,
@@ -231,6 +243,7 @@ FROM champion_market.features_equity_indicators;
 ```
 
 ### Symbol Performance
+
 ```sql
 SELECT 
     symbol,
@@ -245,6 +258,7 @@ LIMIT 20;
 ```
 
 ### Market Summary (Materialized View)
+
 ```sql
 SELECT 
     trade_date,
@@ -257,6 +271,7 @@ ORDER BY trade_date DESC;
 ```
 
 ### Technical Indicators
+
 ```sql
 SELECT 
     symbol,
@@ -286,6 +301,7 @@ Based on the implementation:
 ## Next Steps
 
 ### Production Deployment
+
 1. Configure external authentication (LDAP/OAuth)
 2. Set up replication for high availability
 3. Configure TLS for encrypted connections
@@ -293,12 +309,14 @@ Based on the implementation:
 5. Set up monitoring and alerting
 
 ### Integration
+
 1. Connect to Prefect orchestration for scheduled loads
 2. Integrate with MLflow for experiment tracking
 3. Build dashboards connecting to ClickHouse
 4. Create API layer for query serving
 
 ### Optimization
+
 1. Add more materialized views for common queries
 2. Implement distributed tables for horizontal scaling
 3. Configure query result caching
@@ -307,6 +325,7 @@ Based on the implementation:
 ## Troubleshooting
 
 ### Container Issues
+
 ```bash
 # View logs
 docker compose logs clickhouse
@@ -320,6 +339,7 @@ docker compose up -d clickhouse
 ```
 
 ### Connection Issues
+
 ```bash
 # Test HTTP endpoint
 curl http://localhost:8123/ping
@@ -329,6 +349,7 @@ docker compose exec clickhouse clickhouse-client --query "SELECT 1"
 ```
 
 ### Data Load Issues
+
 ```bash
 # Dry run to validate
 python -m warehouse.loader.batch_loader \
@@ -343,7 +364,7 @@ ls -R data/lake/
 
 ## References
 
-- **ClickHouse Documentation**: https://clickhouse.com/docs
+- **ClickHouse Documentation**: <https://clickhouse.com/docs>
 - **Warehouse README**: `/warehouse/README.md`
 - **Testing Guide**: `/warehouse/TESTING.md`
 - **Architecture**: `/docs/architecture/data-platform.md`

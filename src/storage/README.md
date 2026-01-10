@@ -371,7 +371,7 @@ print(f"Dataset has {stats['file_count']} files ({stats['total_size_mb']} MB)")
 - **ZSTD**: Balanced compression and speed
 - **None**: Only for already compressed data
 
-### Retention Policies
+### Data Retention Strategy
 
 - **Raw data**: 90-180 days
 - **Normalized data**: 365+ days
