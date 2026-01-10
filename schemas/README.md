@@ -147,6 +147,36 @@ schemas/
 
 ---
 
+## Parquet Schema Contracts
+
+In addition to Avro schemas for streaming (Kafka), the platform uses **Parquet** for columnar storage in the data lake. Parquet schemas are defined as JSON Schema documents and enable:
+
+- **Data Validation**: Type checking, nullability, and range constraints
+- **Quality Gates**: Automated validation in Prefect flows
+- **Quarantine**: Failed records are isolated for inspection
+
+### Avro → Parquet Mapping
+
+See `parquet/README.md` for detailed documentation on:
+
+- Type and logical type mappings
+- Schema flattening (envelope + payload → flat structure)
+- Validation rules and constraints
+- Quarantine strategy for failed records
+- Integration with Prefect flows
+
+### Key Differences
+
+| Aspect | Avro (Streaming) | Parquet (Storage) |
+|--------|------------------|-------------------|
+| Structure | Nested (payload envelope) | Flattened columns |
+| Schema Format | `.avsc` (Avro JSON) | `.json` (JSON Schema) |
+| Validation | At producer/consumer | At write time (Prefect) |
+| Evolution | Forward/backward compatible | Backward compatible |
+| Storage | Kafka topics | Data lake partitions |
+
+---
+
 ## Governance
 
 - All schema changes require an architecture ticket

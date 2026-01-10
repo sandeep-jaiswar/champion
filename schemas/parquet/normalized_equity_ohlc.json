@@ -1,0 +1,159 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://champion.com/schemas/parquet/normalized_equity_ohlc.json",
+  "title": "Normalized Equity OHLC Parquet Schema",
+  "description": "Schema contract for normalized equity OHLC data in Parquet format, derived from Avro schema normalized_equity_ohlc.avsc",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_time",
+    "ingest_time",
+    "source",
+    "schema_version",
+    "entity_id",
+    "instrument_id",
+    "symbol",
+    "exchange",
+    "trade_date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "turnover",
+    "adjustment_factor",
+    "is_trading_day"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique event identifier (UUID)",
+      "format": "uuid"
+    },
+    "event_time": {
+      "type": "integer",
+      "description": "Market timestamp (milliseconds since epoch)",
+      "minimum": 0
+    },
+    "ingest_time": {
+      "type": "integer",
+      "description": "Platform ingestion timestamp (milliseconds since epoch)",
+      "minimum": 0
+    },
+    "source": {
+      "type": "string",
+      "description": "Original data source",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version (e.g., 'v1')",
+      "pattern": "^v[0-9]+$"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Canonical instrument identifier (e.g., 'RELIANCE:NSE')",
+      "minLength": 1
+    },
+    "instrument_id": {
+      "type": "string",
+      "description": "Canonical instrument identifier (symbol:exchange)",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Standardized trading symbol",
+      "minLength": 1
+    },
+    "exchange": {
+      "type": "string",
+      "description": "Exchange code (NSE, BSE)",
+      "enum": ["NSE", "BSE"]
+    },
+    "isin": {
+      "type": ["string", "null"],
+      "description": "International Securities Identification Number - from NSE ISIN field",
+      "pattern": "^([A-Z]{2}[A-Z0-9]{9}[0-9])?$"
+    },
+    "instrument_type": {
+      "type": ["string", "null"],
+      "description": "Instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index) - from NSE FinInstrmTp",
+      "enum": ["STK", "FUT", "OPT", "IDX", null]
+    },
+    "series": {
+      "type": ["string", "null"],
+      "description": "Security series (EQ=Equity, BE=Book Entry, GB=Government Bonds) - from NSE SctySrs"
+    },
+    "trade_date": {
+      "type": "integer",
+      "description": "Trading date (days since epoch) - parsed from NSE TradDt",
+      "minimum": 0
+    },
+    "prev_close": {
+      "type": ["number", "null"],
+      "description": "Previous close (CA-adjusted, INR) - from NSE PrvsClsgPric",
+      "minimum": 0
+    },
+    "open": {
+      "type": "number",
+      "description": "Opening price (CA-adjusted, INR) - from NSE OpnPric",
+      "minimum": 0
+    },
+    "high": {
+      "type": "number",
+      "description": "Highest price (CA-adjusted, INR) - from NSE HghPric",
+      "minimum": 0
+    },
+    "low": {
+      "type": "number",
+      "description": "Lowest price (CA-adjusted, INR) - from NSE LwPric",
+      "minimum": 0
+    },
+    "close": {
+      "type": "number",
+      "description": "Closing price (CA-adjusted, INR) - from NSE ClsPric",
+      "minimum": 0
+    },
+    "last_price": {
+      "type": ["number", "null"],
+      "description": "Last traded price (CA-adjusted, INR) - from NSE LastPric",
+      "minimum": 0
+    },
+    "settlement_price": {
+      "type": ["number", "null"],
+      "description": "Settlement price (CA-adjusted, INR) - from NSE SttlmPric",
+      "minimum": 0
+    },
+    "volume": {
+      "type": "integer",
+      "description": "Total traded quantity (shares/contracts) - from NSE TtlTradgVol",
+      "minimum": 0
+    },
+    "turnover": {
+      "type": "number",
+      "description": "Total turnover in INR - from NSE TtlTrfVal",
+      "minimum": 0
+    },
+    "trades": {
+      "type": ["integer", "null"],
+      "description": "Total number of trades - from NSE TtlNbOfTxsExctd",
+      "minimum": 0
+    },
+    "adjustment_factor": {
+      "type": "number",
+      "description": "Cumulative CA adjustment factor applied (1.0 = no adjustment)",
+      "minimum": 0,
+      "exclusiveMinimum": 0
+    },
+    "adjustment_date": {
+      "type": ["integer", "null"],
+      "description": "Last corporate action date applied (if any, days since epoch)",
+      "minimum": 0
+    },
+    "is_trading_day": {
+      "type": "boolean",
+      "description": "Whether this was a valid trading day (aligned with calendar)"
+    }
+  },
+  "additionalProperties": false
+}
