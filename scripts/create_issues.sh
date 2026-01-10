@@ -4,22 +4,56 @@ set -euo pipefail
 # Requires: gh CLI authenticated to GitHub and run inside repo root
 # Usage: ./scripts/create_issues.sh
 
-check_gh() {
-  if ! command -v gh >/dev/null 2>&1; then
-    echo "gh CLI not found. Install via: sudo apt install gh" >&2
+detect_repo() {
+  origin_url=$(git remote get-url origin 2>/dev/null || true)
+  if [[ -z "$origin_url" ]]; then
+    echo "No git origin remote found. Ensure this is a git repo with a GitHub remote." >&2
     exit 1
   fi
-  gh auth status >/dev/null || {
-    echo "gh CLI not authenticated. Run: gh auth login" >&2
+  # Extract owner/repo from HTTPS or SSH URL
+  if [[ "$origin_url" =~ github.com[:/]{1}([^/]+)/([^/.]+) ]]; then
+    GH_OWNER="${BASH_REMATCH[1]}"
+    GH_REPO="${BASH_REMATCH[2]}"
+  else
+    echo "Unable to parse GitHub owner/repo from remote: $origin_url" >&2
     exit 1
-  }
+  fi
+}
+
+check_gh_or_token() {
+  if command -v gh >/dev/null 2>&1; then
+    if gh auth status >/dev/null 2>&1; then
+      USE_GH=1
+      return
+    fi
+  fi
+  USE_GH=0
+  if [[ -z "${GH_TOKEN:-}" ]]; then
+    echo "Neither gh CLI (authenticated) nor GH_TOKEN env var is available." >&2
+    echo "Options:" >&2
+    echo "  - Install and login: sudo apt install gh && gh auth login" >&2
+    echo "  - Or export a token: export GH_TOKEN=\"<PAT with repo scope>\"" >&2
+    exit 1
+  fi
 }
 
 create_issue() {
   local title="$1"
   local body="$2"
   local labels="$3"
-  gh issue create --title "$title" --body "$body" --label "$labels" --assignee @me || true
+  if [[ "$USE_GH" == "1" ]]; then
+    gh issue create --title "$title" --body "$body" --label "$labels" --assignee @me || true
+  else
+    # Fallback via GitHub REST API
+    detect_repo
+    payload=$(jq -n --arg title "$title" --arg body "$body" --arg labels_str "$labels" '{title: $title, body: $body, labels: ($labels_str | split(","))}')
+    curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+      -X POST "https://api.github.com/repos/$GH_OWNER/$GH_REPO/issues" \
+      -d "$payload" >/dev/null || {
+        echo "Failed to create issue via API. Check GH_TOKEN and repo permissions." >&2
+        exit 1
+      }
+  fi
 }
 
 # 1. Architecture Doc
@@ -184,6 +218,6 @@ read -r -d '' ISSUE10 << 'EOF'
 EOF
 create_issue "CI/CD: Lint, type-check, tests, builds" "$ISSUE10" "ci-cd,quality"
 
-check_gh
+check_gh_or_token
 
 echo "✔ Issues creation attempted via gh. Review on GitHub."
