@@ -70,21 +70,17 @@ class BhavcopyScraper(BaseScraper):
             }
             self.logger.info("Downloading ZIP file", url=url)
 
-
             response = httpx.get(
-                url,
-                headers=headers,
-                timeout=config.scraper.timeout,
-                follow_redirects=True
+                url, headers=headers, timeout=config.scraper.timeout, follow_redirects=True
             )
             response.raise_for_status()
 
             # Extract CSV from ZIP
-            with zipfile.ZipFile(BytesIO(response.content), 'r') as zip_file:
+            with zipfile.ZipFile(BytesIO(response.content), "r") as zip_file:
                 # Find CSV file in ZIP
                 for file_name in zip_file.namelist():
-                    if file_name.endswith('.csv'):
-                        with open(csv_path, 'wb') as f:
+                    if file_name.endswith(".csv"):
+                        with open(csv_path, "wb") as f:
                             f.write(zip_file.read(file_name))
                         self.logger.info("Extracted CSV from ZIP", csv_path=csv_path)
                         return True

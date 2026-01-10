@@ -266,10 +266,10 @@ CREATE TABLE champion_market.raw_equity_ohlc
     SsnId               Nullable(String),
     NewBrdLotQty        Nullable(Int64),
     Rmks                Nullable(String),
-    Rsvd1               Nullable(String),
-    Rsvd2               Nullable(String),
-    Rsvd3               Nullable(String),
-    Rsvd4               Nullable(String)
+    Rsvd01              Nullable(String),
+    Rsvd02              Nullable(String),
+    Rsvd03              Nullable(String),
+    Rsvd04              Nullable(String)
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(TradDt)

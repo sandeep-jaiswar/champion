@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Simple ETL runner for a specific historical date."""
 
-import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -49,6 +48,7 @@ try:
 except Exception as e:
     print(f"❌ Parse failed: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -61,6 +61,7 @@ try:
 except Exception as e:
     print(f"❌ Normalize failed: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -68,16 +69,15 @@ except Exception as e:
 print("\n💾 Step 4: Writing to Parquet...")
 try:
     output_file = parser.write_parquet(
-        df=normalized_df,
-        trade_date=target_date,
-        base_path=Path("../../data/lake")
+        df=normalized_df, trade_date=target_date, base_path=Path("../../data/lake")
     )
     print(f"✅ Written to: {output_file}")
-    file_size_mb = output_file.stat().st_size / (1024*1024)
+    file_size_mb = output_file.stat().st_size / (1024 * 1024)
     print(f"   Size: {file_size_mb:.2f} MB")
 except Exception as e:
     print(f"❌ Write failed: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -97,17 +97,20 @@ print(normalized_df.head(3))
 
 # Show summary statistics
 print("\n📈 Volume Statistics:")
-volume_stats = normalized_df.select([
-    'total_traded_quantity',
-    'total_traded_value'
-]).describe()
+volume_stats = normalized_df.select(["total_traded_quantity", "total_traded_value"]).describe()
 print(volume_stats)
 
 print("\n✨ Next steps:")
-print(f"  1. View data: ls -lh ../../data/lake/normalized/equity_ohlc/year={target_date.year}/month={target_date.month:02d}/day={target_date.day:02d}/")
+print(
+    f"  1. View data: ls -lh ../../data/lake/normalized/equity_ohlc/year={target_date.year}/month={target_date.month:02d}/day={target_date.day:02d}/"
+)
 print("  2. Query with Polars:")
-print("     poetry run python -c \"import polars as pl; df = pl.read_parquet('../../data/lake/normalized/**/*.parquet'); print(df.head())\"")
+print(
+    "     poetry run python -c \"import polars as pl; df = pl.read_parquet('../../data/lake/normalized/**/*.parquet'); print(df.head())\""
+)
 print("  3. Load to ClickHouse (if running):")
-print("     clickhouse-client --query \"SELECT COUNT(*) FROM champion_market.normalized_equity_ohlc\"")
+print(
+    '     clickhouse-client --query "SELECT COUNT(*) FROM champion_market.normalized_equity_ohlc"'
+)
 print("  4. Compute features:")
 print("     cd ../../src/features && poetry run python demo_features.py")

@@ -83,10 +83,10 @@ def generate_raw_equity_ohlc_sample(
                 'SsnId': 'F1',
                 'NewBrdLotQty': 1,
                 'Rmks': None,
-                'Rsvd1': None,
-                'Rsvd2': None,
-                'Rsvd3': None,
-                'Rsvd4': None,
+                'Rsvd01': None,
+                'Rsvd02': None,
+                'Rsvd03': None,
+                'Rsvd04': None,
             }
             records.append(record)
     
