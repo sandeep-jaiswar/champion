@@ -9,11 +9,13 @@ Successfully implemented a complete Prefect-based orchestration solution for the
 ### 1. Core Components
 
 #### Dependencies Added (pyproject.toml)
+
 - `prefect>=2.14.0` - Workflow orchestration framework
 - `mlflow>=2.9.0` - Experiment tracking and metrics logging
 - `clickhouse-connect>=0.7.0` - ClickHouse database client
 
 #### Directory Structure
+
 ```
 src/orchestration/
 ├── __init__.py
@@ -26,27 +28,32 @@ src/orchestration/
 All tasks include retry logic, error handling, and MLflow metrics logging:
 
 #### scrape_bhavcopy
+
 - Downloads NSE bhavcopy CSV for a given date
 - **Retries**: 3 attempts with 60-second delays
 - **Caching**: 24-hour cache expiration
 - **Metrics**: scrape_duration_seconds
 
 #### parse_polars_raw
+
 - Parses CSV to Polars DataFrame using existing PolarsBhavcopyParser
 - **Retries**: 2 attempts with 30-second delays
 - **Metrics**: parse_duration_seconds, raw_rows_parsed
 
 #### normalize_polars
+
 - Validates and filters data (removes invalid rows)
 - **Retries**: 2 attempts with 30-second delays
 - **Metrics**: normalize_duration_seconds, normalized_rows, filtered_rows
 
 #### write_parquet
+
 - Writes DataFrame to partitioned Parquet format (Hive-style)
 - **Retries**: 2 attempts with 30-second delays
 - **Metrics**: write_duration_seconds, parquet_size_mb, rows_written
 
 #### load_clickhouse
+
 - Loads Parquet data into ClickHouse table
 - **Retries**: 3 attempts with 60-second delays
 - **Graceful degradation**: Continues flow if ClickHouse unavailable
@@ -69,6 +76,7 @@ load_clickhouse (optional)
 ```
 
 **Features**:
+
 - Automatic date handling (defaults to previous business day)
 - MLflow run tracking for entire flow
 - Comprehensive error handling and logging
@@ -84,6 +92,7 @@ load_clickhouse (optional)
 - **Tags**: `nse`, `bhavcopy`, `daily`, `production`
 
 **Deployment Function**: `create_deployment()`
+
 - Creates Prefect deployment with schedule
 - Configurable parameters
 - Version-tagged releases
@@ -91,12 +100,14 @@ load_clickhouse (optional)
 ### 5. MLflow Integration
 
 **Metrics Logged Per Task**:
+
 - Duration (seconds) for each operation
 - Row counts (parsed, normalized, written, loaded)
 - File sizes (Parquet output)
 - Filtered row counts
 
 **Parameters Logged**:
+
 - trade_date
 - load_to_clickhouse flag
 - clickhouse_table
@@ -104,6 +115,7 @@ load_clickhouse (optional)
 - error messages (if any)
 
 **Run Organization**:
+
 - Each flow execution creates an MLflow run
 - Run name format: `bhavcopy-etl-{date}`
 - All task metrics nested under flow run
@@ -111,6 +123,7 @@ load_clickhouse (optional)
 ### 6. Testing
 
 #### Integration Tests (tests/integration/test_flows.py)
+
 - `test_parse_polars_raw_task`
 - `test_normalize_polars_task`
 - `test_write_parquet_task`
@@ -118,6 +131,7 @@ load_clickhouse (optional)
 - `test_nse_bhavcopy_etl_flow_with_mock_scraper`
 
 #### Manual Test Script (tests/manual/test_flow_manual.py)
+
 - End-to-end validation with sample data
 - Verifies all task execution
 - Confirms Parquet output integrity
@@ -126,6 +140,7 @@ load_clickhouse (optional)
 ### 7. Documentation
 
 Comprehensive README covering:
+
 - Quick start guide
 - Local execution examples
 - Deployment instructions
@@ -167,21 +182,25 @@ prefect agent start -q default
 ## Key Design Decisions
 
 ### 1. Reuse Existing Components
+
 - Leverages `PolarsBhavcopyParser` for parsing
 - Uses `BhavcopyScraper` for downloads
 - Integrates with existing warehouse loader
 
 ### 2. Graceful Degradation
+
 - ClickHouse load is optional (won't fail flow)
 - Comprehensive error logging
 - Retry logic per task
 
 ### 3. Observability First
+
 - MLflow integration for all metrics
 - Structured logging with structlog
 - Detailed task-level metrics
 
 ### 4. Production-Ready Features
+
 - Task-level caching (24h for scrape)
 - Configurable retry strategies
 - Environment-based configuration
@@ -216,23 +235,27 @@ export MLFLOW_TRACKING_URI=http://localhost:5000
 ## Monitoring
 
 ### Prefect UI
-- Flow run status and logs: http://localhost:4200
+
+- Flow run status and logs: <http://localhost:4200>
 - Task execution timeline
 - Failure tracking and retry status
 
 ### MLflow UI
-- Experiment tracking: http://localhost:5000
+
+- Experiment tracking: <http://localhost:5000>
 - Metrics comparison across runs
 - Parameter tracking
 
 ## Testing Results
 
 ✅ **All Acceptance Criteria Met**:
+
 1. Prefect flows defined in `src/orchestration/flows.py` ✓
 2. Local agent can run scheduled flow successfully ✓
 3. MLflow captures run metadata and metrics ✓
 
 ✅ **Manual Testing**:
+
 - Processed 5 sample rows successfully
 - Parse duration: ~7ms
 - Normalize duration: ~1ms
@@ -241,6 +264,7 @@ export MLFLOW_TRACKING_URI=http://localhost:5000
 - All data validated and verified
 
 ✅ **Security Scan**:
+
 - CodeQL analysis: 0 vulnerabilities found
 - No security issues identified
 

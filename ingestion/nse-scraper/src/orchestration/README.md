@@ -65,6 +65,7 @@ python -m src.orchestration.flows deploy
 ```
 
 This creates a deployment with:
+
 - Schedule: Weekdays (Mon-Fri) at 6:00 PM IST (12:30 PM UTC)
 - Retries: Configured per task (2-3 retries with backoff)
 - Tags: `nse`, `bhavcopy`, `daily`, `production`
@@ -89,15 +90,15 @@ prefect agent start -q default &
 prefect server start
 ```
 
-2. Access the UI at http://localhost:4200
+1. Access the UI at <http://localhost:4200>
 
-3. Deploy the flow:
+2. Deploy the flow:
 
 ```bash
 python -m src.orchestration.flows deploy
 ```
 
-4. Start an agent:
+1. Start an agent:
 
 ```bash
 prefect agent start -q default
@@ -200,16 +201,19 @@ SKIP_INTEGRATION_TESTS=true pytest tests/integration/test_flows.py -v
 ### Prefect UI
 
 View flow runs, task status, and logs in the Prefect UI:
-- http://localhost:4200
+
+- <http://localhost:4200>
 
 ### MLflow UI
 
 View metrics, parameters, and artifacts in the MLflow UI:
-- http://localhost:5000
+
+- <http://localhost:5000>
 
 ## Scheduling Details
 
 The default schedule runs:
+
 - **Days**: Monday through Friday (weekdays only)
 - **Time**: 6:00 PM IST (18:00 IST = 12:30 PM UTC)
 - **Timezone**: UTC
@@ -301,6 +305,7 @@ for i in range(5):
 ## Dependencies
 
 Required packages (already in pyproject.toml):
+
 - `prefect>=2.14.0` - Workflow orchestration
 - `mlflow>=2.9.0` - Experiment tracking
 - `clickhouse-connect>=0.7.0` - ClickHouse client
