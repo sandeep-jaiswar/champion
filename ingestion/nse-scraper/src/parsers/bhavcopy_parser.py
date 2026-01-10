@@ -65,8 +65,13 @@ class BhavcopyParser:
         if not symbol:
             return None
 
-        # Generate deterministic event_id
-        event_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"nse_cm_bhavcopy:{trade_date}:{symbol}"))
+        # Get FinInstrmId for uniqueness (default to 0 if missing)
+        fin_instrm_id = row.get("FinInstrmId", "0")
+        if not fin_instrm_id or fin_instrm_id == "":
+            fin_instrm_id = "0"
+
+        # Generate deterministic event_id including FinInstrmId
+        event_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}"))
 
         # Build event envelope
         event_time = int(datetime.combine(trade_date, datetime.min.time()).timestamp() * 1000)
@@ -78,7 +83,7 @@ class BhavcopyParser:
             "ingest_time": ingest_time,
             "source": "nse_cm_bhavcopy",
             "schema_version": "v1",
-            "entity_id": f"{symbol}:NSE",
+            "entity_id": f"{symbol}:{fin_instrm_id}:NSE",
             "payload": self._build_payload(row),
         }
 
@@ -152,8 +157,8 @@ class BhavcopyParser:
             "SsnId": safe_str(row.get("SsnId")),
             "NewBrdLotQty": safe_int(row.get("NewBrdLotQty")),
             "Rmks": safe_str(row.get("Rmks")),
-            "Rsvd1": safe_str(row.get("Rsvd1")),
-            "Rsvd2": safe_str(row.get("Rsvd2")),
-            "Rsvd3": safe_str(row.get("Rsvd3")),
-            "Rsvd4": safe_str(row.get("Rsvd4")),
+            "Rsvd01": safe_str(row.get("Rsvd01")),
+            "Rsvd02": safe_str(row.get("Rsvd02")),
+            "Rsvd03": safe_str(row.get("Rsvd03")),
+            "Rsvd04": safe_str(row.get("Rsvd04")),
         }

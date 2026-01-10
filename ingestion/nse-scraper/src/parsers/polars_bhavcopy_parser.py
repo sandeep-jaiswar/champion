@@ -134,22 +134,24 @@ class PolarsBhavcopyParser:
         Returns:
             DataFrame with added metadata columns
         """
-        # Generate deterministic event_id for each row
+        # Generate deterministic event_id for each row (including FinInstrmId for uniqueness)
         event_ids = [
             str(
                 uuid.uuid5(
                     uuid.NAMESPACE_DNS,
-                    f"nse_cm_bhavcopy:{trade_date}:{symbol}",
+                    f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}",
                 )
             )
-            for symbol in df["TckrSymb"].to_list()
+            for symbol, fin_instrm_id in zip(
+                df["TckrSymb"].to_list(), df["FinInstrmId"].to_list()
+            )
         ]
 
         # Calculate timestamps
         event_time = int(datetime.combine(trade_date, datetime.min.time()).timestamp() * 1000)
         ingest_time = int(datetime.now().timestamp() * 1000)
 
-        # Add metadata columns
+        # Add metadata columns (entity_id also includes FinInstrmId)
         df = df.with_columns(
             [
                 pl.Series("event_id", event_ids),
@@ -157,7 +159,7 @@ class PolarsBhavcopyParser:
                 pl.lit(ingest_time).alias("ingest_time"),
                 pl.lit("nse_cm_bhavcopy").alias("source"),
                 pl.lit("v1").alias("schema_version"),
-                (pl.col("TckrSymb") + pl.lit(":NSE")).alias("entity_id"),
+                (pl.col("TckrSymb") + pl.lit(":") + pl.col("FinInstrmId").cast(pl.Utf8) + pl.lit(":NSE")).alias("entity_id"),
             ]
         )
 
@@ -249,7 +251,7 @@ class PolarsBhavcopyParser:
         partition_path = (
             base_path
             / "normalized"
-            / "ohlc"
+            / "equity_ohlc"
             / f"year={year}"
             / f"month={month:02d}"
             / f"day={day:02d}"
@@ -313,3 +315,76 @@ class PolarsBhavcopyParser:
         df = self._normalize_schema(df)
 
         return df
+
+    def parse_raw_csv(self, file_path: str | Path) -> pl.DataFrame:
+        """Parse raw CSV file without normalization (for step-by-step ETL).
+
+        Args:
+            file_path: Path to CSV file (string or Path)
+
+        Returns:
+            Raw DataFrame with NSE column names
+        """
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
+        logger.info("Parsing raw CSV", path=str(file_path))
+
+        # Read CSV with explicit schema
+        df = pl.read_csv(
+            file_path,
+            schema_overrides=BHAVCOPY_SCHEMA,
+            null_values=["-", "", "null", "NULL", "N/A"],
+            ignore_errors=False,
+        )
+
+        # Filter out empty symbols
+        df = df.filter(pl.col("TckrSymb").is_not_null() & (pl.col("TckrSymb") != ""))
+
+        rows_parsed.labels(scraper="bhavcopy", status="success").inc(len(df))
+        logger.info("Parsed raw CSV", rows=len(df))
+
+        return df
+
+    def normalize(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Normalize raw DataFrame to standardized schema.
+
+        Args:
+            df: Raw DataFrame with NSE column names
+
+        Returns:
+            Normalized DataFrame with standardized column names and types
+        """
+        logger.info("Normalizing DataFrame", rows=len(df))
+
+        # Rename NSE columns to normalized names
+        normalized_df = df.rename({
+            "TckrSymb": "symbol",
+            "TradDt": "trade_date",
+            "OpnPric": "open",
+            "HghPric": "high",
+            "LwPric": "low",
+            "ClsPric": "close",
+            "LastPric": "last_price",
+            "PrvsClsgPric": "prev_close",
+            "SttlmPric": "settlement_price",
+            "TtlTradgVol": "total_traded_quantity",
+            "TtlTrfVal": "total_traded_value",
+            "TtlNbOfTxsExctd": "total_trades",
+            "ISIN": "isin",
+            "FinInstrmId": "instrument_id",
+            "FinInstrmNm": "instrument_name",
+            "Sgmt": "segment",
+            "SctySrs": "series",
+        })
+
+        # Add computed columns
+        normalized_df = normalized_df.with_columns([
+            pl.lit("NSE").alias("exchange"),
+            pl.lit(1.0).alias("adjustment_factor"),
+            pl.lit(None).cast(pl.Date).alias("adjustment_date"),
+            pl.lit(True).alias("is_trading_day"),
+        ])
+
+        logger.info("Normalized DataFrame", rows=len(normalized_df))
+
+        return normalized_df
+

@@ -228,25 +228,25 @@
             "doc": "Remarks"
           },
           {
-            "name": "Rsvd1",
+            "name": "Rsvd01",
             "type": ["null", "string"],
             "default": null,
             "doc": "Reserved field 1"
           },
           {
-            "name": "Rsvd2",
+            "name": "Rsvd02",
             "type": ["null", "string"],
             "default": null,
             "doc": "Reserved field 2"
           },
           {
-            "name": "Rsvd3",
+            "name": "Rsvd03",
             "type": ["null", "string"],
             "default": null,
             "doc": "Reserved field 3"
           },
           {
-            "name": "Rsvd4",
+            "name": "Rsvd04",
             "type": ["null", "string"],
             "default": null,
             "doc": "Reserved field 4"
