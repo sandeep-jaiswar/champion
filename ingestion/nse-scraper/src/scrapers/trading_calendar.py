@@ -6,7 +6,7 @@ from src.scrapers.base import BaseScraper
 class TradingCalendarScraper(BaseScraper):
     """Scraper for NSE Trading Calendar data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize trading calendar scraper."""
         super().__init__("trading_calendar")
 

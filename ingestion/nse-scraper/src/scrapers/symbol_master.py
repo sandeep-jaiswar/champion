@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 class SymbolMasterScraper(BaseScraper):
     """Scraper for NSE EQUITY_L symbol master file."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize symbol master scraper."""
         super().__init__("symbol_master")
 

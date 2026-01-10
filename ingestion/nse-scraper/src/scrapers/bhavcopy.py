@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class BhavcopyScraper(BaseScraper):
     """Scraper for NSE CM Bhavcopy files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize bhavcopy scraper."""
         super().__init__("bhavcopy")
 

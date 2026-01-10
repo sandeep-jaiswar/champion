@@ -6,7 +6,7 @@ from src.scrapers.base import BaseScraper
 class CorporateActionsScraper(BaseScraper):
     """Scraper for NSE Corporate Actions data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize corporate actions scraper."""
         super().__init__("corporate_actions")
 

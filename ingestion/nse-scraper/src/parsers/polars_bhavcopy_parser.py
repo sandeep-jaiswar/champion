@@ -62,9 +62,9 @@ BHAVCOPY_SCHEMA = {
 class PolarsBhavcopyParser:
     """High-performance parser for NSE CM Bhavcopy CSV files using Polars."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the parser."""
-        pass
+        return None
 
     def parse(
         self, file_path: Path, trade_date: date, output_parquet: bool = False

@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from src.utils.logger import get_logger
 
@@ -82,7 +82,7 @@ class SchemaLoader:
         logger.info("Loading schema from file", schema=schema_path, path=str(full_path))
 
         with open(full_path, encoding="utf-8") as f:
-            schema = json.load(f)
+            schema = cast(dict[str, Any], json.load(f))
 
         # Cache the schema
         self._schema_cache[schema_path] = schema

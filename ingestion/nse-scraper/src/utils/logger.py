@@ -4,9 +4,10 @@ import logging
 import sys
 
 import structlog
+from structlog.typing import FilteringBoundLogger, Processor
 
 
-def get_logger(name: str) -> structlog.BoundLogger:  # type: ignore[type-arg]
+def get_logger(name: str) -> FilteringBoundLogger:
     """Get a structured logger instance.
 
     Args:
@@ -15,7 +16,7 @@ def get_logger(name: str) -> structlog.BoundLogger:  # type: ignore[type-arg]
     Returns:
         Configured structlog logger
     """
-    return structlog.get_logger(name)  # type: ignore[return-value]
+    return structlog.get_logger(name)
 
 
 def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None:
@@ -42,7 +43,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
         level=getattr(logging, log_level_upper),
     )
 
-    processors = [
+    processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
@@ -56,7 +57,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
         processors.append(structlog.dev.ConsoleRenderer())
 
     structlog.configure(
-        processors=processors,  # type: ignore[arg-type]
+        processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level_upper)),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
