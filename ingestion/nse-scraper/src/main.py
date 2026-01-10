@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -21,15 +22,15 @@ logger = get_logger(__name__)
 
 @app.command()
 def scrape(
-    scraper_type: str = typer.Argument(
-        ..., help="Scraper type: bhavcopy, symbol-master, corporate-actions, trading-calendar"
-    ),
-    date_str: str = typer.Option(
-        None, "--date", help="Date to scrape (YYYY-MM-DD). Defaults to yesterday"
-    ),
+    scraper_type: str = typer.Option("bhavcopy", "--scraper", "-s", help="Type of scraper (bhavcopy, symbol-master, corporate-actions, trading-calendar)"),
+    date_str: str = typer.Option(None, "--date", "-d", help="Date to scrape (YYYY-MM-DD). Defaults to yesterday"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse without producing to Kafka"),
 ) -> None:
-    """Scrape NSE data for a specific date."""
+    """Scrape NSE data for a specific date.
+    
+    Args:
+        scraper_type: Type of scraper (bhavcopy, symbol-master, corporate-actions, trading-calendar)
+    """
     logger.info(
         f"Starting {scraper_type} scraper", scraper=scraper_type, date=date_str, dry_run=dry_run
     )
@@ -71,7 +72,7 @@ def scrape(
 
 @app.command()
 def backfill(
-    scraper_type: str = typer.Argument(..., help="Scraper type: bhavcopy"),
+    scraper_type: str = typer.Option("bhavcopy", "--scraper", "-s", help="Scraper type: bhavcopy"),
     start_date: str = typer.Option(..., "--start", help="Start date (YYYY-MM-DD)"),
     end_date: str = typer.Option(..., "--end", help="End date (YYYY-MM-DD)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse without producing to Kafka"),

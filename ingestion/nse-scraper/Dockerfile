@@ -23,11 +23,13 @@ COPY pyproject.toml poetry.lock ./
 
 # Install dependencies (without dev dependencies)
 RUN poetry config virtualenvs.create false && \
-    poetry install --without dev --no-interaction --no-ansi
+    poetry install --without dev --no-interaction --no-ansi --no-root
 
-# Copy application code
+# Copy application code and entrypoint
 COPY src/ ./src/
-COPY schemas/ ./schemas/
+COPY run_scraper.py ./
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 # Switch to non-root user
 USER scraper
@@ -38,7 +40,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Expose metrics port
 EXPOSE 9090
-
-# Run scraper
-ENTRYPOINT ["python", "-m", "src.main"]
-CMD ["--help"]
