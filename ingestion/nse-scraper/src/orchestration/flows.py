@@ -225,15 +225,16 @@ def write_parquet(
     try:
         parser = PolarsBhavcopyParser()
 
+        resolved_base_path: Path
         if base_path is None:
-            base_path = Path("data/lake")
+            resolved_base_path = Path("data/lake")
         else:
-            base_path = Path(base_path)
+            resolved_base_path = Path(base_path)
 
         output_file = parser.write_parquet(
             df=df,
             trade_date=trade_date,
-            base_path=base_path,
+            base_path=resolved_base_path,
         )
 
         duration = time.time() - start_time
