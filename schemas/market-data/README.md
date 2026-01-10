@@ -43,7 +43,7 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
 - `SttlmPric`: Settlement price
 - Volume data: `TtlTradgVol`, `TtlTrfVal` (turnover in INR), `TtlNbOfTxsExctd`
 - Derivatives: `XpryDt`, `StrkPric`, `OptnTp`, `OpnIntrst`, `ChngInOpnIntrst`
-- Reserved: `Rsvd1`, `Rsvd2`, `Rsvd3`, `Rsvd4`
+- Reserved: `Rsvd01`, `Rsvd02`, `Rsvd03`, `Rsvd04`
 
 ### 2. `normalized_equity_ohlc.avsc`
 
@@ -123,10 +123,10 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
     "SsnId": "F1",
     "NewBrdLotQty": 1,
     "Rmks": null,
-    "Rsvd1": null,
-    "Rsvd2": null,
-    "Rsvd3": null,
-    "Rsvd4": null
+    "Rsvd01": null,
+    "Rsvd02": null,
+    "Rsvd03": null,
+    "Rsvd04": null
   }
 }
 ```

@@ -71,7 +71,9 @@ class BhavcopyParser:
             fin_instrm_id = "0"
 
         # Generate deterministic event_id including FinInstrmId
-        event_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}"))
+        event_id = str(
+            uuid.uuid5(uuid.NAMESPACE_DNS, f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}")
+        )
 
         # Build event envelope
         event_time = int(datetime.combine(trade_date, datetime.min.time()).timestamp() * 1000)

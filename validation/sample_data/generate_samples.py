@@ -62,10 +62,10 @@ def generate_sample_raw_ohlc(num_rows: int = 100, include_invalid: bool = False)
         "SsnId": ["F1"] * num_rows,
         "NewBrdLotQty": [1] * num_rows,
         "Rmks": [None] * num_rows,
-        "Rsvd1": [None] * num_rows,
-        "Rsvd2": [None] * num_rows,
-        "Rsvd3": [None] * num_rows,
-        "Rsvd4": [None] * num_rows,
+        "Rsvd01": [None] * num_rows,
+        "Rsvd02": [None] * num_rows,
+        "Rsvd03": [None] * num_rows,
+        "Rsvd04": [None] * num_rows,
     }
 
     df = pl.DataFrame(data)

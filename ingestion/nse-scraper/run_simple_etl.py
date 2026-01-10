@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Simple ETL runner that doesn't require MLflow."""
 
-import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -55,9 +54,7 @@ except Exception as e:
 print("\n💾 Step 4: Writing to Parquet...")
 try:
     output_file = parser.write_parquet(
-        df=normalized_df,
-        trade_date=target_date,
-        base_path=Path("../../data/lake")
+        df=normalized_df, trade_date=target_date, base_path=Path("../../data/lake")
     )
     print(f"✅ Written to: {output_file}")
 except Exception as e:

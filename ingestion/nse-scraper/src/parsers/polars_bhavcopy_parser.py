@@ -142,9 +142,7 @@ class PolarsBhavcopyParser:
                     f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}",
                 )
             )
-            for symbol, fin_instrm_id in zip(
-                df["TckrSymb"].to_list(), df["FinInstrmId"].to_list()
-            )
+            for symbol, fin_instrm_id in zip(df["TckrSymb"].to_list(), df["FinInstrmId"].to_list(), strict=False)
         ]
 
         # Calculate timestamps
@@ -159,7 +157,12 @@ class PolarsBhavcopyParser:
                 pl.lit(ingest_time).alias("ingest_time"),
                 pl.lit("nse_cm_bhavcopy").alias("source"),
                 pl.lit("v1").alias("schema_version"),
-                (pl.col("TckrSymb") + pl.lit(":") + pl.col("FinInstrmId").cast(pl.Utf8) + pl.lit(":NSE")).alias("entity_id"),
+                (
+                    pl.col("TckrSymb")
+                    + pl.lit(":")
+                    + pl.col("FinInstrmId").cast(pl.Utf8)
+                    + pl.lit(":NSE")
+                ).alias("entity_id"),
             ]
         )
 
@@ -356,35 +359,38 @@ class PolarsBhavcopyParser:
         logger.info("Normalizing DataFrame", rows=len(df))
 
         # Rename NSE columns to normalized names
-        normalized_df = df.rename({
-            "TckrSymb": "symbol",
-            "TradDt": "trade_date",
-            "OpnPric": "open",
-            "HghPric": "high",
-            "LwPric": "low",
-            "ClsPric": "close",
-            "LastPric": "last_price",
-            "PrvsClsgPric": "prev_close",
-            "SttlmPric": "settlement_price",
-            "TtlTradgVol": "total_traded_quantity",
-            "TtlTrfVal": "total_traded_value",
-            "TtlNbOfTxsExctd": "total_trades",
-            "ISIN": "isin",
-            "FinInstrmId": "instrument_id",
-            "FinInstrmNm": "instrument_name",
-            "Sgmt": "segment",
-            "SctySrs": "series",
-        })
+        normalized_df = df.rename(
+            {
+                "TckrSymb": "symbol",
+                "TradDt": "trade_date",
+                "OpnPric": "open",
+                "HghPric": "high",
+                "LwPric": "low",
+                "ClsPric": "close",
+                "LastPric": "last_price",
+                "PrvsClsgPric": "prev_close",
+                "SttlmPric": "settlement_price",
+                "TtlTradgVol": "total_traded_quantity",
+                "TtlTrfVal": "total_traded_value",
+                "TtlNbOfTxsExctd": "total_trades",
+                "ISIN": "isin",
+                "FinInstrmId": "instrument_id",
+                "FinInstrmNm": "instrument_name",
+                "Sgmt": "segment",
+                "SctySrs": "series",
+            }
+        )
 
         # Add computed columns
-        normalized_df = normalized_df.with_columns([
-            pl.lit("NSE").alias("exchange"),
-            pl.lit(1.0).alias("adjustment_factor"),
-            pl.lit(None).cast(pl.Date).alias("adjustment_date"),
-            pl.lit(True).alias("is_trading_day"),
-        ])
+        normalized_df = normalized_df.with_columns(
+            [
+                pl.lit("NSE").alias("exchange"),
+                pl.lit(1.0).alias("adjustment_factor"),
+                pl.lit(None).cast(pl.Date).alias("adjustment_date"),
+                pl.lit(True).alias("is_trading_day"),
+            ]
+        )
 
         logger.info("Normalized DataFrame", rows=len(normalized_df))
 
         return normalized_df
-
