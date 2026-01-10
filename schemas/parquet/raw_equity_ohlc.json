@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://champion.com/schemas/parquet/raw_equity_ohlc.json",
+  "title": "Raw Equity OHLC Parquet Schema",
+  "description": "Schema contract for raw equity OHLC data in Parquet format, derived from Avro schema raw_equity_ohlc.avsc",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_time",
+    "ingest_time",
+    "source",
+    "schema_version",
+    "entity_id"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique event identifier (UUID)",
+      "format": "uuid"
+    },
+    "event_time": {
+      "type": "integer",
+      "description": "Market/exchange timestamp when data was generated (milliseconds since epoch)",
+      "minimum": 0
+    },
+    "ingest_time": {
+      "type": "integer",
+      "description": "Platform ingestion timestamp (milliseconds since epoch)",
+      "minimum": 0
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source identifier (e.g., 'nse_bhavcopy', 'nse_api')",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for evolution tracking (e.g., 'v1')",
+      "pattern": "^v[0-9]+$"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Kafka partition key: symbol + exchange composite (e.g., 'RELIANCE:NSE')",
+      "minLength": 1
+    },
+    "TradDt": {
+      "type": ["string", "null"],
+      "description": "Trade date (YYYY-MM-DD format)",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "BizDt": {
+      "type": ["string", "null"],
+      "description": "Business date (YYYY-MM-DD format)",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "Sgmt": {
+      "type": ["string", "null"],
+      "description": "Segment code (CM=Capital Market)"
+    },
+    "Src": {
+      "type": ["string", "null"],
+      "description": "Source (NSE)"
+    },
+    "FinInstrmTp": {
+      "type": ["string", "null"],
+      "description": "Financial instrument type (STK=Stock, FUT=Future, OPT=Option, IDX=Index)"
+    },
+    "FinInstrmId": {
+      "type": ["integer", "null"],
+      "description": "Financial instrument ID (NSE internal identifier)"
+    },
+    "ISIN": {
+      "type": ["string", "null"],
+      "description": "International Securities Identification Number",
+      "pattern": "^([A-Z]{2}[A-Z0-9]{9}[0-9])?$"
+    },
+    "TckrSymb": {
+      "type": ["string", "null"],
+      "description": "Ticker symbol (trading symbol)"
+    },
+    "SctySrs": {
+      "type": ["string", "null"],
+      "description": "Security series (EQ=Equity, BE=Book Entry, GB=Government Bonds, etc.)"
+    },
+    "XpryDt": {
+      "type": ["string", "null"],
+      "description": "Expiry date for derivatives (YYYY-MM-DD format, blank for equity)",
+      "pattern": "^([0-9]{4}-[0-9]{2}-[0-9]{2})?$"
+    },
+    "FininstrmActlXpryDt": {
+      "type": ["string", "null"],
+      "description": "Financial instrument actual expiry date"
+    },
+    "StrkPric": {
+      "type": ["number", "null"],
+      "description": "Strike price (for options, blank for equity)",
+      "minimum": 0
+    },
+    "OptnTp": {
+      "type": ["string", "null"],
+      "description": "Option type (CE=Call European, PE=Put European, blank for equity)"
+    },
+    "FinInstrmNm": {
+      "type": ["string", "null"],
+      "description": "Financial instrument name/description"
+    },
+    "OpnPric": {
+      "type": ["number", "null"],
+      "description": "Opening price in INR",
+      "minimum": 0
+    },
+    "HghPric": {
+      "type": ["number", "null"],
+      "description": "Highest price in INR",
+      "minimum": 0
+    },
+    "LwPric": {
+      "type": ["number", "null"],
+      "description": "Lowest price in INR",
+      "minimum": 0
+    },
+    "ClsPric": {
+      "type": ["number", "null"],
+      "description": "Closing price in INR",
+      "minimum": 0
+    },
+    "LastPric": {
+      "type": ["number", "null"],
+      "description": "Last traded price in INR",
+      "minimum": 0
+    },
+    "PrvsClsgPric": {
+      "type": ["number", "null"],
+      "description": "Previous closing price in INR",
+      "minimum": 0
+    },
+    "UndrlygPric": {
+      "type": ["number", "null"],
+      "description": "Underlying price (for derivatives, blank for equity)",
+      "minimum": 0
+    },
+    "SttlmPric": {
+      "type": ["number", "null"],
+      "description": "Settlement price in INR",
+      "minimum": 0
+    },
+    "OpnIntrst": {
+      "type": ["integer", "null"],
+      "description": "Open interest (for derivatives, blank for equity)",
+      "minimum": 0
+    },
+    "ChngInOpnIntrst": {
+      "type": ["integer", "null"],
+      "description": "Change in open interest (for derivatives)"
+    },
+    "TtlTradgVol": {
+      "type": ["integer", "null"],
+      "description": "Total trading volume (number of shares/contracts)",
+      "minimum": 0
+    },
+    "TtlTrfVal": {
+      "type": ["number", "null"],
+      "description": "Total transfer value (turnover in INR)",
+      "minimum": 0
+    },
+    "TtlNbOfTxsExctd": {
+      "type": ["integer", "null"],
+      "description": "Total number of transactions executed",
+      "minimum": 0
+    },
+    "SsnId": {
+      "type": ["string", "null"],
+      "description": "Session ID (F1=Final session)"
+    },
+    "NewBrdLotQty": {
+      "type": ["integer", "null"],
+      "description": "New board lot quantity",
+      "minimum": 0
+    },
+    "Rmks": {
+      "type": ["string", "null"],
+      "description": "Remarks"
+    },
+    "Rsvd1": {
+      "type": ["string", "null"],
+      "description": "Reserved field 1"
+    },
+    "Rsvd2": {
+      "type": ["string", "null"],
+      "description": "Reserved field 2"
+    },
+    "Rsvd3": {
+      "type": ["string", "null"],
+      "description": "Reserved field 3"
+    },
+    "Rsvd4": {
+      "type": ["string", "null"],
+      "description": "Reserved field 4"
+    }
+  },
+  "additionalProperties": false
+}

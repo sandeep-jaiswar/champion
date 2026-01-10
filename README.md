@@ -151,6 +151,39 @@ When in doubt:
 
 ---
 
+## Development Workflow
+
+### Code Quality Checks
+
+Before submitting a pull request, ensure all quality checks pass:
+
+#### Markdown Linting
+
+All markdown files must pass linting checks:
+
+```bash
+# Check markdown files
+make lint-md
+
+# Auto-fix markdown issues
+make lint-md-fix
+```
+
+Markdown linting is automatically enforced in CI/CD via GitHub Actions. The configuration is in `.markdownlint.json`.
+
+#### Pre-commit Hooks (Recommended)
+
+Install pre-commit hooks to catch issues before committing:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+This will automatically run markdown linting and other checks on staged files.
+
+---
+
 ## Status
 
 🚧 **Active planning & foundation phase**
