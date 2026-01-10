@@ -181,7 +181,7 @@ class ParquetValidator:
 
         for idx, row in enumerate(violations.iter_rows(named=True)):
             # Find original index in the full dataframe
-            original_idx = df.with_row_count("__idx__").filter(
+            original_idx = df.with_row_index("__idx__").filter(
                 (pl.col("high") == row["high"])
                 & (pl.col("low") == row["low"])
             ).select("__idx__").to_series()[0]

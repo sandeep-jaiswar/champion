@@ -38,7 +38,7 @@ def generate_sample_raw_ohlc(num_rows: int = 100, include_invalid: bool = False)
         "Src": ["NSE"] * num_rows,
         "FinInstrmTp": ["STK"] * num_rows,
         "FinInstrmId": [2885 + i for i in range(num_rows)],
-        "ISIN": [f"INE{str(i).zfill(6)}A01018" for i in range(num_rows)],
+        "ISIN": [f"INE{str(i+100).zfill(6)}A0101{i%10}" for i in range(num_rows)],
         "TckrSymb": [symbols[i % len(symbols)] for i in range(num_rows)],
         "SctySrs": ["EQ"] * num_rows,
         "XpryDt": [None] * num_rows,
@@ -120,7 +120,7 @@ def generate_sample_normalized_ohlc(num_rows: int = 100, include_invalid: bool =
         "instrument_id": [f"{symbols[i % len(symbols)]}:NSE" for i in range(num_rows)],
         "symbol": [symbols[i % len(symbols)] for i in range(num_rows)],
         "exchange": ["NSE"] * num_rows,
-        "isin": [f"INE{str(i).zfill(6)}A01018" for i in range(num_rows)],
+        "isin": [f"INE{str(i+100).zfill(6)}A0101{i%10}" for i in range(num_rows)],
         "instrument_type": ["STK"] * num_rows,
         "series": ["EQ"] * num_rows,
         "trade_date": [
