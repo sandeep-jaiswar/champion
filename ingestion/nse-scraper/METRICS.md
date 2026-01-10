@@ -45,7 +45,7 @@ The metrics server is automatically started during flow execution and exposes me
 - **`nse_pipeline_flow_duration_seconds`**
   - Type: Histogram
   - Description: Time spent executing complete ETL flow
-  - Labels: 
+  - Labels:
     - `flow_name` (e.g., "nse-bhavcopy-etl")
     - `status` ("success" or "failed")
   - Buckets: Default Prometheus histogram buckets
@@ -222,6 +222,7 @@ pytest tests/integration/test_flows.py::test_prometheus_metrics_tracking -v
 ### Metrics server not starting
 
 If you see "Address already in use" errors:
+
 - Another process is using port 9090
 - Change the port using `metrics_port` parameter
 - Or set `start_metrics_server_flag=False` to disable
