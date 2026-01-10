@@ -53,7 +53,10 @@ class BhavcopyScraper(BaseScraper):
                 # Produce to Kafka
                 from src.producers.avro_producer import AvroProducer
 
-                producer = AvroProducer(config.topics.raw_ohlc)
+                producer = AvroProducer(
+                    topic=config.topics.raw_ohlc,
+                    schema_type="raw_equity_ohlc"
+                )
 
                 success_count = 0
                 failed_count = 0

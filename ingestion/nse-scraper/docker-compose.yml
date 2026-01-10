@@ -54,14 +54,16 @@ services:
       - kafka
       - schema-registry
     volumes:
-      - ./data:/data/nse
+      - ./data:/app/data
       - ../../schemas:/app/schemas:ro
     env_file:
       - .env
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
-    command: ["scrape", "bhavcopy", "--date", "2026-01-02"]
+      STORAGE__DATA_DIR: /app/data
+      SCRAPE_DATE: ${SCRAPE_DATE:-}
+      DRY_RUN: ${DRY_RUN:-false}
+    command: ["./entrypoint.sh"]
 
-volumes:
-  data:
+volumes: {}

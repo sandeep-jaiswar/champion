@@ -1,0 +1,97 @@
+name: Bootstrap Project Issues
+# Triggering workflow update
+
+on:
+  push:
+    branches: [ "**" ]
+    paths:
+      - .github/workflows/bootstrap-issues.yml
+      - docs/architecture/data-platform.md
+      - scripts/create_issues.sh
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create issues (idempotent)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = [
+              {
+                title: 'Architecture: Polars/Parquet/ClickHouse/Prefect/MLflow',
+                labels: ['architecture','planning'],
+                body: `**Summary:** Author data platform architecture integrating Polars, Parquet, ClickHouse, Prefect, and MLflow.\n\n**Details:**\n- Document storage layout and partitioning for Parquet datasets (raw, normalized, features).\n- Define ClickHouse table schemas, engines, sort keys, and ingestion methods.\n- Map Avro → Parquet types and schema evolution rules.\n- Orchestration plan with Prefect flows, schedules, retries, logging.\n- MLflow usage patterns for tracking parameters, metrics, and artifacts.\n\n**Deliverables:**\n- docs/architecture/data-platform.md updated with the above sections.\n\n**Acceptance Criteria:**\n- Architecture doc present with clear diagrams/text.\n- Parquet partitioning and file sizing guidance included.\n- ClickHouse DDL examples provided for all tables.\n- Prefect flow graph and schedules defined.\n- MLflow tracking plan documented.`,
+              },
+              {
+                title: 'Parser: Refactor bhavcopy to Polars + Parquet',
+                labels: ['polars','parquet','ingestion'],
+                body: `**Summary:** Refactor bhavcopy parsing from pandas/CSV to Polars for performance and typing.\n\n**Scope:**\n- Implement \`PolarsBhavcopyParser\` reading CSV with explicit schemas and robust type casts.\n- Normalize column names to canonical schema and enforce nullability.\n- Benchmarks: compare parse speed and memory versus current parser.\n- Write outputs to Parquet in partitioned layout \`normalized/ohlc/year=YYYY/month=MM/day=DD/\`.\n\n**Acceptance Criteria:**\n- New parser class under \`src/parsers/polars_bhavcopy_parser.py\` with unit tests.\n- Parsing 2,500+ rows completes < 1s on dev machine.\n- Output Parquet files are type-consistent with schema and readable by ClickHouse.\n- Prefect task stub calls parser successfully.`,
+              },
+              {
+                title: 'Storage: Parquet lake structure + IO utilities',
+                labels: ['storage','parquet'],
+                body: `**Summary:** Establish data lake directories and write utilities for Parquet IO and partitioning.\n\n**Scope:**\n- Create \`src/storage/parquet_io.py\` helpers: write_df(df, dataset, partitions), coalesce small files.\n- Generate \`_metadata\` and \`_common_metadata\` for datasets.\n- Add retention policy utilities and a cleanup script for old partitions.\n\n**Acceptance Criteria:**\n- Directory structure created under \`data/lake/{raw,normalized,features}\`.\n- Utilities tested against sample datasets.\n- Retention CLI removes partitions older than N days.`,
+              },
+              {
+                title: 'Warehouse: ClickHouse schemas + batch loader',
+                labels: ['clickhouse','warehouse'],
+                body: `**Summary:** Define ClickHouse schemas and implement batch load from Parquet.\n\n**Scope:**\n- Add docker-compose service for ClickHouse (ports 8123, 9000).\n- Create DDL for \`raw_equity_ohlc\`, \`normalized_equity_ohlc\`, \`features_equity_indicators\`.\n- Implement loader: local file load via \`clickhouse-client\` or HTTP insert.\n- Add minimal role/user and auth.\n\n**Acceptance Criteria:**\n- ClickHouse service starts locally via compose.\n- Tables created and sample Parquet loaded.\n- Queries for symbol/date ranges return correct row counts and aggregates.`,
+              },
+              {
+                title: 'Orchestration: Prefect flows + scheduling',
+                labels: ['prefect','orchestration'],
+                body: `**Summary:** Implement Prefect flows for scrape → parse → write → load.\n\n**Scope:**\n- Define tasks: scrape_bhavcopy, parse_polars_raw, normalize_polars, write_parquet, load_clickhouse.\n- Configure schedules (weekday 6pm IST), retries, logging, parameters.\n- Integrate MLflow logging within tasks for metrics (rows, durations).\n\n**Acceptance Criteria:**\n- Prefect flows defined in \`src/orchestration/flows.py\`.\n- Local agent runs scheduled flow successfully for a given date.\n- MLflow captures run metadata and metrics.`,
+              },
+              {
+                title: 'ML: MLflow server + tracking integration',
+                labels: ['mlflow','ml'],
+                body: `**Summary:** Stand up MLflow tracking server and integrate logging calls.\n\n**Scope:**\n- Add docker-compose MLflow service (port 5000) with local artifact store.\n- Provide \`src/ml/tracking.py\` abstraction for logging params/metrics/artifacts.\n- Hook into Prefect tasks to log row counts, durations, partition ranges.\n\n**Acceptance Criteria:**\n- MLflow UI reachable at http://localhost:5000.\n- Runs created per flow execution with metrics and params populated.`,
+              },
+              {
+                title: 'Features: Polars indicators (SMA/EMA/RSI)',
+                labels: ['features','polars'],
+                body: `**Summary:** Implement basic technical indicators using Polars and persist to Parquet.\n\n**Scope:**\n- Indicators: SMA(5,20), EMA(12,26), RSI(14).\n- Windowed operations on normalized OHLC to produce features dataset.\n- Write partitioned Parquet and load into ClickHouse.\n\n**Acceptance Criteria:**\n- Feature functions under \`src/features/indicators.py\` with tests.\n- Parquet files written to \`features/equity/\` and loaded.\n- ClickHouse queries show expected columns/values.`,
+              },
+              {
+                title: 'Contracts: Parquet schema + validation',
+                labels: ['contracts','data-quality'],
+                body: `**Summary:** Formalize schema contracts and data validation for Parquet datasets.\n\n**Scope:**\n- Define JSON schema for normalized OHLC and features datasets.\n- Validation utilities: types, nullability, ranges (e.g., price >= 0).\n- Integrate into Prefect flow with failure alerts.\n\n**Acceptance Criteria:**\n- Schema docs added to \`schemas/README.md\` mapping Avro→Parquet.\n- Validation passes for sample data; failing rows quarantined.`,
+              },
+              {
+                title: 'Observability: Prometheus metrics for pipelines',
+                labels: ['observability','metrics'],
+                body: `**Summary:** Extend Prometheus metrics to cover new pipeline stages.\n\n**Scope:**\n- Counters/gauges: parquet_write_success, parquet_write_failed; clickhouse_load_success/failed; flow_duration.\n- Expose metrics server during flows.\n\n**Acceptance Criteria:**\n- Metrics exported at runtime and scraped locally.\n- Grafana dashboard JSON added (optional).`,
+              },
+              {
+                title: 'CI/CD: Lint, type-check, tests, builds',
+                labels: ['ci-cd','quality'],
+                body: `**Summary:** Add CI pipeline: lint, type-check, unit tests, and build of orchestration components.\n\n**Scope:**\n- GitHub Actions: ruff, black, mypy, pytest; optional docker build for ClickHouse/MLflow services.\n\n**Acceptance Criteria:**\n- Pipeline green on PRs; status checks enforced.`,
+              }
+            ];
+
+            for (const issue of issues) {
+              const q = `repo:${context.repo.owner}/${context.repo.repo} type:issue in:title "${issue.title}"`;
+              const search = await github.rest.search.issuesAndPullRequests({ q });
+              const exists = search.data.items && search.data.items.length > 0;
+              if (exists) {
+                core.info(`Skipping existing issue: ${issue.title}`);
+                continue;
+              }
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issue.title,
+                body: issue.body,
+                labels: issue.labels,
+              });
+              core.info(`Created issue: ${issue.title}`);
+            }

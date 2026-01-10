@@ -136,6 +136,7 @@ class Config(BaseSettings):
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
         case_sensitive=False,
+        extra="ignore",  # Ignore extra fields from .env that don't map to the schema
     )
 
 
