@@ -214,11 +214,11 @@ AS SELECT
     TradDt as trade_date,
     coalesce(Sgmt, '') as exchange,
     count() as total_symbols,
-    sum(TtlTradgVol) as total_volume,
-    sum(TtlTrfVal) as total_turnover,
-    avg(ClsPric) as avg_close_price,
-    max(HghPric) as max_high_price,
-    min(LwPric) as min_low_price
+    sum(coalesce(TtlTradgVol, 0)) as total_volume,
+    sum(coalesce(TtlTrfVal, 0.0)) as total_turnover,
+    avg(coalesce(ClsPric, 0.0)) as avg_close_price,
+    max(coalesce(HghPric, 0.0)) as max_high_price,
+    min(coalesce(LwPric, 0.0)) as min_low_price
 FROM champion_market.normalized_equity_ohlc
 GROUP BY TradDt, coalesce(Sgmt, '');
 

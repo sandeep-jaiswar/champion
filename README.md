@@ -408,7 +408,7 @@ curl http://localhost:9090/metrics
   - Lazy evaluation for memory efficiency
   - Type validation
   - Schema enforcement
-  - 10x faster than Pandas
+  - Significantly faster than traditional DataFrame libraries
 
 #### 3. **Prefect Orchestration** (`ingestion/nse-scraper/src/orchestration/`)
 
