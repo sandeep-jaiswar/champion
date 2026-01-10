@@ -511,10 +511,9 @@ def nse_bhavcopy_etl_flow(
             mlflow.log_param("status", "success")
 
             # Track Prometheus flow duration metric
-            metrics.flow_duration.labels(
-                flow_name="nse-bhavcopy-etl",
-                status="success"
-            ).observe(flow_duration)
+            metrics.flow_duration.labels(flow_name="nse-bhavcopy-etl", status="success").observe(
+                flow_duration
+            )
 
             return result
 
@@ -534,10 +533,9 @@ def nse_bhavcopy_etl_flow(
             mlflow.log_param("error", str(e))
 
             # Track Prometheus flow duration metric for failure
-            metrics.flow_duration.labels(
-                flow_name="nse-bhavcopy-etl",
-                status="failed"
-            ).observe(flow_duration)
+            metrics.flow_duration.labels(flow_name="nse-bhavcopy-etl", status="failed").observe(
+                flow_duration
+            )
 
             raise
 

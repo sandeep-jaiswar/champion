@@ -198,16 +198,19 @@ def test_prometheus_metrics_tracking(sample_csv_file, test_output_dir, monkeypat
     final_parquet_success = metrics.parquet_write_success.labels(
         table="normalized_equity_ohlc"
     )._value.get()
-    assert final_parquet_success > initial_parquet_success, "parquet_write_success should be incremented"
+    assert (
+        final_parquet_success > initial_parquet_success
+    ), "parquet_write_success should be incremented"
 
     # Verify flow_duration metric was recorded
     # Check that the histogram has samples
     flow_duration_samples = REGISTRY.get_sample_value(
-        'nse_pipeline_flow_duration_seconds_count',
-        {'flow_name': 'nse-bhavcopy-etl', 'status': 'success'}
+        "nse_pipeline_flow_duration_seconds_count",
+        {"flow_name": "nse-bhavcopy-etl", "status": "success"},
     )
-    assert flow_duration_samples is not None and flow_duration_samples > 0, \
-        "flow_duration should be recorded"
+    assert (
+        flow_duration_samples is not None and flow_duration_samples > 0
+    ), "flow_duration should be recorded"
 
 
 if __name__ == "__main__":
