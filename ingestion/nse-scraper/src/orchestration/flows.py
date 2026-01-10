@@ -11,6 +11,7 @@ The main flow runs on a schedule (weekdays at 6pm IST) and handles
 the complete ETL pipeline with retry logic and observability.
 """
 
+import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -26,6 +27,12 @@ from src.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
 from src.scrapers.bhavcopy import BhavcopyScraper
 
 logger = structlog.get_logger()
+
+# Configure MLflow tracking URI from environment
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+logger.info("mlflow_configured", tracking_uri=MLFLOW_TRACKING_URI)
 
 
 @task(
