@@ -14,6 +14,8 @@ jobs:
   lint-and-test:
     name: Lint, Type-check, and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./ingestion/nse-scraper
@@ -82,6 +84,8 @@ jobs:
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'docker')
     defaults:
       run:
