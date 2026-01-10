@@ -12,17 +12,17 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-# Set MLflow tracking URI to not require server
-os.environ["MLFLOW_TRACKING_URI"] = "file:///tmp/mlruns"
-
 from src.orchestration.flows import (
     normalize_polars,
     parse_polars_raw,
     write_parquet,
 )
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Set MLflow tracking URI to not require server
+os.environ["MLFLOW_TRACKING_URI"] = "file:///tmp/mlruns"
 
 
 def create_sample_csv(path: Path) -> None:
@@ -94,14 +94,14 @@ def main():
         # Print MLflow info
         print("\n📈 MLflow:")
         print(f"   Tracking URI: {os.environ['MLFLOW_TRACKING_URI']}")
-        print(f"   Run artifacts: /tmp/mlruns/")
+        print("   Run artifacts: /tmp/mlruns/")
 
         print("\n🎉 Prefect orchestration flow is working correctly!")
 
         return 0
 
     except Exception as e:
-        print(f"\n❌ Test failed with error:")
+        print("\n❌ Test failed with error:")
         print(f"   {type(e).__name__}: {e}")
         import traceback
 

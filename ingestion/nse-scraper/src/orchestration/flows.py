@@ -12,9 +12,8 @@ the complete ETL pipeline with retry logic and observability.
 """
 
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional
 
 import mlflow
 import polars as pl
@@ -205,7 +204,7 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
 def write_parquet(
     df: pl.DataFrame,
     trade_date: date,
-    base_path: Optional[str] = None,
+    base_path: str | None = None,
 ) -> str:
     """Write DataFrame to Parquet with partitioned layout.
 
@@ -268,11 +267,11 @@ def write_parquet(
 def load_clickhouse(
     parquet_file: str,
     table: str = "normalized_equity_ohlc",
-    host: Optional[str] = None,
-    port: Optional[int] = None,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    database: Optional[str] = None,
+    host: str | None = None,
+    port: int | None = None,
+    user: str | None = None,
+    password: str | None = None,
+    database: str | None = None,
 ) -> dict:
     """Load Parquet file into ClickHouse table.
 
@@ -372,14 +371,14 @@ def load_clickhouse(
     log_prints=True,
 )
 def nse_bhavcopy_etl_flow(
-    trade_date: Optional[date] = None,
-    output_base_path: Optional[str] = None,
+    trade_date: date | None = None,
+    output_base_path: str | None = None,
     load_to_clickhouse: bool = True,
-    clickhouse_host: Optional[str] = None,
-    clickhouse_port: Optional[int] = None,
-    clickhouse_user: Optional[str] = None,
-    clickhouse_password: Optional[str] = None,
-    clickhouse_database: Optional[str] = None,
+    clickhouse_host: str | None = None,
+    clickhouse_port: int | None = None,
+    clickhouse_user: str | None = None,
+    clickhouse_password: str | None = None,
+    clickhouse_database: str | None = None,
 ) -> dict:
     """Main ETL flow for NSE bhavcopy data pipeline.
 
