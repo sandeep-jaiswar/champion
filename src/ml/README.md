@@ -5,6 +5,7 @@ This module provides a clean abstraction layer for MLflow tracking, making it ea
 ## Overview
 
 The `MLflowTracker` class provides:
+
 - Automatic MLflow tracking URI configuration
 - Experiment management with automatic creation
 - Context manager for run lifecycle management
@@ -56,6 +57,7 @@ tracker.log_execution_metadata(
 ```
 
 This logs:
+
 - `trade_date` parameter
 - `partition_*` parameters (year, month, day, etc.)
 - `row_count` metric
@@ -80,9 +82,10 @@ tracker = MLflowTracker(
 
 ## MLflow UI
 
-Access the MLflow UI at: http://localhost:5000
+Access the MLflow UI at: <http://localhost:5000>
 
 The UI shows:
+
 - Experiments and runs
 - Parameters and metrics for each run
 - Artifacts stored
@@ -102,6 +105,7 @@ curl http://localhost:5000/health
 ```
 
 The server uses:
+
 - SQLite backend store at `/mlflow/mlflow.db`
 - Local artifact store at `/mlflow/artifacts`
 - Port 5000 (exposed to host)
@@ -111,33 +115,43 @@ The server uses:
 ### MLflowTracker
 
 #### `__init__(experiment_name, tracking_uri=None)`
+
 Initialize the tracker with an experiment name and optional tracking URI.
 
 #### `start_run(run_name=None, tags=None, nested=False)`
+
 Context manager to start an MLflow run.
 
 #### `log_param(key, value)`
+
 Log a single parameter.
 
 #### `log_params(params)`
+
 Log multiple parameters from a dictionary.
 
 #### `log_metric(key, value, step=None)`
+
 Log a single metric value.
 
 #### `log_metrics(metrics, step=None)`
+
 Log multiple metrics from a dictionary.
 
 #### `log_artifact(local_path, artifact_path=None)`
+
 Log a local file as an artifact.
 
 #### `log_execution_metadata(trade_date, row_count, duration_seconds, partition_info)`
+
 Log common pipeline execution metadata (helper method).
 
 #### `set_tag(key, value)`
+
 Set a tag on the current run.
 
 #### `set_tags(tags)`
+
 Set multiple tags from a dictionary.
 
 ## Best Practices
