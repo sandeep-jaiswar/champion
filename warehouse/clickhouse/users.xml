@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <users>
+        <!-- Default admin user -->
+        <default>
+            <password></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <access_management>1</access_management>
+        </default>
+
+        <!-- Application user for data loading and queries -->
+        <champion_user>
+            <password>champion_pass</password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+            <databases>
+                <champion_market>
+                    <database>champion_market</database>
+                </champion_market>
+            </databases>
+            <access_management>0</access_management>
+        </champion_user>
+
+        <!-- Read-only user for analytics -->
+        <champion_reader>
+            <password>reader_pass</password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>readonly</profile>
+            <quota>default</quota>
+            <databases>
+                <champion_market>
+                    <database>champion_market</database>
+                </champion_market>
+            </databases>
+            <access_management>0</access_management>
+        </champion_reader>
+    </users>
+
+    <profiles>
+        <readonly>
+            <readonly>1</readonly>
+        </readonly>
+    </profiles>
+</clickhouse>
