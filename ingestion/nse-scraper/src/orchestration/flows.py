@@ -25,6 +25,7 @@ from prefect.tasks import task_input_hash
 from src.config import config
 from src.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
 from src.scrapers.bhavcopy import BhavcopyScraper
+from src.utils import metrics
 
 logger = structlog.get_logger()
 
@@ -260,10 +261,15 @@ def write_parquet(
         mlflow.log_metric("parquet_size_mb", file_size_mb)
         mlflow.log_metric("rows_written", len(df))
 
+        # Track Prometheus metrics
+        metrics.parquet_write_success.labels(table="normalized_equity_ohlc").inc()
+
         return str(output_file)
 
     except Exception as e:
         logger.error("parquet_write_failed", error=str(e))
+        # Track failure in Prometheus
+        metrics.parquet_write_failed.labels(table="normalized_equity_ohlc").inc()
         raise
 
 
@@ -359,10 +365,15 @@ def load_clickhouse(
         mlflow.log_metric("rows_loaded", rows)
         mlflow.log_param("clickhouse_table", table)
 
+        # Track Prometheus metrics
+        metrics.clickhouse_load_success.labels(table=table).inc()
+
         return stats
 
     except Exception as e:
         logger.error("clickhouse_load_failed", parquet_file=parquet_file, error=str(e))
+        # Track failure in Prometheus
+        metrics.clickhouse_load_failed.labels(table=table).inc()
         # Don't fail the flow if ClickHouse is unavailable
         logger.warning("continuing_without_clickhouse_load")
         return {
@@ -387,6 +398,8 @@ def nse_bhavcopy_etl_flow(
     clickhouse_user: str | None = None,
     clickhouse_password: str | None = None,
     clickhouse_database: str | None = None,
+    metrics_port: int = 9090,
+    start_metrics_server_flag: bool = True,
 ) -> dict:
     """Main ETL flow for NSE bhavcopy data pipeline.
 
@@ -397,7 +410,7 @@ def nse_bhavcopy_etl_flow(
     4. Write to Parquet format
     5. Load into ClickHouse (optional)
 
-    All metrics are logged to MLflow for observability.
+    All metrics are logged to MLflow for observability and exposed via Prometheus.
 
     Args:
         trade_date: Trading date to process (defaults to previous business day)
@@ -408,6 +421,8 @@ def nse_bhavcopy_etl_flow(
         clickhouse_user: ClickHouse user
         clickhouse_password: ClickHouse password
         clickhouse_database: ClickHouse database
+        metrics_port: Port for Prometheus metrics server (default: 9090)
+        start_metrics_server_flag: Whether to start metrics server (default: True)
 
     Returns:
         Dictionary with pipeline statistics
@@ -416,6 +431,15 @@ def nse_bhavcopy_etl_flow(
         Exception: If any critical step fails
     """
     flow_start_time = time.time()
+
+    # Start Prometheus metrics server if requested
+    if start_metrics_server_flag:
+        try:
+            metrics.start_metrics_server(port=metrics_port)
+            logger.info("metrics_server_started", port=metrics_port)
+        except OSError as e:
+            # Server might already be running
+            logger.warning("metrics_server_already_running", port=metrics_port, error=str(e))
 
     # Default to previous business day if not specified
     if trade_date is None:
@@ -486,6 +510,12 @@ def nse_bhavcopy_etl_flow(
             mlflow.log_metric("flow_duration_seconds", flow_duration)
             mlflow.log_param("status", "success")
 
+            # Track Prometheus flow duration metric
+            metrics.flow_duration.labels(
+                flow_name="nse-bhavcopy-etl",
+                status="success"
+            ).observe(flow_duration)
+
             return result
 
         except Exception as e:
@@ -502,6 +532,12 @@ def nse_bhavcopy_etl_flow(
             mlflow.log_metric("flow_duration_seconds", flow_duration)
             mlflow.log_param("status", "failed")
             mlflow.log_param("error", str(e))
+
+            # Track Prometheus flow duration metric for failure
+            metrics.flow_duration.labels(
+                flow_name="nse-bhavcopy-etl",
+                status="failed"
+            ).observe(flow_duration)
 
             raise
 
