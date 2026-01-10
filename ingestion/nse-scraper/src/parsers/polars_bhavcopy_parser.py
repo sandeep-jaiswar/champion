@@ -52,10 +52,10 @@ BHAVCOPY_SCHEMA = {
     "SsnId": pl.Utf8,
     "NewBrdLotQty": pl.Int64,
     "Rmks": pl.Utf8,
-    "Rsvd1": pl.Utf8,
-    "Rsvd2": pl.Utf8,
-    "Rsvd3": pl.Utf8,
-    "Rsvd4": pl.Utf8,
+    "Rsvd01": pl.Utf8,
+    "Rsvd02": pl.Utf8,
+    "Rsvd03": pl.Utf8,
+    "Rsvd04": pl.Utf8,
 }
 
 

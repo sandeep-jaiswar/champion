@@ -1,6 +1,9 @@
 """NSE CM Bhavcopy scraper."""
 
+import zipfile
 from datetime import date
+from io import BytesIO
+from pathlib import Path
 
 from src.config import config
 from src.scrapers.base import BaseScraper
@@ -17,12 +20,15 @@ class BhavcopyScraper(BaseScraper):
         """Initialize bhavcopy scraper."""
         super().__init__("bhavcopy")
 
-    def scrape(self, target_date: date, dry_run: bool = False) -> None:
+    def scrape(self, target_date: date, dry_run: bool = False) -> Path:
         """Scrape bhavcopy for a specific date.
 
         Args:
             target_date: Date to scrape
             dry_run: If True, parse without producing to Kafka
+
+        Returns:
+            Path to extracted CSV file
         """
         with scrape_duration.labels(scraper=self.name).time():
             self.logger.info("Starting bhavcopy scrape", date=str(target_date), dry_run=dry_run)
@@ -31,55 +37,54 @@ class BhavcopyScraper(BaseScraper):
             date_str = target_date.strftime("%Y%m%d")
             url = config.nse.bhavcopy_url.format(date=date_str)
 
-            # Download file
-            local_path = config.storage.data_dir / f"BhavCopy_NSE_CM_{date_str}.csv"
+            # Download ZIP file
+            zip_path = config.storage.data_dir / f"BhavCopy_NSE_CM_{date_str}.csv.zip"
+            csv_path = config.storage.data_dir / f"BhavCopy_NSE_CM_{date_str}.csv"
 
-            if not self.download_file(url, str(local_path)):
+            if not self._download_and_extract_zip(url, str(zip_path), str(csv_path)):
                 raise RuntimeError(f"Failed to download bhavcopy for {target_date}")
 
             files_downloaded.labels(scraper=self.name).inc()
+            return csv_path
 
-            # Parse file
-            from src.parsers.bhavcopy_parser import BhavcopyParser
+    def _download_and_extract_zip(self, url: str, zip_path: str, csv_path: str) -> bool:
+        """Download ZIP file from URL and extract CSV.
 
-            parser = BhavcopyParser()
-            events = parser.parse(local_path, target_date)
+        Args:
+            url: Source URL
+            zip_path: Path to save ZIP file
+            csv_path: Path to extract CSV to
 
-            self.logger.info(
-                f"Parsed {len(events)} events", date=str(target_date), count=len(events)
+        Returns:
+            True if successful, False otherwise
+        """
+        import httpx
+
+        try:
+            headers = {"User-Agent": config.scraper.user_agent}
+            self.logger.info("Downloading ZIP file", url=url)
+            
+            response = httpx.get(
+                url,
+                headers=headers,
+                timeout=config.scraper.timeout,
+                follow_redirects=True
             )
+            response.raise_for_status()
 
-            if not dry_run:
-                # Produce to Kafka
-                from src.producers.avro_producer import AvroProducer
+            # Extract CSV from ZIP
+            with zipfile.ZipFile(BytesIO(response.content), 'r') as zip_file:
+                # Find CSV file in ZIP
+                for file_name in zip_file.namelist():
+                    if file_name.endswith('.csv'):
+                        with open(csv_path, 'wb') as f:
+                            f.write(zip_file.read(file_name))
+                        self.logger.info("Extracted CSV from ZIP", csv_path=csv_path)
+                        return True
 
-                producer = AvroProducer(topic=config.topics.raw_ohlc, schema_type="raw_equity_ohlc")
+            self.logger.error("No CSV file found in ZIP archive")
+            return False
 
-                success_count = 0
-                failed_count = 0
-
-                for event in events:
-                    try:
-                        producer.produce(event)
-                        success_count += 1
-                    except Exception as e:
-                        failed_count += 1
-                        self.logger.error(
-                            "Failed to produce event", symbol=event.get("entity_id"), error=str(e)
-                        )
-
-                producer.flush()
-                self.logger.info(
-                    "Produced events to Kafka",
-                    success=success_count,
-                    failed=failed_count,
-                    topic=config.topics.raw_ohlc,
-                )
-            else:
-                self.logger.info("Dry run - skipped Kafka production", count=len(events))
-
-            import time
-
-            from src.utils.metrics import last_successful_scrape
-
-            last_successful_scrape.labels(scraper=self.name).set(time.time())
+        except Exception as e:
+            self.logger.error("Failed to download and extract ZIP", url=url, error=str(e))
+            return False

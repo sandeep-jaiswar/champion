@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
     FinInstrmTp         LowCardinality(Nullable(String)),
     FinInstrmId         Nullable(Int64),
     ISIN                Nullable(String),
-    TckrSymb            Nullable(String),
+    TckrSymb            String DEFAULT '',  -- Not nullable since it's in ORDER BY
     SctySrs             LowCardinality(Nullable(String)),
     XpryDt              Nullable(Date),
     FininstrmActlXpryDt Nullable(Date),
@@ -202,8 +202,5 @@ AS SELECT
 FROM champion_market.normalized_equity_ohlc
 GROUP BY trade_date, exchange;
 
--- Grant permissions to application user
-GRANT SELECT, INSERT ON champion_market.* TO champion_user;
-
--- Grant read-only permissions to reader user
-GRANT SELECT ON champion_market.* TO champion_reader;
+-- Note: User permissions are managed via environment variables and docker-entrypoint
+-- No need for explicit GRANT statements here
