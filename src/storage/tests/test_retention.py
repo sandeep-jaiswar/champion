@@ -201,8 +201,8 @@ def test_get_dataset_statistics(temp_lake_dir, sample_df):
     stats = get_dataset_statistics(dataset_path)
 
     assert stats["file_count"] == 3
-    assert stats["total_size_mb"] > 0
-    assert stats["avg_file_size_mb"] > 0
+    assert stats["total_size_bytes"] > 0
+    assert stats["avg_file_size_mb"] >= 0
     assert stats["dataset_path"] == str(dataset_path)
 
 

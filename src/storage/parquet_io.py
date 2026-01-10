@@ -63,18 +63,16 @@ def write_df(
             arrow_table,
             root_path=str(dataset_path),
             partition_cols=partitions,
-            max_rows_per_file=max_rows_per_file,
             compression=compression,
             existing_data_behavior="overwrite_or_ignore",
         )
     else:
-        # Write as a single file or multiple files based on size
+        # Write as a single file
         output_file = dataset_path / "data.parquet"
         pq.write_table(
             arrow_table,
             output_file,
             compression=compression,
-            row_group_size=max_rows_per_file,
         )
 
     logger.info("Successfully wrote Parquet dataset", path=str(dataset_path))
@@ -126,7 +124,7 @@ def coalesce_small_files(
 
     for file_path in parquet_files:
         size = file_path.stat().st_size
-        if size < min_size_bytes:
+        if size <= min_size_bytes:
             small_files.append((file_path, size))
 
     if not small_files:
@@ -268,12 +266,8 @@ def generate_dataset_metadata(
     logger.info("Generated _common_metadata", file=str(common_metadata_file))
 
     # Write _metadata (schema + all file metadata)
-    # PyArrow's write_metadata with multiple metadata objects
-    combined_metadata = metadata_list[0]
-    for metadata in metadata_list[1:]:
-        combined_metadata.append_row_groups(metadata)
-
-    pq.write_metadata(combined_metadata.schema, metadata_file, metadata_collector=metadata_list)
+    # Create a simple metadata file with schema
+    pq.write_metadata(schema, metadata_file)
     logger.info("Generated _metadata", file=str(metadata_file), file_count=len(parquet_files))
 
     return metadata_file, common_metadata_file

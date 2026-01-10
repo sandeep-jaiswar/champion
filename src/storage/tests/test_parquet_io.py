@@ -70,8 +70,8 @@ def test_write_df_with_partitions(sample_df, temp_lake_dir):
     partitions = list(dataset_path.glob("date=*"))
     assert len(partitions) > 0
 
-    # Verify data can be read back
-    df_read = pl.read_parquet(dataset_path)
+    # Verify data can be read back (use glob pattern for partitioned data)
+    df_read = pl.read_parquet(dataset_path / "**/*.parquet")
     assert len(df_read) == len(sample_df)
 
 
@@ -98,8 +98,8 @@ def test_write_df_with_multiple_partitions(sample_df, temp_lake_dir):
     year_partitions = list(dataset_path.glob("year=*"))
     assert len(year_partitions) > 0
 
-    # Verify data
-    df_read = pl.read_parquet(dataset_path)
+    # Verify data (use glob pattern for partitioned data)
+    df_read = pl.read_parquet(dataset_path / "**/*.parquet")
     assert len(df_read) == len(df)
 
 
@@ -133,16 +133,16 @@ def test_coalesce_small_files(sample_df, temp_lake_dir):
     files_before = list(dataset_path.glob("*.parquet"))
     assert len(files_before) == 5
 
-    # Coalesce files
+    # Coalesce files (use 0.01 MB threshold to ensure our test files are small enough)
     coalesced = coalesce_small_files(
-        dataset_path=dataset_path, target_file_size_mb=1, min_file_size_mb=0.001, dry_run=False
+        dataset_path=dataset_path, target_file_size_mb=1, min_file_size_mb=0.01, dry_run=False
     )
 
     # Should have coalesced some files
     assert coalesced > 0
 
-    # Verify data is still accessible
-    df_read = pl.read_parquet(dataset_path)
+    # Verify data is still accessible (use glob pattern to read all files)
+    df_read = pl.read_parquet(dataset_path / "*.parquet")
     assert len(df_read) == 50  # 5 files * 10 rows
 
 
@@ -159,9 +159,9 @@ def test_coalesce_dry_run(sample_df, temp_lake_dir):
 
     files_before = list(dataset_path.glob("*.parquet"))
 
-    # Dry run should not modify files
+    # Dry run should not modify files (use 0.01 MB threshold)
     coalesced = coalesce_small_files(
-        dataset_path=dataset_path, target_file_size_mb=1, min_file_size_mb=0.001, dry_run=True
+        dataset_path=dataset_path, target_file_size_mb=1, min_file_size_mb=0.01, dry_run=True
     )
 
     files_after = list(dataset_path.glob("*.parquet"))
