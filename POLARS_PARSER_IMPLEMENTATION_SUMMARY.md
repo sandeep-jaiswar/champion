@@ -7,12 +7,14 @@ Successfully refactored the NSE bhavcopy parser from CSV/pandas to Polars with P
 ## Changes Made
 
 ### 1. Dependencies (`pyproject.toml`)
+
 - Added `polars = "^0.20.0"`
 - Added `pyarrow = "^15.0.0"`
 
 ### 2. New Parser (`src/parsers/polars_bhavcopy_parser.py`)
 
 **Features:**
+
 - Explicit schema with 34 columns (strings, integers, floats)
 - Robust null handling (`-`, empty strings, NULL values)
 - Deterministic event ID generation using UUID5
@@ -21,6 +23,7 @@ Successfully refactored the NSE bhavcopy parser from CSV/pandas to Polars with P
 - ClickHouse-compatible output (Snappy compression, proper types)
 
 **Key Methods:**
+
 - `parse()` - Parse CSV to list of event dictionaries
 - `parse_to_dataframe()` - Parse CSV to Polars DataFrame
 - `write_parquet()` - Write DataFrame to partitioned Parquet
@@ -28,6 +31,7 @@ Successfully refactored the NSE bhavcopy parser from CSV/pandas to Polars with P
 ### 3. Unit Tests (`tests/unit/test_polars_bhavcopy_parser.py`)
 
 **Test Coverage:**
+
 - ✅ Parse returns list of events
 - ✅ Event structure validation
 - ✅ Data type verification (strings, ints, floats, nulls)
@@ -45,13 +49,15 @@ Successfully refactored the NSE bhavcopy parser from CSV/pandas to Polars with P
 ### 4. Benchmark (`tests/manual/benchmark_parsers.py`)
 
 **Comparison Script:**
+
 - Generates 2,500 row test dataset
 - Measures parse time and memory usage
 - Compares old vs new parser
 - Validates acceptance criteria
 
 **Results:**
-```
+
+```text
 Dataset: 2,500 rows
 
 Parse Time:
@@ -71,6 +77,7 @@ Acceptance Criteria:
 ### 5. Prefect Integration (`src/tasks/bhavcopy_tasks.py`)
 
 **Tasks Created:**
+
 - `parse_bhavcopy_to_parquet` - Parse CSV and write to Parquet
 - `parse_bhavcopy_to_events` - Parse CSV to event dictionaries
 - `read_parquet_partition` - Read partitioned Parquet data
@@ -80,6 +87,7 @@ Acceptance Criteria:
 ### 6. Documentation (`src/parsers/POLARS_PARSER_README.md`)
 
 Complete usage guide with:
+
 - Performance metrics
 - Code examples
 - Schema documentation
@@ -109,7 +117,7 @@ Complete usage guide with:
 
 ## Output Structure
 
-```
+```text
 data/lake/
 └── normalized/
     └── ohlc/
@@ -122,6 +130,7 @@ data/lake/
 ## Schema Highlights
 
 ### Metadata Columns (Added)
+
 - `event_id` (String) - UUID5-based deterministic ID
 - `event_time` (Int64) - Market timestamp in milliseconds
 - `ingest_time` (Int64) - Platform ingest timestamp
@@ -130,6 +139,7 @@ data/lake/
 - `entity_id` (String) - "{Symbol}:NSE"
 
 ### Payload Columns (34 fields)
+
 - **Strings**: TradDt, BizDt, Sgmt, ISIN, TckrSymb, etc. (14 fields)
 - **Integers**: FinInstrmId, OpnIntrst, TtlTradgVol, etc. (8 fields)
 - **Floats**: OpnPric, HghPric, LwPric, ClsPric, etc. (12 fields)
@@ -139,20 +149,26 @@ All columns properly handle null values.
 ## Testing & Validation
 
 ### Unit Tests
+
 ```bash
 cd ingestion/nse-scraper
 poetry run pytest tests/unit/test_polars_bhavcopy_parser.py -v
 ```
+
 Result: ✅ 11 tests passed in 0.30s
 
 ### Benchmark
+
 ```bash
 poetry run python tests/manual/benchmark_parsers.py
 ```
+
 Result: ✅ 2.08x speedup confirmed
 
 ### Sample Data
+
 Sample CSV with 5 rows included for quick testing:
+
 - `data/sample_bhavcopy_5rows.csv`
 
 ## Integration Guide
@@ -210,6 +226,7 @@ def my_data_pipeline():
 ## Backward Compatibility
 
 The new parser maintains full backward compatibility:
+
 - ✅ Same `parse()` method signature
 - ✅ Same event dictionary structure
 - ✅ Same deterministic event IDs
@@ -220,6 +237,7 @@ The new parser maintains full backward compatibility:
 ## Conclusion
 
 Successfully delivered a high-performance Polars-based bhavcopy parser that:
+
 - ✅ Meets all acceptance criteria
 - ✅ Exceeds performance requirements (2.08x faster, well under 1s)
 - ✅ Provides better type safety and data quality

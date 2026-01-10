@@ -13,6 +13,7 @@ High-performance bhavcopy parser using Polars and Parquet format.
 ## Performance
 
 Benchmarked on 2,500 rows:
+
 - Parse time: **0.0373s** (✅ < 1s requirement)
 - Speedup: **2.08x faster** than old parser
 - Output: Parquet with Hive partitioning
@@ -53,7 +54,7 @@ output_file = parser.write_parquet(
 
 Parquet files are written with Hive-style partitioning:
 
-```
+```text
 data/lake/
 └── normalized/
     └── ohlc/

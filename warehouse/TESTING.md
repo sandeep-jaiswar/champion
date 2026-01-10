@@ -61,6 +61,7 @@ exit
 ```
 
 Expected output:
+
 - Database `champion_market` exists
 - Three tables: `raw_equity_ohlc`, `normalized_equity_ohlc`, `features_equity_indicators`
 - One materialized view: `equity_ohlc_daily_summary`
@@ -76,6 +77,7 @@ python warehouse/loader/generate_sample_data.py
 ```
 
 Expected output:
+
 - Files created in `data/lake/raw/equity_ohlc/date=2024-01-*/`
 - Files created in `data/lake/normalized/equity_ohlc/year=2024/month=01/day=*/`
 - Files created in `data/lake/features/equity_indicators/year=2024/month=01/day=*/`
@@ -101,6 +103,7 @@ python -m warehouse.loader.batch_loader \
 ```
 
 Expected output:
+
 - Successfully loads 50 rows (10 symbols × 5 days)
 - Verification shows row count matches
 
@@ -115,6 +118,7 @@ python -m warehouse.loader.batch_loader \
 ```
 
 Expected output:
+
 - Successfully loads 50 rows (10 symbols × 5 days)
 - Verification shows row count matches
 
@@ -129,6 +133,7 @@ python -m warehouse.loader.batch_loader \
 ```
 
 Expected output:
+
 - Successfully loads 50 rows (10 symbols × 5 days)
 - Verification shows row count matches
 
@@ -160,7 +165,8 @@ FROM champion_market.features_equity_indicators;
 ```
 
 Expected output:
-```
+
+```text
 raw_equity_ohlc              50
 normalized_equity_ohlc       50
 features_equity_indicators   50
@@ -281,6 +287,7 @@ Expected output: Aggregated daily statistics from materialized view.
 ### Issue: Container won't start
 
 **Solution:**
+
 ```bash
 # Check logs
 docker compose logs clickhouse
@@ -293,6 +300,7 @@ docker compose up -d clickhouse
 ### Issue: Permission denied errors
 
 **Solution:**
+
 ```bash
 # Check file permissions
 ls -la warehouse/clickhouse/
@@ -305,6 +313,7 @@ chmod 644 warehouse/clickhouse/users.xml
 ### Issue: Tables not created
 
 **Solution:**
+
 ```bash
 # Manually run init SQL
 docker compose exec clickhouse clickhouse-client < warehouse/clickhouse/init/01_create_tables.sql
@@ -313,6 +322,7 @@ docker compose exec clickhouse clickhouse-client < warehouse/clickhouse/init/01_
 ### Issue: Python dependencies missing
 
 **Solution:**
+
 ```bash
 # Install required packages
 pip install polars clickhouse-connect
@@ -321,6 +331,7 @@ pip install polars clickhouse-connect
 ### Issue: Data load fails
 
 **Solution:**
+
 ```bash
 # Run in dry-run mode to see errors
 python -m warehouse.loader.batch_loader \
@@ -361,6 +372,6 @@ After successful testing:
 
 ## References
 
-- ClickHouse Documentation: https://clickhouse.com/docs
+- ClickHouse Documentation: <https://clickhouse.com/docs>
 - Repository README: `/warehouse/README.md`
 - Architecture Documentation: `/docs/architecture/data-platform.md`

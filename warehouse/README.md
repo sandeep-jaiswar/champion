@@ -25,6 +25,7 @@ docker-compose ps
 ```
 
 ClickHouse will be available at:
+
 - HTTP interface: `http://localhost:8123`
 - Native client: `localhost:9000`
 
@@ -51,6 +52,7 @@ python warehouse/loader/generate_sample_data.py
 ```
 
 This creates sample data in:
+
 - `data/lake/raw/equity_ohlc/date=2024-01-*/`
 - `data/lake/normalized/equity_ohlc/year=2024/month=01/day=*/`
 - `data/lake/features/equity_indicators/year=2024/month=01/day=*/`
@@ -539,6 +541,7 @@ To customize ClickHouse settings:
 
 1. Create `warehouse/clickhouse/config.xml`
 2. Mount in `docker-compose.yml`:
+
    ```yaml
    volumes:
      - ./warehouse/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml:ro

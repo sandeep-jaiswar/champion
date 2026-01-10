@@ -7,6 +7,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 ## What Was Delivered
 
 ### 1. Docker Compose Configuration (`docker-compose.yml`)
+
 - **ClickHouse 24.1** service with ports 8123 (HTTP) and 9000 (native)
 - Persistent volumes for data (`clickhouse_data`) and logs (`clickhouse_logs`)
 - Healthcheck configuration to monitor service status
@@ -16,6 +17,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 ### 2. ClickHouse DDL Schemas (`warehouse/clickhouse/init/01_create_tables.sql`)
 
 #### raw_equity_ohlc
+
 - **Purpose**: Store raw NSE bhavcopy data
 - **Engine**: MergeTree
 - **Partitioning**: Monthly (YYYYMM)
@@ -24,6 +26,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 - **Features**: Bloom filter index on ISIN
 
 #### normalized_equity_ohlc
+
 - **Purpose**: Clean, CA-adjusted equity data
 - **Engine**: ReplacingMergeTree (supports upserts)
 - **Partitioning**: Monthly (YYYYMM)
@@ -32,6 +35,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 - **Features**: Bloom filter on ISIN, minmax index on volume
 
 #### features_equity_indicators
+
 - **Purpose**: Technical indicators for ML/analytics
 - **Engine**: MergeTree
 - **Partitioning**: Monthly (YYYYMM)
@@ -40,6 +44,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 - **Features**: 24 indicator fields (SMA, EMA, RSI, MACD, BB, ATR, VWAP, OBV)
 
 #### equity_ohlc_daily_summary (Materialized View)
+
 - **Purpose**: Pre-aggregated daily statistics
 - **Engine**: SummingMergeTree
 - **Auto-updated**: On inserts to normalized_equity_ohlc
@@ -53,6 +58,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 | `champion_reader`| `reader_pass`  | SELECT only    | Read-only analytics access |
 
 ### 4. Batch Loader (`warehouse/loader/batch_loader.py`)
+
 - **Language**: Python 3.9+
 - **Dependencies**: polars, clickhouse-connect
 - **Features**:
@@ -65,6 +71,7 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
   - CLI interface with argparse
 
 **CLI Usage**:
+
 ```bash
 python -m warehouse.loader.batch_loader \
     --table raw_equity_ohlc \
@@ -73,6 +80,7 @@ python -m warehouse.loader.batch_loader \
 ```
 
 ### 5. Sample Data Generator (`warehouse/loader/generate_sample_data.py`)
+
 - Generates realistic market data samples
 - Creates 10 symbols × 5 days = 50 rows per layer
 - Matches schema contracts exactly
@@ -84,6 +92,7 @@ python -m warehouse.loader.batch_loader \
 ### 6. Comprehensive Documentation
 
 #### warehouse/README.md (13KB)
+
 - Quick start guide
 - Architecture overview
 - User and permission details
@@ -93,6 +102,7 @@ python -m warehouse.loader.batch_loader \
 - Troubleshooting
 
 #### warehouse/TESTING.md (8KB)
+
 - Step-by-step testing guide
 - Acceptance criteria checklist
 - Verification queries
@@ -100,6 +110,7 @@ python -m warehouse.loader.batch_loader \
 - Troubleshooting
 
 #### warehouse/IMPLEMENTATION.md (10KB)
+
 - Complete implementation summary
 - Files created
 - Acceptance criteria verification
@@ -109,18 +120,21 @@ python -m warehouse.loader.batch_loader \
 ## Technical Highlights
 
 ### Performance
+
 - **Load throughput**: 100,000+ rows/second (batch insert)
 - **Query latency**: < 200ms for symbol/date range queries
 - **Compression**: Snappy (2-3x reduction)
 - **Partition pruning**: Automatic via monthly partitions
 
 ### Data Quality
+
 - Schema validation via Parquet contracts
 - Type safety with automatic conversions
 - Verification mode in loader
 - Materialized view consistency
 
 ### Scalability
+
 - Monthly partitioning for efficient data lifecycle
 - TTL policies for automatic cleanup
 - ReplacingMergeTree for upserts (late-arriving data)
@@ -129,12 +143,14 @@ python -m warehouse.loader.batch_loader \
 ## Acceptance Criteria - All Met ✅
 
 ### ✅ Docker Compose Service
+
 - [x] ClickHouse service with ports 8123 and 9000
 - [x] Persistent volumes configured
 - [x] Healthcheck enabled
 - [x] User authentication setup
 
 ### ✅ DDL Schemas
+
 - [x] `raw_equity_ohlc` table with complete NSE schema
 - [x] `normalized_equity_ohlc` table with CA-adjusted fields
 - [x] `features_equity_indicators` table with 24 indicators
@@ -142,6 +158,7 @@ python -m warehouse.loader.batch_loader \
 - [x] Indexes and TTL policies
 
 ### ✅ Batch Loader
+
 - [x] Load from local Parquet files
 - [x] HTTP insert via clickhouse-connect
 - [x] Batch processing support
@@ -150,11 +167,13 @@ python -m warehouse.loader.batch_loader \
 - [x] Comprehensive logging
 
 ### ✅ Authentication
+
 - [x] Minimal role-based access (admin, writer, reader)
 - [x] User configuration in users.xml
 - [x] Password-based auth
 
 ### ✅ Testing & Validation
+
 - [x] Sample data generator
 - [x] Testing guide with examples
 - [x] Verification queries
@@ -188,7 +207,7 @@ EOF
 
 ## File Structure
 
-```
+```text
 /home/runner/work/champion/champion/
 ├── docker-compose.yml (997B)
 └── warehouse/
@@ -210,22 +229,26 @@ EOF
 ## Design Decisions
 
 ### Why MergeTree?
+
 - Optimized for analytical workloads
 - Efficient for time-series data
 - Supports TTL for automatic data expiration
 - Fast aggregations
 
 ### Why ReplacingMergeTree for normalized data?
+
 - Handles late-arriving data corrections
 - Deduplicates on same sort key
 - Keeps latest version based on ingest_time
 
 ### Why monthly partitioning?
+
 - Balance between query performance and partition overhead
 - Aligns with typical data retention policies
 - Easy to drop old partitions
 
 ### Why Polars for loading?
+
 - Fast, memory-efficient DataFrame operations
 - Native Parquet support
 - Easy type conversions
@@ -234,10 +257,12 @@ EOF
 ## Integration Points
 
 ### Current
+
 - Reads from Parquet data lake (raw, normalized, features)
 - Writes to ClickHouse via HTTP API
 
 ### Future
+
 - Prefect orchestration for scheduled loads
 - MLflow integration for experiment tracking
 - Dashboard connections (Grafana, Superset)
@@ -269,6 +294,7 @@ EOF
 ## Conclusion
 
 This implementation provides a solid foundation for the ClickHouse data warehouse with:
+
 - Production-ready schemas aligned with Parquet contracts
 - Robust batch loading infrastructure
 - Comprehensive documentation for operations and development
