@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
     Sgmt                LowCardinality(Nullable(String)),
     Src                 LowCardinality(Nullable(String)),
     FinInstrmTp         LowCardinality(Nullable(String)),
-    FinInstrmId         Nullable(Int64),
+    FinInstrmId         Int64 DEFAULT 0,
     ISIN                Nullable(String),
     TckrSymb            String DEFAULT '',  -- Not nullable since it's in ORDER BY
     SctySrs             LowCardinality(Nullable(String)),
@@ -53,14 +53,17 @@ CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
     SsnId               Nullable(String),
     NewBrdLotQty        Nullable(Int64),
     Rmks                Nullable(String),
-    Rsvd1               Nullable(String),
-    Rsvd2               Nullable(String),
-    Rsvd3               Nullable(String),
-    Rsvd4               Nullable(String)
+    Rsvd01              Nullable(String),
+    Rsvd02              Nullable(String),
+    Rsvd03              Nullable(String),
+    Rsvd04              Nullable(String),
+    year                Int64 DEFAULT toYear(TradDt),
+    month               Int64 DEFAULT toMonth(TradDt),
+    day                 Int64 DEFAULT toDayOfMonth(TradDt)
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(TradDt)
-ORDER BY (TckrSymb, TradDt, event_time)
+ORDER BY (TckrSymb, FinInstrmId, TradDt, event_time)
 TTL TradDt + INTERVAL 5 YEAR
 SETTINGS 
     index_granularity = 8192;
@@ -87,43 +90,60 @@ CREATE TABLE IF NOT EXISTS champion_market.normalized_equity_ohlc
     source              LowCardinality(String),
     schema_version      LowCardinality(String),
     entity_id           String,
-    
-    -- Normalized payload
-    instrument_id       String,
-    symbol              String,
-    exchange            LowCardinality(String),
-    isin                Nullable(String),
-    instrument_type     LowCardinality(Nullable(String)),
-    series              LowCardinality(Nullable(String)),
-    trade_date          Date,
-    prev_close          Nullable(Float64),
-    open                Float64,
-    high                Float64,
-    low                 Float64,
-    close               Float64,
-    last_price          Nullable(Float64),
-    settlement_price    Nullable(Float64),
-    volume              Int64,
-    turnover            Float64,
-    trades              Nullable(Int64),
-    adjustment_factor   Float64 DEFAULT 1.0,
-    adjustment_date     Nullable(Date),
-    is_trading_day      Bool
+
+    -- Normalized payload (currently schema-aligned with lake files)
+    TradDt              Date,
+    BizDt               Nullable(Date),
+    Sgmt                LowCardinality(Nullable(String)),
+    Src                 LowCardinality(Nullable(String)),
+    FinInstrmTp         LowCardinality(Nullable(String)),
+    FinInstrmId         Int64 DEFAULT 0,
+    ISIN                Nullable(String),
+    TckrSymb            String DEFAULT '',
+    SctySrs             LowCardinality(Nullable(String)),
+    XpryDt              Nullable(Date),
+    FininstrmActlXpryDt Nullable(Date),
+    StrkPric            Nullable(Float64),
+    OptnTp              LowCardinality(Nullable(String)),
+    FinInstrmNm         Nullable(String),
+    OpnPric             Nullable(Float64),
+    HghPric             Nullable(Float64),
+    LwPric              Nullable(Float64),
+    ClsPric             Nullable(Float64),
+    LastPric            Nullable(Float64),
+    PrvsClsgPric        Nullable(Float64),
+    UndrlygPric         Nullable(Float64),
+    SttlmPric           Nullable(Float64),
+    OpnIntrst           Nullable(Int64),
+    ChngInOpnIntrst     Nullable(Int64),
+    TtlTradgVol         Nullable(Int64),
+    TtlTrfVal           Nullable(Float64),
+    TtlNbOfTxsExctd     Nullable(Int64),
+    SsnId               Nullable(String),
+    NewBrdLotQty        Nullable(Int64),
+    Rmks                Nullable(String),
+    Rsvd01              Nullable(String),
+    Rsvd02              Nullable(String),
+    Rsvd03              Nullable(String),
+    Rsvd04              Nullable(String),
+    year                Int64 DEFAULT toYear(TradDt),
+    month               Int64 DEFAULT toMonth(TradDt),
+    day                 Int64 DEFAULT toDayOfMonth(TradDt)
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY toYYYYMM(trade_date)
-ORDER BY (symbol, trade_date, instrument_id)
-TTL trade_date + INTERVAL 3 YEAR
+PARTITION BY toYYYYMM(TradDt)
+ORDER BY (TckrSymb, FinInstrmId, TradDt, event_time)
+TTL TradDt + INTERVAL 3 YEAR
 SETTINGS 
     index_granularity = 8192;
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_norm_isin 
-ON champion_market.normalized_equity_ohlc (isin) 
+ON champion_market.normalized_equity_ohlc (ISIN) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_norm_volume 
-ON champion_market.normalized_equity_ohlc (volume) 
+ON champion_market.normalized_equity_ohlc (TtlTradgVol) 
 TYPE minmax GRANULARITY 1;
 
 -- ==============================================================================
@@ -191,16 +211,16 @@ ENGINE = SummingMergeTree()
 PARTITION BY toYYYYMM(trade_date)
 ORDER BY (trade_date, exchange)
 AS SELECT
-    trade_date,
-    exchange,
+    TradDt as trade_date,
+    coalesce(Sgmt, '') as exchange,
     count() as total_symbols,
-    sum(volume) as total_volume,
-    sum(turnover) as total_turnover,
-    avg(close) as avg_close_price,
-    max(high) as max_high_price,
-    min(low) as min_low_price
+    sum(TtlTradgVol) as total_volume,
+    sum(TtlTrfVal) as total_turnover,
+    avg(ClsPric) as avg_close_price,
+    max(HghPric) as max_high_price,
+    min(LwPric) as min_low_price
 FROM champion_market.normalized_equity_ohlc
-GROUP BY trade_date, exchange;
+GROUP BY TradDt, coalesce(Sgmt, '');
 
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here

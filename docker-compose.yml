@@ -10,7 +10,6 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_logs:/var/log/clickhouse-server
       - ./warehouse/clickhouse/init:/docker-entrypoint-initdb.d:ro
-      - ./warehouse/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml:ro
     environment:
       CLICKHOUSE_DB: champion_market
       CLICKHOUSE_USER: champion_user
