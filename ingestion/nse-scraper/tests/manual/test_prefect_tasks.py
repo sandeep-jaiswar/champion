@@ -1,14 +1,16 @@
 """Quick test to verify Prefect tasks work correctly."""
 
-from datetime import date
-from pathlib import Path
+import os
 import tempfile
+from pathlib import Path
 
 # Configure environment before importing tasks
-import os
 os.environ.setdefault("DATA_DIR", "./data")
 
-from src.tasks.bhavcopy_tasks import parse_bhavcopy_to_parquet, parse_bhavcopy_to_events
+from src.tasks.bhavcopy_tasks import (
+    parse_bhavcopy_to_events,
+    parse_bhavcopy_to_parquet,
+)
 
 
 def test_prefect_task_stub():

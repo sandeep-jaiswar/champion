@@ -1,8 +1,6 @@
 """Unit tests for Polars bhavcopy parser."""
 
-import shutil
 from datetime import date
-from pathlib import Path
 
 import polars as pl
 import pytest
@@ -100,7 +98,7 @@ def test_parse_deterministic_event_ids(parser, sample_csv_file, trade_date):
     events2 = parser.parse(sample_csv_file, trade_date, output_parquet=False)
 
     # Event IDs should be the same for same input
-    for e1, e2 in zip(events1, events2):
+    for e1, e2 in zip(events1, events2, strict=True):
         assert e1["event_id"] == e2["event_id"]
 
 
@@ -198,8 +196,6 @@ def test_parse_performance_small_file(parser, sample_csv_file, trade_date):
 def test_parse_with_parquet_output(parser, sample_csv_file, trade_date, tmp_path):
     """Test parsing with Parquet output enabled."""
     # Override base path for data lake
-    import src.parsers.polars_bhavcopy_parser as parser_module
-
     original_parse = parser.parse
 
     def parse_with_tmp_path(*args, **kwargs):

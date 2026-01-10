@@ -10,10 +10,9 @@ This parser provides:
 import uuid
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import polars as pl
-import pyarrow as pa
 import pyarrow.parquet as pq
 
 from src.utils.logger import get_logger
