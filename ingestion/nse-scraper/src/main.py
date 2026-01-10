@@ -2,7 +2,6 @@
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -22,12 +21,19 @@ logger = get_logger(__name__)
 
 @app.command()
 def scrape(
-    scraper_type: str = typer.Option("bhavcopy", "--scraper", "-s", help="Type of scraper (bhavcopy, symbol-master, corporate-actions, trading-calendar)"),
-    date_str: str = typer.Option(None, "--date", "-d", help="Date to scrape (YYYY-MM-DD). Defaults to yesterday"),
+    scraper_type: str = typer.Option(
+        "bhavcopy",
+        "--scraper",
+        "-s",
+        help="Type of scraper (bhavcopy, symbol-master, corporate-actions, trading-calendar)",
+    ),
+    date_str: str = typer.Option(
+        None, "--date", "-d", help="Date to scrape (YYYY-MM-DD). Defaults to yesterday"
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse without producing to Kafka"),
 ) -> None:
     """Scrape NSE data for a specific date.
-    
+
     Args:
         scraper_type: Type of scraper (bhavcopy, symbol-master, corporate-actions, trading-calendar)
     """
@@ -36,7 +42,11 @@ def scrape(
     )
 
     try:
-        target_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else (date.today() - timedelta(days=1))
+        target_date = (
+            datetime.strptime(date_str, "%Y-%m-%d").date()
+            if date_str
+            else (date.today() - timedelta(days=1))
+        )
 
         if scraper_type == "bhavcopy":
             from src.scrapers.bhavcopy import BhavcopyScraper
@@ -46,18 +56,18 @@ def scrape(
         elif scraper_type == "symbol-master":
             from src.scrapers.symbol_master import SymbolMasterScraper
 
-            scraper = SymbolMasterScraper()
-            scraper.scrape(dry_run=dry_run)
+            scraper = SymbolMasterScraper()  # type: ignore[assignment]
+            scraper.scrape(dry_run=dry_run)  # type: ignore[call-arg]
         elif scraper_type == "corporate-actions":
             from src.scrapers.corporate_actions import CorporateActionsScraper
 
-            scraper = CorporateActionsScraper()
-            scraper.scrape(dry_run=dry_run)
+            scraper = CorporateActionsScraper()  # type: ignore[assignment]
+            scraper.scrape(dry_run=dry_run)  # type: ignore[call-arg]
         elif scraper_type == "trading-calendar":
             from src.scrapers.trading_calendar import TradingCalendarScraper
 
-            scraper = TradingCalendarScraper()
-            scraper.scrape(year=target_date.year, dry_run=dry_run)
+            scraper = TradingCalendarScraper()  # type: ignore[assignment]
+            scraper.scrape(year=target_date.year, dry_run=dry_run)  # type: ignore[call-arg]
         else:
             console.print(f"[red]Unknown scraper type: {scraper_type}[/red]")
             raise typer.Exit(1)
