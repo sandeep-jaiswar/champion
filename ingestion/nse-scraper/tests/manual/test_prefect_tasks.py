@@ -4,13 +4,13 @@ import os
 import tempfile
 from pathlib import Path
 
-# Configure environment before importing tasks
-os.environ.setdefault("DATA_DIR", "./data")
-
 from src.tasks.bhavcopy_tasks import (
     parse_bhavcopy_to_events,
     parse_bhavcopy_to_parquet,
 )
+
+# Configure environment after all imports
+os.environ.setdefault("DATA_DIR", "./data")
 
 
 def test_prefect_task_stub():
