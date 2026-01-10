@@ -10,6 +10,10 @@ on:
       - scripts/create_issues.sh
   workflow_dispatch: {}
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   create_issues:
     runs-on: ubuntu-latest
