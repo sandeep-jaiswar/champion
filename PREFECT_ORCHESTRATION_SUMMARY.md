@@ -16,7 +16,7 @@ Successfully implemented a complete Prefect-based orchestration solution for the
 
 #### Directory Structure
 
-```
+```text
 src/orchestration/
 ├── __init__.py
 ├── flows.py          # Main flow and task definitions
@@ -63,7 +63,7 @@ All tasks include retry logic, error handling, and MLflow metrics logging:
 
 Orchestrates the complete ETL pipeline with dependencies:
 
-```
+```text
 scrape_bhavcopy
     ↓
 parse_polars_raw
@@ -270,7 +270,7 @@ export MLFLOW_TRACKING_URI=http://localhost:5000
 
 ## Files Changed
 
-```
+```text
 ingestion/nse-scraper/
 ├── pyproject.toml                           # Added dependencies
 ├── src/orchestration/
