@@ -49,7 +49,7 @@ All tests pass successfully.
 
 ## Directory Structure
 
-```
+```text
 src/features/
 ├── __init__.py                 # Module exports
 ├── indicators.py               # Core indicator functions (9KB)
@@ -66,7 +66,7 @@ data/lake/features/equity/      # Output directory
 
 ## Data Flow
 
-```
+```text
 Normalized OHLC Data
   (data/lake/normalized/equity_ohlc/)
            ↓
@@ -89,6 +89,7 @@ features_equity_indicators table
 ### Input Schema (Normalized OHLC)
 
 Required columns:
+
 - `symbol`: String
 - `trade_date`: Date
 - `close`: Float64
@@ -96,6 +97,7 @@ Required columns:
 ### Output Schema (Features)
 
 Generated columns:
+
 - `symbol`: String
 - `trade_date`: Date
 - `feature_timestamp`: Int64 (milliseconds since epoch)

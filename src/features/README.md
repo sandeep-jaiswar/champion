@@ -179,7 +179,7 @@ LIMIT 10;
 
 ### Simple Moving Average (SMA)
 
-```
+```text
 SMA(n) = (P1 + P2 + ... + Pn) / n
 ```
 
@@ -192,7 +192,7 @@ Implementation uses Polars `rolling_mean()` with grouping by symbol.
 
 ### Exponential Moving Average (EMA)
 
-```
+```text
 EMA(t) = Price(t) * k + EMA(t-1) * (1 - k)
 k = 2 / (n + 1)
 ```
@@ -206,7 +206,7 @@ Implementation uses Polars `ewm_mean()` with `adjust=False` to match standard EM
 
 ### Relative Strength Index (RSI)
 
-```
+```text
 RSI = 100 - (100 / (1 + RS))
 RS = Average Gain / Average Loss
 ```
@@ -289,7 +289,7 @@ def compute_macd(
     return df
 ```
 
-2. Add to `compute_features()`:
+1. Add to `compute_features()`:
 
 ```python
 def compute_features(df, ..., compute_macd=True):
@@ -299,7 +299,7 @@ def compute_features(df, ..., compute_macd=True):
     # ...
 ```
 
-3. Add tests in `tests/test_indicators.py`
+1. Add tests in `tests/test_indicators.py`
 
 ### Custom Indicators
 
@@ -341,7 +341,7 @@ for month in date_range:
 
 ## Architecture
 
-```
+```text
 src/features/
 ├── __init__.py              # Module exports
 ├── indicators.py            # Core indicator functions
