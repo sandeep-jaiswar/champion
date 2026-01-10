@@ -25,6 +25,7 @@ This implementation fulfills the requirement to **formalize schema contracts and
 **Location:** `schemas/parquet/README.md` (9.0 KB)
 
 Key sections:
+
 - **Avro → Parquet Type Mappings** (table with 8 type conversions)
 - **Logical Type Mappings** (timestamps, dates, decimals)
 - **Validation Rules** (type, nullability, range, business logic)
@@ -39,6 +40,7 @@ Key sections:
 **Location:** `validation/src/validation/`
 
 **validator.py** (9.1 KB):
+
 - `ParquetValidator` class with schema loading
 - `validate_dataframe()` - DataFrame validation with JSON Schema
 - `validate_file()` - Parquet file validation
@@ -46,6 +48,7 @@ Key sections:
 - Quarantine functionality for failed records
 
 **Features:**
+
 - Type validation (integers, floats, strings, booleans)
 - Nullability validation (required vs optional)
 - Range validation (prices >= 0, volumes >= 0, adjustment_factor > 0)
@@ -58,6 +61,7 @@ Key sections:
 **Location:** `validation/src/validation/flows.py` (9.1 KB)
 
 **Flows and Tasks:**
+
 - `validate_parquet_file` - Task for single file validation
 - `check_validation_result` - Task for threshold checking
 - `send_validation_alert` - Async task for Slack notifications
@@ -65,6 +69,7 @@ Key sections:
 - `validate_parquet_batch` - Flow for batch validation
 
 **Features:**
+
 - Retries (2 retries on task failures)
 - Configurable failure thresholds (max_failure_rate)
 - Slack integration via Prefect blocks
@@ -73,6 +78,7 @@ Key sections:
 ### 5. Testing & Demonstration
 
 **Tests:** `validation/tests/test_validator.py` (8.4 KB)
+
 - 13 test cases covering all validation scenarios
 - 98% code coverage for validator module
 - Fixtures for schema setup
@@ -80,12 +86,14 @@ Key sections:
 - Quarantine functionality tests
 
 **Sample Data:** `validation/sample_data/generate_samples.py` (8.5 KB)
+
 - Generates valid and invalid datasets
 - Raw OHLC (100 rows each)
 - Normalized OHLC (100 rows each)
 - Intentional errors: negative prices, negative volumes, OHLC violations
 
 **Demo:** `validation/demo.py` (5.3 KB)
+
 - Interactive demonstration script
 - 4 test scenarios (valid + invalid data)
 - Pretty-printed output with summaries
@@ -94,10 +102,12 @@ Key sections:
 ## Validation Rules Summary
 
 ### Type Validation
+
 ✅ Integers, floats, strings, booleans  
 ✅ Nullable vs non-nullable enforcement
 
 ### Range Validation
+
 ✅ All prices >= 0  
 ✅ All volumes >= 0  
 ✅ Trades >= 0  
@@ -105,12 +115,14 @@ Key sections:
 ✅ Timestamps >= 0
 
 ### Pattern Validation
+
 ✅ ISIN: `^[A-Z]{2}[A-Z0-9]{9}[0-9]$` (12 characters)  
 ✅ Date: `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` (YYYY-MM-DD)  
 ✅ UUID: Standard format  
 ✅ Schema version: `^v[0-9]+$` (e.g., v1)
 
 ### Business Logic
+
 ✅ OHLC consistency: `high >= low`  
 ✅ Timestamp skew: `event_time <= ingest_time + tolerance`
 
@@ -119,12 +131,14 @@ Key sections:
 **Location:** `data/lake/quarantine/<schema_name>_failures.parquet`
 
 **Quarantined records include:**
+
 - All original fields
 - `validation_errors` - Concatenated error messages
 - `schema_name` - Schema that failed validation
 
 **Example:**
-```
+
+```text
 data/lake/quarantine/
 ├── raw_equity_ohlc_failures.parquet
 └── normalized_equity_ohlc_failures.parquet
@@ -149,7 +163,7 @@ result = await validate_parquet_dataset(
 
 ## Test Results
 
-```
+```text
 ============================= test session starts ==============================
 collected 13 items
 
@@ -177,11 +191,13 @@ src/validation/validator.py      92      2    98%
 ## Acceptance Criteria
 
 ✅ **Schema docs added to `schemas/README.md` mapping Avro→Parquet**
+
 - Added Parquet Schema Contracts section to main README
 - Created comprehensive parquet/README.md with type mappings
 - Documented validation rules and quarantine strategy
 
 ✅ **Validation passes for sample data; failing rows quarantined**
+
 - Sample data generated (valid + invalid)
 - Validation correctly identifies errors
 - Quarantine files created with error details
@@ -189,7 +205,7 @@ src/validation/validator.py      92      2    98%
 
 ## File Structure
 
-```
+```text
 champion/
 ├── schemas/
 │   ├── README.md                    # Updated with Parquet section
@@ -281,6 +297,7 @@ result = await validate_parquet_dataset(
 ## Conclusion
 
 This implementation provides:
+
 - ✅ Production-ready validation infrastructure
 - ✅ Comprehensive documentation and examples
 - ✅ Full test coverage

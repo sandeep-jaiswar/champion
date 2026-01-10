@@ -115,7 +115,7 @@ results = asyncio.run(
 
 Failed records are written to separate Parquet files:
 
-```
+```text
 data/lake/quarantine/
 ├── raw_equity_ohlc_failures.parquet
 ├── normalized_equity_ohlc_failures.parquet
@@ -123,6 +123,7 @@ data/lake/quarantine/
 ```
 
 Each quarantined record includes:
+
 - All original fields
 - `validation_errors`: Concatenated error messages
 - `schema_name`: Schema that failed validation
@@ -236,7 +237,7 @@ async def nse_daily_pipeline(date: str):
 
 ## Architecture
 
-```
+```text
 validation/
 ├── src/
 │   └── validation/
@@ -258,6 +259,7 @@ validation/
 Main validation class for Parquet files.
 
 **Methods:**
+
 - `__init__(schema_dir: Path)`: Initialize with schema directory
 - `validate_dataframe(df: pl.DataFrame, schema_name: str) -> ValidationResult`: Validate DataFrame
 - `validate_file(file_path: Path, schema_name: str, quarantine_dir: Optional[Path]) -> ValidationResult`: Validate file
@@ -267,6 +269,7 @@ Main validation class for Parquet files.
 Dataclass containing validation results.
 
 **Fields:**
+
 - `total_rows: int`: Total number of rows
 - `valid_rows: int`: Number of valid rows
 - `critical_failures: int`: Number of critical failures

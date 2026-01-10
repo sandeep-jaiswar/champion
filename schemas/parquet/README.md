@@ -42,7 +42,7 @@ The Parquet schemas are derived from Avro schemas but adapted for columnar stora
 
 Both Avro and Parquet schemas follow the same envelope pattern:
 
-```
+```text
 Avro (nested payload):
 {
   "event_id": "...",
@@ -94,7 +94,7 @@ Parquet (flattened):
 **Storage**: `data/lake/normalized/equity_ohlc/`  
 **Partitioning**: `year=YYYY/month=MM/day=DD/`
 
-#### Key Characteristics
+#### Normalized Key Characteristics
 
 - **Envelope**: Same as raw schema
 - **Strongly typed**: Core fields are non-nullable
@@ -136,7 +136,7 @@ Parquet (flattened):
 
 #### OHLC Consistency (Normalized schema only)
 
-```
+```text
 high >= low               (always)
 high >= open              (usually, but not required due to gaps)
 high >= close             (usually, but not required due to gaps)
@@ -148,7 +148,7 @@ low <= close              (usually, but not required due to gaps)
 
 #### Timestamp Validation
 
-```
+```text
 event_time <= ingest_time + tolerance
 tolerance = 5 minutes for EOD files
 tolerance = 30 seconds for real-time
@@ -181,7 +181,7 @@ tolerance = 30 seconds for real-time
 
 Failed records are written to separate quarantine Parquet files:
 
-```
+```text
 data/lake/quarantine/
 ├── raw_equity_ohlc/
 │   ├── date=2024-01-15/
@@ -190,6 +190,7 @@ data/lake/quarantine/
 ```
 
 Each quarantined record includes:
+
 - Original record data
 - `validation_error`: Error message
 - `validation_timestamp`: When validation failed
@@ -267,6 +268,7 @@ def ingest_and_validate_ohlc(date: str):
 - Removing enum values
 
 When making breaking changes:
+
 1. Create new schema version (e.g., `normalized_equity_ohlc_v2.json`)
 2. Update schema_version field in data (e.g., `"v2"`)
 3. Maintain old version for backward compatibility
@@ -287,5 +289,5 @@ poetry run pytest tests/
 - **Avro Schemas**: `../market-data/`
 - **Data Platform Docs**: `../../docs/architecture/data-platform.md`
 - **Validation Utilities**: `../../validation/`
-- **Parquet Spec**: https://parquet.apache.org/docs/
-- **JSON Schema Spec**: https://json-schema.org/
+- **Parquet Spec**: <https://parquet.apache.org/docs/>
+- **JSON Schema Spec**: <https://json-schema.org/>
