@@ -27,8 +27,33 @@ services:
       retries: 5
       start_period: 30s
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.2
+    container_name: champion-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+    environment:
+      MLFLOW_BACKEND_STORE_URI: sqlite:///mlflow/mlflow.db
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   clickhouse_data:
     driver: local
   clickhouse_logs:
+    driver: local
+  mlflow_data:
     driver: local
