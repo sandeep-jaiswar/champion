@@ -1,15 +1,15 @@
 """Event envelope models for consistent event structure."""
 
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 
 @dataclass
 class EventEnvelope:
     """Standard event envelope for all Kafka events.
-    
+
     Follows the event-driven architecture principles:
     - Immutable events with unique IDs
     - Explicit timestamps for event_time vs ingest_time
@@ -47,8 +47,12 @@ class EventEnvelope:
         Returns:
             EventEnvelope instance
         """
-        now = datetime.now()
+        now = datetime.now(UTC)
         event_dt = event_time or now
+
+        # Ensure event_dt is timezone-aware (treat naive datetimes as UTC)
+        if event_dt.tzinfo is None:
+            event_dt = event_dt.replace(tzinfo=UTC)
 
         return EventEnvelope(
             event_id=event_id or str(uuid.uuid4()),

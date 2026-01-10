@@ -138,7 +138,8 @@ class AvroProducer:
         Raises:
             RuntimeError: If deliveries failed
         """
-        self.logger.info("Flushing producer", topic=self.topic, pending=self._pending_deliveries)
+        initial_pending = self._pending_deliveries
+        self.logger.info("Flushing producer", topic=self.topic, pending=initial_pending)
 
         remaining = self._producer.flush(timeout=timeout)
 
@@ -157,7 +158,7 @@ class AvroProducer:
         self.logger.info(
             "Producer flushed successfully",
             topic=self.topic,
-            delivered=self._pending_deliveries - self._failed_deliveries,
+            delivered=initial_pending - remaining - self._failed_deliveries,
         )
 
         return remaining

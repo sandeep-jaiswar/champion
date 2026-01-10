@@ -37,22 +37,35 @@ check_gh_or_token() {
   fi
 }
 
+# Validate prerequisites before creating issues
+check_gh_or_token
+
+# Initialize failure counter
+ISSUES_FAILED=0
+
 create_issue() {
   local title="$1"
   local body="$2"
   local labels="$3"
   if [[ "$USE_GH" == "1" ]]; then
-    gh issue create --title "$title" --body "$body" --label "$labels" --assignee @me || true
+    if gh issue create --title "$title" --body "$body" --label "$labels" --assignee @me; then
+      echo "Created: $title"
+    else
+      echo "Failed to create: $title" >&2
+      ((ISSUES_FAILED++))
+    fi
   else
     # Fallback via GitHub REST API
     detect_repo
     payload=$(jq -n --arg title "$title" --arg body "$body" --arg labels_str "$labels" '{title: $title, body: $body, labels: ($labels_str | split(","))}')
-    curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+    if curl -sS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
       -X POST "https://api.github.com/repos/$GH_OWNER/$GH_REPO/issues" \
-      -d "$payload" >/dev/null || {
-        echo "Failed to create issue via API. Check GH_TOKEN and repo permissions." >&2
-        exit 1
-      }
+      -d "$payload" >/dev/null; then
+      echo "Created: $title"
+    else
+      echo "Failed to create: $title - Check GH_TOKEN and repo permissions." >&2
+      ((ISSUES_FAILED++))
+    fi
   fi
 }
 
@@ -218,6 +231,12 @@ read -r -d '' ISSUE10 << 'EOF'
 EOF
 create_issue "CI/CD: Lint, type-check, tests, builds" "$ISSUE10" "ci-cd,quality"
 
-check_gh_or_token
+# Exit with failure if any issues failed
+if [ $ISSUES_FAILED -gt 0 ]; then
+  echo "Failed to create $ISSUES_FAILED issue(s)" >&2
+  exit 1
+fi
+
+echo "Issues creation completed successfully"
 
 echo "✔ Issues creation attempted via gh. Review on GitHub."
