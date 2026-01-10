@@ -61,7 +61,13 @@ class BhavcopyScraper(BaseScraper):
         import httpx
 
         try:
-            headers = {"User-Agent": config.scraper.user_agent}
+            headers = {
+                "User-Agent": config.scraper.user_agent,
+                "Accept": "application/zip, application/octet-stream, */*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Referer": "https://www.nseindia.com/",
+            }
             self.logger.info("Downloading ZIP file", url=url)
 
 
