@@ -152,8 +152,8 @@ class BhavcopyParser:
             "SsnId": safe_str(row.get("SsnId")),
             "NewBrdLotQty": safe_int(row.get("NewBrdLotQty")),
             "Rmks": safe_str(row.get("Rmks")),
-            "Rsvd1": safe_str(row.get("Rsvd1")),
-            "Rsvd2": safe_str(row.get("Rsvd2")),
-            "Rsvd3": safe_str(row.get("Rsvd3")),
-            "Rsvd4": safe_str(row.get("Rsvd4")),
+            "Rsvd01": safe_str(row.get("Rsvd01")),
+            "Rsvd02": safe_str(row.get("Rsvd02")),
+            "Rsvd03": safe_str(row.get("Rsvd03")),
+            "Rsvd04": safe_str(row.get("Rsvd04")),
         }

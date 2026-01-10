@@ -63,7 +63,8 @@ class BhavcopyScraper(BaseScraper):
         try:
             headers = {"User-Agent": config.scraper.user_agent}
             self.logger.info("Downloading ZIP file", url=url)
-            
+
+
             response = httpx.get(
                 url,
                 headers=headers,
