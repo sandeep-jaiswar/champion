@@ -43,7 +43,7 @@ class SchemaLoader:
     @staticmethod
     def schema_map() -> dict[str, str]:
         """Get mapping of schema types to file paths.
-        
+
         Returns:
             Dictionary mapping schema types to relative paths
         """
@@ -81,7 +81,7 @@ class SchemaLoader:
 
         logger.info("Loading schema from file", schema=schema_path, path=str(full_path))
 
-        with open(full_path, "r", encoding="utf-8") as f:
+        with open(full_path, encoding="utf-8") as f:
             schema = json.load(f)
 
         # Cache the schema

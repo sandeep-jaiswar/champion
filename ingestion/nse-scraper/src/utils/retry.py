@@ -37,6 +37,6 @@ def retry_on_network_error(
         before_sleep=lambda retry_state: logger.warning(
             "Retrying after error",
             attempt=retry_state.attempt_number,
-            wait=retry_state.next_action.sleep,
+            wait=retry_state.next_action.sleep if retry_state.next_action else 0,
         ),
     )

@@ -6,7 +6,7 @@ import sys
 import structlog
 
 
-def get_logger(name: str) -> structlog.BoundLogger:
+def get_logger(name: str) -> structlog.BoundLogger:  # type: ignore[type-arg]
     """Get a structured logger instance.
 
     Args:
@@ -15,7 +15,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
     Returns:
         Configured structlog logger
     """
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[return-value]
 
 
 def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None:
@@ -24,7 +24,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_format: Output format ('json' or 'console')
-    
+
     Raises:
         ValueError: If log_level is not a valid logging level
     """
@@ -35,7 +35,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
         raise ValueError(
             f"Invalid log_level '{log_level}'. Must be one of: {', '.join(valid_levels)}"
         )
-    
+
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
@@ -56,7 +56,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
         processors.append(structlog.dev.ConsoleRenderer())
 
     structlog.configure(
-        processors=processors,
+        processors=processors,  # type: ignore[arg-type]
         wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level_upper)),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),

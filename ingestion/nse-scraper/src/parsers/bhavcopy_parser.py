@@ -4,7 +4,7 @@ import csv
 import uuid
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.utils.logger import get_logger
 from src.utils.metrics import rows_parsed
@@ -50,7 +50,7 @@ class BhavcopyParser:
         logger.info("Parsed bhavcopy file", path=str(file_path), events=len(events))
         return events
 
-    def _row_to_event(self, row: dict[str, str], trade_date: date) -> Optional[dict[str, Any]]:
+    def _row_to_event(self, row: dict[str, str], trade_date: date) -> dict[str, Any] | None:
         """Convert CSV row to event structure.
 
         Args:
@@ -94,12 +94,12 @@ class BhavcopyParser:
             Payload dictionary matching Avro schema
         """
 
-        def safe_str(value: str) -> Optional[str]:
+        def safe_str(value: str | None) -> str | None:
             """Get string value or None."""
             val = value.strip() if value else None
             return val if val and val != "-" else None
 
-        def safe_float(value: str) -> Optional[float]:
+        def safe_float(value: str | None) -> float | None:
             """Get float value or None."""
             try:
                 return (
@@ -110,7 +110,7 @@ class BhavcopyParser:
             except (ValueError, AttributeError):
                 return None
 
-        def safe_int(value: str) -> Optional[int]:
+        def safe_int(value: str | None) -> int | None:
             """Get int value or None."""
             try:
                 return (
