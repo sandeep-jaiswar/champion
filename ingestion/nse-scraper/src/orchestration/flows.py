@@ -677,6 +677,150 @@ def nse_option_chain_flow(
             raise
 
 
+@flow(
+    name="index-constituent-etl",
+    description="ETL flow for NSE index constituent data ingestion",
+)
+def index_constituent_etl_flow(
+    indices: list[str] | None = None,
+    effective_date: date | None = None,
+    load_to_clickhouse: bool = True,
+) -> dict[str, str]:
+    """Complete ETL flow for index constituent data.
+
+    This flow:
+    1. Scrapes index constituent data from NSE
+    2. Parses JSON to event structures
+    3. Writes to partitioned Parquet files
+    4. Optionally loads into ClickHouse
+    5. Logs metrics to MLflow
+
+    Args:
+        indices: List of index names to scrape (e.g., ['NIFTY50', 'BANKNIFTY'])
+                 If None, defaults to ['NIFTY50', 'BANKNIFTY']
+        effective_date: Date when constituents are effective (defaults to today)
+        load_to_clickhouse: Whether to load data into ClickHouse
+
+    Returns:
+        Dictionary with status and file paths
+
+    Raises:
+        Exception: If any step fails after retries
+    """
+    from src.tasks.index_constituent_tasks import (
+        load_index_constituents_clickhouse,
+        parse_index_constituents,
+        scrape_index_constituents,
+        write_index_constituents_parquet,
+    )
+
+    start_time = time.time()
+
+    # Default values
+    if indices is None:
+        indices = ["NIFTY50", "BANKNIFTY"]
+    if effective_date is None:
+        effective_date = date.today()
+
+    effective_date_str = effective_date.isoformat()
+
+    logger.info(
+        "starting_index_constituent_etl_flow",
+        indices=indices,
+        effective_date=effective_date_str,
+        load_to_clickhouse=load_to_clickhouse,
+    )
+
+    # Start MLflow run
+    experiment_name = "nse-index-constituent-etl"
+    mlflow.set_experiment(experiment_name)
+
+    with mlflow.start_run(run_name=f"index-constituent-etl-{effective_date_str}"):
+        try:
+            # Log parameters
+            mlflow.log_param("indices", ",".join(indices))
+            mlflow.log_param("effective_date", effective_date_str)
+            mlflow.log_param("load_to_clickhouse", load_to_clickhouse)
+
+            # Step 1: Scrape index constituent data
+            scraped_files = scrape_index_constituents(
+                indices=indices,
+                output_dir=None,  # Use default
+            )
+
+            mlflow.log_metric("indices_scraped", len(scraped_files))
+
+            # Process each index
+            results = {}
+            for index_name, file_path in scraped_files.items():
+                logger.info(
+                    "processing_index",
+                    index_name=index_name,
+                    file_path=file_path,
+                )
+
+                # Step 2: Parse to events
+                events = parse_index_constituents(
+                    file_path=file_path,
+                    index_name=index_name,
+                    effective_date=effective_date_str,
+                    action="ADD",
+                )
+
+                mlflow.log_metric(f"{index_name}_constituents", len(events))
+
+                # Step 3: Write to Parquet
+                parquet_file = write_index_constituents_parquet(
+                    events=events,
+                    index_name=index_name,
+                    effective_date=effective_date_str,
+                    output_base_path="data/lake",
+                )
+
+                results[index_name] = {
+                    "json_file": file_path,
+                    "parquet_file": parquet_file,
+                    "constituents": len(events),
+                }
+
+                # Step 4: Load to ClickHouse (if enabled)
+                if load_to_clickhouse and parquet_file:
+                    rows_loaded = load_index_constituents_clickhouse(
+                        parquet_file=parquet_file,
+                        index_name=index_name,
+                    )
+                    mlflow.log_metric(f"{index_name}_rows_loaded", rows_loaded)
+                    results[index_name]["rows_loaded"] = rows_loaded
+
+            # Log overall metrics
+            duration = time.time() - start_time
+            mlflow.log_metric("total_duration_seconds", duration)
+            mlflow.log_metric("total_indices_processed", len(results))
+
+            total_constituents = sum(r["constituents"] for r in results.values())
+            mlflow.log_metric("total_constituents", total_constituents)
+
+            logger.info(
+                "index_constituent_etl_flow_complete",
+                duration_seconds=duration,
+                indices_processed=list(results.keys()),
+                total_constituents=total_constituents,
+            )
+
+            # Return summary
+            return {
+                "status": "success",
+                "duration_seconds": duration,
+                "results": results,
+            }
+
+        except Exception as e:
+            logger.error("index_constituent_etl_flow_failed", error=str(e))
+            mlflow.log_param("status", "failed")
+            mlflow.log_param("error", str(e))
+            raise
+
+
 if __name__ == "__main__":
     # For local testing, run the flow directly
     import sys
