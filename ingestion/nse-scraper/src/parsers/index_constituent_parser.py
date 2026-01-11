@@ -7,6 +7,7 @@ This parser provides:
 - Support for tracking adds, removes, and rebalances
 """
 
+import json
 import uuid
 from datetime import date, datetime
 from pathlib import Path
@@ -18,6 +19,9 @@ from src.utils.logger import get_logger
 from src.utils.metrics import rows_parsed
 
 logger = get_logger(__name__)
+
+# Constants for missing data representations
+MISSING_DATA_VALUES = ["-", "", "null", "NULL", "N/A", "NA"]
 
 
 class IndexConstituentParser:
@@ -59,8 +63,6 @@ class IndexConstituentParser:
             effective_date = date.today()
 
         try:
-            import json
-            
             # Read JSON file
             with open(file_path, "r") as f:
                 data = json.load(f)
@@ -214,7 +216,7 @@ class IndexConstituentParser:
             if value is None:
                 return None
             val = str(value).strip() if value else None
-            return val if val and val != "-" else None
+            return val if val and val not in MISSING_DATA_VALUES else None
 
         def safe_float(value: Any) -> float | None:
             """Get float value or None."""

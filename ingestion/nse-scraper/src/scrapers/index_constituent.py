@@ -168,9 +168,10 @@ class IndexConstituentScraper(BaseScraper):
             
             data = response.json()
             
-            # Add metadata
+            # Add metadata with current timestamp
+            from datetime import datetime as dt
             data["index_name"] = index_name
-            data["scraped_at"] = httpx.get("https://www.worldtimeapi.org/api/timezone/Asia/Kolkata").json().get("datetime")
+            data["scraped_at"] = dt.now().isoformat()
             
             return data
             

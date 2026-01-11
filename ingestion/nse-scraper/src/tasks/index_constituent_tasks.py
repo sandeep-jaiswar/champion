@@ -1,8 +1,11 @@
 """Prefect tasks for index constituent ingestion pipeline."""
 
+import os
 from datetime import date
 from pathlib import Path
 
+import clickhouse_connect
+import polars as pl
 import structlog
 from prefect import task
 
@@ -194,10 +197,6 @@ def load_index_constituents_clickhouse(
         return 0
 
     try:
-        import clickhouse_connect
-        import polars as pl
-        import os
-
         # Read Parquet file
         df = pl.read_parquet(parquet_file)
 
@@ -245,7 +244,7 @@ def load_index_constituents_clickhouse(
                 row.get("index_category"),
                 row.get("sector"),
                 row.get("industry"),
-                row.get("metadata") or {},  # Empty map if None
+                row.get("metadata") if row.get("metadata") is not None else {},
             ))
 
         # Insert data

@@ -394,7 +394,7 @@ CREATE TABLE IF NOT EXISTS champion_market.index_constituent
     
     -- Index constituent payload
     index_name          LowCardinality(String),
-    symbol              String DEFAULT '',
+    symbol              String,  -- Required field, no default
     isin                Nullable(String),
     company_name        Nullable(String),
     effective_date      Date,
