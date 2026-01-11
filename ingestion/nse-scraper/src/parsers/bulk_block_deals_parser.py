@@ -294,16 +294,19 @@ class BulkBlockDealsParser:
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Drop partition columns from dataframe to avoid duplication
+        df_to_write = df.drop(["year", "month", "day", "deal_type"])
+
         # Write Parquet file
         output_file = (
             output_dir / f"{deal_type.lower()}_deals_{deal_date.strftime('%Y%m%d')}.parquet"
         )
-        df.write_parquet(output_file, compression="snappy")
+        df_to_write.write_parquet(output_file, compression="snappy")
 
         self.logger.info(
             "Bulk/block deals Parquet write complete",
             file=str(output_file),
-            rows=len(df),
+            rows=len(df_to_write),
         )
 
         return output_file

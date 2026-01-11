@@ -317,6 +317,12 @@ class IndexConstituentParser:
 
         output_file = output_dir / f"data_{effective_date.isoformat()}.parquet"
 
+        # Drop any partition columns that might exist in the dataframe to avoid duplication
+        partition_cols = ["index_name", "year", "month", "day"]
+        cols_to_drop = [col for col in partition_cols if col in df.columns]
+        if cols_to_drop:
+            df = df.drop(cols_to_drop)
+
         # Write Parquet with compression
         df.write_parquet(output_file, compression="snappy")
 
