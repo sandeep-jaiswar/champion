@@ -20,7 +20,7 @@ class BhavcopyScraper(BaseScraper):
         """Initialize bhavcopy scraper."""
         super().__init__("bhavcopy")
 
-    def scrape(self, target_date: date, dry_run: bool = False) -> Path:
+    def scrape(self, target_date: date, dry_run: bool = False) -> Path:  # type: ignore[override]
         """Scrape bhavcopy for a specific date.
 
         Args:
