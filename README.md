@@ -190,7 +190,7 @@ This will automatically run markdown linting and other checks on staged files.
 
 Core components implemented and operational:
 
-- ✅ NSE Data Ingestion (Bhavcopy, Corporate Actions, Symbol Master, Trading Calendar)
+- ✅ NSE Data Ingestion (Bhavcopy, Corporate Actions, Symbol Master, Trading Calendar, **Index Constituents**)
 - ✅ Polars-based ETL Pipeline (High-performance parsing & normalization)
 - ✅ Prefect Orchestration (Flow scheduling & task management)
 - ✅ Parquet Data Lake (Partitioned storage with retention policies)
@@ -198,6 +198,7 @@ Core components implemented and operational:
 - ✅ MLflow Experiment Tracking (Pipeline metadata & metrics)
 - ✅ Prometheus Metrics (Real-time observability)
 - ✅ Feature Store (Technical indicators: SMA, EMA, RSI)
+- ✅ **Index Membership Tracking (NIFTY50, BANKNIFTY, rebalance history)**
 
 ---
 
@@ -309,6 +310,36 @@ curl http://localhost:9090/metrics
 # - nse_scrape_success_total
 # - nse_parse_rows_total
 # - nse_pipeline_flow_duration_seconds
+```
+
+### 5. Run Index Constituent ETL (NEW)
+
+**Scrape NSE index membership data:**
+
+```bash
+# Scrape NIFTY50 and BANKNIFTY constituents
+python run_index_etl.py
+
+# Scrape specific indices
+python run_index_etl.py --indices NIFTY50 BANKNIFTY NIFTYIT
+
+# Scrape for specific date
+python run_index_etl.py --date 2026-01-11
+
+# View results in ClickHouse
+clickhouse-client --database champion_market --query "
+SELECT 
+    index_name,
+    symbol,
+    company_name,
+    weight,
+    sector
+FROM index_constituent
+WHERE action = 'ADD'
+  AND index_name = 'NIFTY50'
+ORDER BY weight DESC NULLS LAST
+LIMIT 10
+"
 ```
 
 ---
