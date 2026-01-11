@@ -2,7 +2,6 @@
 
 import unittest
 from datetime import date
-from pathlib import Path
 
 
 class TestQuarterlyFinancialsParser(unittest.TestCase):

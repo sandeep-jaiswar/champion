@@ -2,8 +2,6 @@
 
 import json
 from datetime import date
-from pathlib import Path
-from unittest.mock import mock_open, patch
 
 import polars as pl
 import pytest
@@ -175,14 +173,14 @@ class TestIndexConstituentParser:
         # Verify
         assert len(events) == 3
         assert all(isinstance(event, dict) for event in events)
-        
+
         # Check first event (RELIANCE)
         event = events[0]
         assert event["event_id"]
         assert event["source"] == "nse_index_constituents"
         assert event["schema_version"] == "v1"
         assert event["entity_id"] == "NIFTY50:RELIANCE"
-        
+
         payload = event["payload"]
         assert payload["index_name"] == "NIFTY50"
         assert payload["symbol"] == "RELIANCE"
@@ -213,7 +211,7 @@ class TestIndexConstituentParser:
 
         # Verify
         assert len(events) == 2
-        
+
         # Check first event (HDFCBANK)
         event = events[0]
         payload = event["payload"]
@@ -278,7 +276,7 @@ class TestIndexConstituentParser:
         today = date.today()
         epoch = date(1970, 1, 1)
         expected_days = (today - epoch).days
-        
+
         for event in events:
             assert event["payload"]["effective_date"] == expected_days
 
@@ -332,7 +330,7 @@ class TestIndexConstituentParser:
     def test_write_parquet_empty_events(self, parser, tmp_path):
         """Test that writing empty events raises ValueError."""
         output_base = tmp_path / "lake"
-        
+
         with pytest.raises(ValueError, match="No events to write"):
             parser.write_parquet(
                 events=[],
