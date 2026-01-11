@@ -54,6 +54,46 @@ class ClickHouseLoader:
         'features_equity_indicators': 'features',
     }
     
+    # Column name mapping: Parquet column -> ClickHouse column
+    # This allows loading from Parquet files with different naming conventions
+    COLUMN_MAPPINGS = {
+        'normalized_equity_ohlc': {
+            # Support both NSE names (TradDt) and normalized names (trade_date)
+            'trade_date': 'TradDt',
+            'symbol': 'TckrSymb',
+            'open': 'OpnPric',
+            'high': 'HghPric',
+            'low': 'LwPric',
+            'close': 'ClsPric',
+            'last_price': 'LastPric',
+            'prev_close': 'PrvsClsgPric',
+            'settlement_price': 'SttlmPric',
+            'volume': 'TtlTradgVol',
+            'turnover': 'TtlTrfVal',
+            'trades': 'TtlNbOfTxsExctd',
+            'isin': 'ISIN',
+            'instrument_id': 'FinInstrmId',
+            'instrument_type': 'FinInstrmTp',
+            'instrument_name': 'FinInstrmNm',
+            'segment': 'Sgmt',
+            'series': 'SctySrs',
+            'exchange': 'Src',
+            'business_date': 'BizDt',
+            'expiry_date': 'XpryDt',
+            'strike_price': 'StrkPric',
+            'option_type': 'OptnTp',
+            'underlying_price': 'UndrlygPric',
+            'open_interest': 'OpnIntrst',
+            'change_in_oi': 'ChngInOpnIntrst',
+            'session_id': 'SsnId',
+            'board_lot_qty': 'NewBrdLotQty',
+            'remarks': 'Rmks',
+        },
+        'features_equity_indicators': {
+            # Features table uses normalized names, no mapping needed yet
+        },
+    }
+    
     def __init__(
         self,
         host: str = 'localhost',
@@ -253,15 +293,33 @@ class ClickHouseLoader:
         table: str,
     ) -> pl.DataFrame:
         """
-        Prepare DataFrame for insertion (handle type conversions).
+        Prepare DataFrame for insertion (handle type conversions and column mapping).
         
         Args:
             df: Input DataFrame
             table: Target table name
             
         Returns:
-            Prepared DataFrame
+            Prepared DataFrame with columns mapped to ClickHouse schema
         """
+        # Apply column name mapping if configured for this table
+        if table in self.COLUMN_MAPPINGS and len(self.COLUMN_MAPPINGS[table]) > 0:
+            mapping = self.COLUMN_MAPPINGS[table]
+            
+            # Only rename columns that exist in the DataFrame
+            rename_map = {}
+            for source_col, target_col in mapping.items():
+                if source_col in df.columns:
+                    rename_map[source_col] = target_col
+                    logger.debug(f"Mapping column: {source_col} -> {target_col}")
+            
+            if rename_map:
+                df = df.rename(rename_map)
+                logger.info(f"Applied column name mappings: {len(rename_map)} columns renamed")
+        
+        # Validate required columns based on table
+        self._validate_schema(df, table)
+        
         # Convert Date columns if needed (Polars Date -> Python date)
         # ClickHouse expects date objects for Date columns
         
@@ -286,10 +344,50 @@ class ClickHouseLoader:
                         df = df.with_columns(
                             pl.col(col).str.strptime(pl.Date, format='%Y-%m-%d').alias(col)
                         )
-                    except Exception:
+                    except (pl.ComputeError, ValueError) as e:
+                        logger.warning(f"Failed to parse date column {col}: {e}")
                         pass  # Keep as is if parsing fails
         
         return df
+    
+    def _validate_schema(self, df: pl.DataFrame, table: str) -> None:
+        """
+        Validate that DataFrame has required columns for the target table.
+        
+        Args:
+            df: DataFrame to validate
+            table: Target table name
+            
+        Raises:
+            ValueError: If required columns are missing
+        """
+        # Define required columns for each table (columns used in ORDER BY or critical fields)
+        required_columns = {
+            'raw_equity_ohlc': ['TckrSymb', 'FinInstrmId', 'TradDt', 'event_time'],
+            'normalized_equity_ohlc': ['TckrSymb', 'FinInstrmId', 'TradDt', 'event_time'],
+            'features_equity_indicators': ['symbol', 'trade_date', 'feature_timestamp'],
+        }
+        
+        if table not in required_columns:
+            logger.warning(f"No schema validation defined for table: {table}")
+            return
+        
+        missing_cols = []
+        for required_col in required_columns[table]:
+            if required_col not in df.columns:
+                missing_cols.append(required_col)
+        
+        if missing_cols:
+            available_cols = sorted(df.columns)
+            error_msg = (
+                f"Schema validation failed for table '{table}'. "
+                f"Missing required columns: {missing_cols}. "
+                f"Available columns in Parquet: {available_cols}. "
+                f"Hint: The Parquet file may use a different naming convention. "
+                f"Check COLUMN_MAPPINGS in batch_loader.py for supported mappings."
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def verify_load(self, table: str, expected_rows: Optional[int] = None) -> dict:
         """

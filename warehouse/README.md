@@ -91,10 +91,10 @@ FROM champion_market.raw_equity_ohlc
 LIMIT 10;
 
 # Query normalized data
-SELECT symbol, trade_date, close, volume 
+SELECT TckrSymb, TradDt, ClsPric, TtlTradgVol 
 FROM champion_market.normalized_equity_ohlc 
-WHERE symbol = 'SYMBOL001'
-ORDER BY trade_date DESC 
+WHERE TckrSymb = 'SYMBOL001'
+ORDER BY TradDt DESC 
 LIMIT 10;
 
 # Query features
@@ -106,15 +106,15 @@ LIMIT 10;
 
 # Aggregation query
 SELECT 
-    trade_date,
+    TradDt as trade_date,
     count() as total_symbols,
-    sum(volume) as total_volume,
-    avg(close) as avg_close,
-    max(high) as max_high,
-    min(low) as min_low
+    sum(TtlTradgVol) as total_volume,
+    avg(ClsPric) as avg_close,
+    max(HghPric) as max_high,
+    min(LwPric) as min_low
 FROM champion_market.normalized_equity_ohlc
-GROUP BY trade_date
-ORDER BY trade_date DESC;
+GROUP BY TradDt
+ORDER BY TradDt DESC;
 ```
 
 ## Architecture
@@ -125,12 +125,12 @@ ORDER BY trade_date DESC;
 champion_market/
 ├── raw_equity_ohlc              # Raw NSE bhavcopy data
 │   ├── Partitioned by: YYYYMM
-│   ├── Sort key: (TckrSymb, TradDt, event_time)
+│   ├── Sort key: (TckrSymb, FinInstrmId, TradDt, event_time)
 │   └── TTL: 5 years
 │
 ├── normalized_equity_ohlc       # Normalized, CA-adjusted data
 │   ├── Partitioned by: YYYYMM
-│   ├── Sort key: (symbol, trade_date, instrument_id)
+│   ├── Sort key: (TckrSymb, FinInstrmId, TradDt, event_time)
 │   ├── Engine: ReplacingMergeTree (supports upserts)
 │   └── TTL: 3 years
 │
@@ -142,6 +142,72 @@ champion_market/
 └── equity_ohlc_daily_summary   # Materialized view (aggregates)
     └── Auto-updated on inserts
 ```
+
+### Schema Naming Conventions
+
+The Champion platform uses **NSE column names** for raw and normalized equity OHLC data to maintain consistency with source data and reduce transformation complexity. This design decision ensures:
+
+1. **Direct mapping** from NSE bhavcopy CSV files to ClickHouse without column renaming
+2. **Audit trail consistency** - raw and normalized layers use same field names
+3. **Reduced transformation overhead** in the ETL pipeline
+4. **Clear data lineage** - column names match NSE documentation
+
+#### NSE Column Naming (Raw & Normalized Layers)
+- `TradDt` - Trade date
+- `TckrSymb` - Ticker symbol
+- `FinInstrmId` - Financial instrument ID (unique identifier for securities)
+- `OpnPric`, `HghPric`, `LwPric`, `ClsPric` - OHLC prices
+- `TtlTradgVol` - Total traded volume
+- `ISIN` - International Securities Identification Number
+
+#### Normalized Column Naming (Features Layer)
+The features layer uses more developer-friendly names:
+- `symbol`, `trade_date`, `open`, `high`, `low`, `close`, `volume`
+
+#### Column Name Mapping
+The batch loader (`warehouse/loader/batch_loader.py`) includes a mapping layer that can translate between naming conventions. See `COLUMN_MAPPINGS` constant for supported mappings. This allows loading Parquet files that use either NSE names or normalized names.
+
+### Deduplication Strategy and Sort Keys
+
+#### Why FinInstrmId in ORDER BY?
+
+The `ORDER BY (TckrSymb, FinInstrmId, TradDt, event_time)` clause is **critical** for handling cases where:
+
+1. **Multiple securities share the same ticker symbol** (e.g., NCDs, bonds, different series)
+   - Example: `IBULHSGFIN` has 19 different NCD tranches, each with a unique `FinInstrmId`
+   - Without `FinInstrmId` in the sort key, these would be incorrectly merged/deduplicated
+
+2. **ReplacingMergeTree deduplication semantics**
+   - ClickHouse uses the `ORDER BY` columns to identify duplicate rows
+   - Only rows with identical values in ALL `ORDER BY` columns are considered duplicates
+   - This ensures each security (identified by `TckrSymb` + `FinInstrmId` combination) maintains separate records
+
+3. **Query performance optimization**
+   - Queries filtering by symbol can efficiently use the primary index
+   - Adding `FinInstrmId` allows precise security-level queries without full scans
+   - Example: `WHERE TckrSymb = 'IBULHSGFIN' AND FinInstrmId = 123456`
+
+#### Example: Multiple Securities Under Same Ticker
+
+```sql
+-- Query to see distinct securities under a ticker
+SELECT count(), TckrSymb, FinInstrmId, ISIN, FinInstrmNm
+FROM champion_market.normalized_equity_ohlc
+WHERE TradDt = '2024-01-02' AND TckrSymb = 'IBULHSGFIN'
+GROUP BY TckrSymb, FinInstrmId, ISIN, FinInstrmNm
+ORDER BY FinInstrmId;
+
+-- Expected result: 19 rows (one for each NCD tranche)
+-- Without FinInstrmId in ORDER BY, these would collapse to 1 row (DATA LOSS!)
+```
+
+#### Data Integrity Guarantees
+
+With the current schema design:
+1. **No unintended deduplication** - Each unique security maintains its own records
+2. **Idempotent loads** - Re-running the loader with same data won't create duplicates
+3. **Late-arriving data handling** - ReplacingMergeTree(ingest_time) keeps the latest version
+4. **Audit trail preservation** - event_time in ORDER BY maintains temporal ordering
 
 ### Users and Permissions
 
@@ -249,34 +315,34 @@ ORDER BY TradDt DESC;
 ```sql
 -- Price performance (daily returns)
 SELECT 
-    symbol,
-    trade_date,
-    close,
-    prev_close,
-    ((close - prev_close) / prev_close * 100) as daily_return_pct
+    TckrSymb,
+    TradDt,
+    ClsPric,
+    PrvsClsgPric,
+    ((ClsPric - PrvsClsgPric) / PrvsClsgPric * 100) as daily_return_pct
 FROM champion_market.normalized_equity_ohlc
-WHERE symbol IN ('SYMBOL001', 'SYMBOL002', 'SYMBOL003')
-ORDER BY symbol, trade_date DESC
+WHERE TckrSymb IN ('SYMBOL001', 'SYMBOL002', 'SYMBOL003')
+ORDER BY TckrSymb, TradDt DESC
 LIMIT 30;
 
 -- Volume leaders
 SELECT 
-    trade_date,
-    symbol,
-    volume,
-    turnover,
-    close,
-    (close - prev_close) as price_change
+    TradDt,
+    TckrSymb,
+    TtlTradgVol as volume,
+    TtlTrfVal as turnover,
+    ClsPric,
+    (ClsPric - PrvsClsgPric) as price_change
 FROM champion_market.normalized_equity_ohlc
-WHERE trade_date = '2024-01-15'
-ORDER BY volume DESC
+WHERE TradDt = '2024-01-15'
+ORDER BY TtlTradgVol DESC
 LIMIT 20;
 
 -- OHLC validation (high >= low check)
 SELECT 
     count() as total_rows,
-    countIf(high >= low) as valid_rows,
-    countIf(high < low) as invalid_rows
+    countIf(HghPric >= LwPric) as valid_rows,
+    countIf(HghPric < LwPric) as invalid_rows
 FROM champion_market.normalized_equity_ohlc;
 ```
 
@@ -474,7 +540,7 @@ docker-compose restart clickhouse
 -- Check query execution plan
 EXPLAIN
 SELECT * FROM normalized_equity_ohlc
-WHERE symbol = 'SYMBOL001' AND trade_date >= '2024-01-15';
+WHERE TckrSymb = 'SYMBOL001' AND TradDt >= '2024-01-15';
 
 -- Check slow queries
 SELECT 
@@ -493,20 +559,22 @@ LIMIT 10;
 ### Data Validation
 
 ```sql
--- Check for duplicate records
+-- Check for duplicate records (considering FinInstrmId for uniqueness)
 SELECT 
-    symbol,
-    trade_date,
+    TckrSymb,
+    FinInstrmId,
+    TradDt,
     count(*) as duplicate_count
 FROM champion_market.normalized_equity_ohlc
-GROUP BY symbol, trade_date
+GROUP BY TckrSymb, FinInstrmId, TradDt
 HAVING count(*) > 1;
 
 -- Check for null values in required columns
 SELECT 
     countIf(event_id IS NULL) as null_event_ids,
-    countIf(symbol IS NULL) as null_symbols,
-    countIf(trade_date IS NULL) as null_dates
+    countIf(TckrSymb IS NULL) as null_symbols,
+    countIf(TradDt IS NULL) as null_dates,
+    countIf(FinInstrmId IS NULL) as null_instrument_ids
 FROM champion_market.normalized_equity_ohlc;
 ```
 
