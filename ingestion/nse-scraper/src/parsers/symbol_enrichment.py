@@ -84,6 +84,7 @@ class SymbolEnrichment:
             on=["TckrSymb", "ISIN"],
             how="left",
             suffix="_master",
+            coalesce=True,
         )
 
         # For instruments without ISIN match, try joining on just TckrSymb
@@ -95,18 +96,35 @@ class SymbolEnrichment:
                 count=len(missing_isin),
             )
 
+            # Get the base columns from missing_isin (excluding the master columns that failed to match)
+            base_cols = ["TckrSymb", "SctySrs", "FinInstrmId", "ISIN", "FinInstrmNm", "FinInstrmTp"]
+            missing_base = missing_isin.select(base_cols)
+            
             # Join on TckrSymb only for missing records
-            symbol_only_join = missing_isin.drop("CompanyName").join(
-                symbol_master_normalized.select(["TckrSymb", "CompanyName", "FaceValue", "PaidUpValue", "LotSize", "ListingDate"]),
+            symbol_only_join = missing_base.join(
+                symbol_master_normalized.select(
+                    ["TckrSymb", "CompanyName", "FaceValue", "PaidUpValue", "LotSize", "ListingDate"]
+                ),
                 on="TckrSymb",
                 how="left",
                 suffix="_sym",
+                coalesce=True,
             )
 
+            # Get the matched records with the same schema as enriched
+            matched = enriched.filter(pl.col("CompanyName").is_not_null())
+            
+            # Ensure symbol_only_join has the same columns as matched
+            # Add any missing columns with null values
+            for col in matched.columns:
+                if col not in symbol_only_join.columns:
+                    symbol_only_join = symbol_only_join.with_columns(pl.lit(None).alias(col))
+            
+            # Select columns in the same order as matched
+            symbol_only_join = symbol_only_join.select(matched.columns)
+            
             # Merge back into enriched dataframe
-            enriched = enriched.filter(pl.col("CompanyName").is_not_null()).vstack(
-                symbol_only_join
-            )
+            enriched = pl.concat([matched, symbol_only_join], how="vertical")
 
         # Create canonical instrument IDs: symbol:fiid:exchange
         enriched = enriched.with_columns(
