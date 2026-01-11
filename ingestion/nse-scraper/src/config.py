@@ -59,6 +59,19 @@ class NSEConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="NSE_")
 
 
+class BSEConfig(BaseSettings):
+    """BSE data source configuration."""
+
+    bhavcopy_url: str = Field(
+        default="https://www.bseindia.com/download/BhavCopy/Equity/EQ{date}_CSV.ZIP"
+    )
+    equity_list_url: str = Field(
+        default="https://www.bseindia.com/corporates/List_Scrips.html"
+    )
+
+    model_config = SettingsConfigDict(env_prefix="BSE_")
+
+
 class ScraperConfig(BaseSettings):
     """Scraper behavior configuration."""
 
@@ -133,6 +146,7 @@ class Config(BaseSettings):
     kafka: KafkaConfig = Field(default_factory=KafkaConfig)
     topics: TopicConfig = Field(default_factory=TopicConfig)
     nse: NSEConfig = Field(default_factory=NSEConfig)
+    bse: BSEConfig = Field(default_factory=BSEConfig)
     scraper: ScraperConfig = Field(default_factory=ScraperConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
