@@ -174,7 +174,7 @@ class TradingCalendarValidator:
         Returns:
             List of trading days in range
         """
-        if not self.calendar_df:
+        if self.calendar_df is None:
             logger.warning("Trading calendar not loaded")
             return []
 
@@ -196,7 +196,7 @@ class TradingCalendarValidator:
         Returns:
             DataFrame with holiday information
         """
-        if not self.calendar_df:
+        if self.calendar_df is None:
             logger.warning("Trading calendar not loaded")
             return pl.DataFrame()
 
@@ -218,7 +218,7 @@ class TradingCalendarValidator:
         Returns:
             Number of trading days
         """
-        if not self.calendar_df:
+        if self.calendar_df is None:
             logger.warning("Trading calendar not loaded")
             return 0
 

@@ -5,8 +5,9 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add parent directory to path
+parent_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(parent_dir))
 
 
 def test_scraper():
