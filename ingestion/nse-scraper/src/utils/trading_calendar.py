@@ -12,7 +12,9 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Constants for weekday handling (Python convention: Monday=0, Sunday=6)
+# Constants for weekend checking using Python's weekday() method
+# Python weekday: Monday=0, Tuesday=1, ..., Saturday=5, Sunday=6
+# Used for internal logic; data is stored in ISO 8601 format (1=Monday, 7=Sunday)
 SATURDAY = 5
 SUNDAY = 6
 WEEKEND_DAYS = {SATURDAY, SUNDAY}

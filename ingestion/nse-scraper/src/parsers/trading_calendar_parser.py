@@ -23,8 +23,9 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Constants for better readability
-SATURDAY = 5  # Python weekday: 0=Monday, 6=Sunday
+# Constants for weekend detection using Python's weekday() method
+# Python weekday: Monday=0, Tuesday=1, ..., Saturday=5, Sunday=6
+SATURDAY = 5
 SUNDAY = 6
 WEEKEND_DAYS = {SATURDAY, SUNDAY}
 
@@ -189,8 +190,9 @@ class TradingCalendarParser:
 
         current_date = start_date
         while current_date <= end_date:
-            # Determine if trading day (use WEEKEND_DAYS constant)
-            is_weekend = current_date.weekday() in WEEKEND_DAYS
+            # Check if weekend using Python's weekday() method (0=Monday, 6=Sunday)
+            python_weekday = current_date.weekday()
+            is_weekend = python_weekday in WEEKEND_DAYS
             is_holiday = current_date in cm_holidays
 
             is_trading_day = not (is_weekend or is_holiday)
@@ -224,7 +226,8 @@ class TradingCalendarParser:
                 },
             ]
 
-            # Use ISO 8601 weekday (1=Monday, 7=Sunday) for consistency with ClickHouse
+            # Convert to ISO 8601 weekday for storage (1=Monday, 7=Sunday)
+            # This matches ClickHouse's toDayOfWeek() function
             iso_weekday = current_date.isoweekday()
 
             entry = {
@@ -236,7 +239,7 @@ class TradingCalendarParser:
                 "year": current_date.year,
                 "month": current_date.month,
                 "day": current_date.day,
-                "weekday": iso_weekday,  # ISO 8601: 1=Monday, 7=Sunday
+                "weekday": iso_weekday,  # Stored in ISO 8601 format for consistency
                 "segments": segments,
             }
 
