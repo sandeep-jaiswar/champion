@@ -474,5 +474,64 @@ CREATE INDEX IF NOT EXISTS idx_tc_day_type
 ON champion_market.trading_calendar (day_type) 
 TYPE set(10) GRANULARITY 1;
 
+-- ==============================================================================
+-- 8. BULK AND BLOCK DEALS TABLE
+-- ==============================================================================
+-- Purpose: Track bulk and block deals for transparency and analysis
+-- Retention: 10 years (regulatory and analysis reference)
+-- Partitioning: By deal_type and year/month of deal_date
+--
+-- Bulk Deals: Transactions where total quantity > 0.5% of listed shares
+-- Block Deals: Transactions with minimum 5 lakh shares or Rs 5 crore value
+
+CREATE TABLE IF NOT EXISTS champion_market.bulk_block_deals
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Deal payload
+    deal_date           Date,
+    symbol              String,  -- Trading symbol
+    client_name         String,  -- Client/entity name
+    quantity            Int64,   -- Number of shares traded
+    avg_price           Float64, -- Average deal price
+    deal_type           LowCardinality(String),  -- BULK or BLOCK
+    transaction_type    LowCardinality(String),  -- BUY or SELL
+    exchange            LowCardinality(String) DEFAULT 'NSE',
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(deal_date),
+    month               Int64 DEFAULT toMonth(deal_date),
+    day                 Int64 DEFAULT toDayOfMonth(deal_date)
+)
+ENGINE = MergeTree()
+PARTITION BY (deal_type, toYear(deal_date), toMonth(deal_date))
+ORDER BY (symbol, deal_date, transaction_type, event_time)
+TTL deal_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_bbd_client 
+ON champion_market.bulk_block_deals (client_name) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_bbd_deal_type 
+ON champion_market.bulk_block_deals (deal_type) 
+TYPE set(2) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_bbd_transaction_type 
+ON champion_market.bulk_block_deals (transaction_type) 
+TYPE set(2) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_bbd_quantity 
+ON champion_market.bulk_block_deals (quantity) 
+TYPE minmax GRANULARITY 1;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here
