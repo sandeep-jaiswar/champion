@@ -50,6 +50,7 @@ class SchemaLoader:
         return {
             "raw_equity_ohlc": "market-data/raw_equity_ohlc.avsc",
             "normalized_equity_ohlc": "market-data/normalized_equity_ohlc.avsc",
+            "option_chain_snapshot": "market-data/option_chain_snapshot.avsc",
             "symbol_master": "reference-data/symbol_master.avsc",
             "corporate_action": "reference-data/corporate_action.avsc",
             "trading_calendar": "reference-data/trading_calendar.avsc",
