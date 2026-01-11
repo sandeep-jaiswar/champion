@@ -11,7 +11,7 @@ from src.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
 @pytest.fixture
 def sample_csv_file(tmp_path):
     """Create a sample CSV file for testing."""
-    csv_content = """TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,Rmks,Rsvd1,Rsvd2,Rsvd3,Rsvd4
+    csv_content = """TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,Rmks,Rsvd01,Rsvd02,Rsvd03,Rsvd04
 2024-01-02,2024-01-02,CM,NSE,STK,2885,INE002A01018,RELIANCE,EQ,-,-,-,-,RELIANCE INDUSTRIES LTD,2750.00,2780.50,2740.00,2765.25,2765.00,2750.00,-,2765.25,-,-,5000000,13826250000.00,50000,F1,1,-,-,-,-,-
 2024-01-02,2024-01-02,CM,NSE,STK,11536,INE467B01029,TCS,EQ,-,-,-,-,TATA CONSULTANCY SERVICES LTD,3550.00,3575.00,3545.00,3560.75,3560.50,3550.00,-,3560.75,-,-,3500000,12462625000.00,45000,F1,1,-,-,-,-,-
 2024-01-02,2024-01-02,CM,NSE,STK,1594,INE009A01021,INFY,EQ,-,-,-,-,INFOSYS LTD,1450.00,1465.00,1445.00,1458.25,1458.00,1450.00,-,1458.25,-,-,4200000,6124650000.00,48000,F1,1,-,-,-,-,-"""
@@ -135,7 +135,7 @@ def test_write_parquet(parser, sample_csv_file, trade_date, tmp_path):
     assert output_file.suffix == ".parquet"
 
     # Check partition path structure
-    expected_path = tmp_path / "normalized" / "ohlc" / "year=2024" / "month=01" / "day=02"
+    expected_path = tmp_path / "normalized" / "equity_ohlc" / "year=2024" / "month=01" / "day=02"
     assert expected_path in output_file.parents
 
 
@@ -162,7 +162,7 @@ def test_write_parquet_readable(parser, sample_csv_file, trade_date, tmp_path):
 
 def test_parse_with_empty_symbols_filtered(parser, tmp_path, trade_date):
     """Test that rows with empty symbols are filtered out."""
-    csv_content = """TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,Rmks,Rsvd1,Rsvd2,Rsvd3,Rsvd4
+    csv_content = """TradDt,BizDt,Sgmt,Src,FinInstrmTp,FinInstrmId,ISIN,TckrSymb,SctySrs,XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,Rmks,Rsvd01,Rsvd02,Rsvd03,Rsvd04
 2024-01-02,2024-01-02,CM,NSE,STK,2885,INE002A01018,RELIANCE,EQ,-,-,-,-,RELIANCE INDUSTRIES LTD,2750.00,2780.50,2740.00,2765.25,2765.00,2750.00,-,2765.25,-,-,5000000,13826250000.00,50000,F1,1,-,-,-,-,-
 2024-01-02,2024-01-02,CM,NSE,STK,11536,INE467B01029,-,EQ,-,-,-,-,EMPTY SYMBOL,3550.00,3575.00,3545.00,3560.75,3560.50,3550.00,-,3560.75,-,-,3500000,12462625000.00,45000,F1,1,-,-,-,-,-
 2024-01-02,2024-01-02,CM,NSE,STK,1594,INE009A01021,INFY,EQ,-,-,-,-,INFOSYS LTD,1450.00,1465.00,1445.00,1458.25,1458.00,1450.00,-,1458.25,-,-,4200000,6124650000.00,48000,F1,1,-,-,-,-,-"""

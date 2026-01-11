@@ -50,7 +50,7 @@ def generate_large_csv(output_path: Path, num_rows: int = 2500):
             "XpryDt,FininstrmActlXpryDt,StrkPric,OptnTp,FinInstrmNm,OpnPric,HghPric,"
             "LwPric,ClsPric,LastPric,PrvsClsgPric,UndrlygPric,SttlmPric,OpnIntrst,"
             "ChngInOpnIntrst,TtlTradgVol,TtlTrfVal,TtlNbOfTxsExctd,SsnId,NewBrdLotQty,"
-            "Rmks,Rsvd1,Rsvd2,Rsvd3,Rsvd4\n"
+            "Rmks,Rsvd01,Rsvd02,Rsvd03,Rsvd04\n"
         )
 
         # Write data rows

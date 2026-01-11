@@ -42,7 +42,7 @@ class NSEConfig(BaseSettings):
     """NSE data source configuration."""
 
     bhavcopy_url: str = Field(
-        default="https://archives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{date}_F_0000.csv"
+        default="https://nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{date}_F_0000.csv.zip"
     )
     equity_list_url: str = Field(
         default="https://archives.nseindia.com/content/equities/EQUITY_L.csv"

@@ -4,13 +4,12 @@ services:
     container_name: champion-clickhouse
     hostname: clickhouse
     ports:
-      - "8123:8123"  # HTTP interface
-      - "9000:9000"  # Native client interface
+      - "8123:8123"
+      - "9000:9000"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_logs:/var/log/clickhouse-server
       - ./warehouse/clickhouse/init:/docker-entrypoint-initdb.d:ro
-      - ./warehouse/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml:ro
     environment:
       CLICKHOUSE_DB: champion_market
       CLICKHOUSE_USER: champion_user
@@ -21,7 +20,7 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--user", "champion_user", "--password", "champion_pass", "--query", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 5

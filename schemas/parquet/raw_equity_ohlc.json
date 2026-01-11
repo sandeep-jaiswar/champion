@@ -181,19 +181,19 @@
       "type": ["string", "null"],
       "description": "Remarks"
     },
-    "Rsvd1": {
+    "Rsvd01": {
       "type": ["string", "null"],
       "description": "Reserved field 1"
     },
-    "Rsvd2": {
+    "Rsvd02": {
       "type": ["string", "null"],
       "description": "Reserved field 2"
     },
-    "Rsvd3": {
+    "Rsvd03": {
       "type": ["string", "null"],
       "description": "Reserved field 3"
     },
-    "Rsvd4": {
+    "Rsvd04": {
       "type": ["string", "null"],
       "description": "Reserved field 4"
     }
