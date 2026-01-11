@@ -27,6 +27,7 @@ import polars as pl
 from src.config import config
 from src.parsers.symbol_master_parser import SymbolMasterParser
 from src.parsers.symbol_enrichment import SymbolEnrichment
+# SymbolMasterScraper is already defined in src/scrapers/symbol_master.py
 from src.scrapers.symbol_master import SymbolMasterScraper
 from src.utils.logger import get_logger
 
