@@ -433,5 +433,46 @@ CREATE INDEX IF NOT EXISTS idx_ic_effective_date
 ON champion_market.index_constituent (effective_date) 
 TYPE minmax GRANULARITY 1;
 
+-- 7. TRADING CALENDAR TABLE
+-- ==============================================================================
+-- Purpose: Trading calendar reference data for validation and date calculations
+-- Retention: 10 years (historical reference)
+-- Partitioning: Yearly (YYYY)
+
+CREATE TABLE IF NOT EXISTS champion_market.trading_calendar
+(
+    -- Metadata
+    trade_date          Date,
+    is_trading_day      Bool,
+    day_type            LowCardinality(String),  -- NORMAL_TRADING, WEEKEND, MARKET_HOLIDAY, etc.
+    holiday_name        Nullable(String),
+    exchange            LowCardinality(String) DEFAULT 'NSE',
+    
+    -- Partition columns
+    year                Int64 DEFAULT toYear(trade_date),
+    month               Int64 DEFAULT toMonth(trade_date),
+    day                 Int64 DEFAULT toDayOfMonth(trade_date),
+    weekday             Int8 DEFAULT toDayOfWeek(trade_date),
+    
+    -- Timestamp
+    ingest_time         DateTime DEFAULT now()
+)
+ENGINE = ReplacingMergeTree(ingest_time)
+PARTITION BY toYear(trade_date)
+ORDER BY (exchange, trade_date)
+TTL trade_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Index for fast trading day lookups
+CREATE INDEX IF NOT EXISTS idx_tc_trading_day 
+ON champion_market.trading_calendar (is_trading_day) 
+TYPE set(2) GRANULARITY 1;
+
+-- Index for holiday lookups
+CREATE INDEX IF NOT EXISTS idx_tc_day_type 
+ON champion_market.trading_calendar (day_type) 
+TYPE set(10) GRANULARITY 1;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here

@@ -52,6 +52,9 @@ class NSEConfig(BaseSettings):
     option_chain_url: str = Field(
         default="https://www.nseindia.com/api/option-chain-{instrument}"
     )
+    holiday_calendar_url: str = Field(
+        default="https://www.nseindia.com/api/holiday-master?type=trading"
+    )
 
     model_config = SettingsConfigDict(env_prefix="NSE_")
 
