@@ -16,9 +16,6 @@ import sys
 from datetime import date
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
 from champion.orchestration.flows import index_constituent_etl_flow
 
 
