@@ -201,7 +201,7 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
 
 ## Corporate Actions Adjustments
 
-### Purpose
+### Overview
 
 Corporate actions (splits, bonuses, dividends, rights issues) create discontinuities in historical price data. To ensure price continuity and accurate financial analysis, all OHLC prices are adjusted retrospectively when corporate actions occur.
 
