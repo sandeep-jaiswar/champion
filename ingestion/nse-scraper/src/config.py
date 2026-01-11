@@ -31,6 +31,7 @@ class TopicConfig(BaseSettings):
     """Kafka topic names."""
 
     raw_ohlc: str = Field(default="raw.market.equity.ohlc")
+    option_chain: str = Field(default="raw.market.option_chain")
     symbol_master: str = Field(default="reference.nse.symbol_master")
     corporate_actions: str = Field(default="reference.nse.corporate_actions")
     trading_calendar: str = Field(default="reference.nse.trading_calendar")
@@ -48,6 +49,9 @@ class NSEConfig(BaseSettings):
         default="https://archives.nseindia.com/content/equities/EQUITY_L.csv"
     )
     ca_url: str = Field(default="https://www.nseindia.com/api/corporates-corporateActions")
+    option_chain_url: str = Field(
+        default="https://www.nseindia.com/api/option-chain-{instrument}"
+    )
 
     model_config = SettingsConfigDict(env_prefix="NSE_")
 

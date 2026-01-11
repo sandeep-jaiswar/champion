@@ -587,6 +587,96 @@ def create_deployment():
     return deployment
 
 
+@flow(
+    name="nse-option-chain-scrape-flow",
+    description="Scrape NSE option chain data for multiple symbols",
+    log_prints=True,
+)
+def nse_option_chain_flow(
+    symbols: list[str] | None = None,
+    output_dir: str = "data/option_chain",
+    save_raw_json: bool = True,
+) -> dict:
+    """Flow to scrape option chain data for multiple symbols.
+
+    This flow:
+    1. Scrapes option chain data from NSE for specified symbols
+    2. Parses and writes to Parquet with partitioning
+    3. Logs metrics to MLflow
+
+    Args:
+        symbols: List of symbols to scrape (default: NIFTY, BANKNIFTY)
+        output_dir: Output directory for Parquet files
+        save_raw_json: Whether to save raw JSON responses
+
+    Returns:
+        Dictionary with scraping results
+
+    Example:
+        >>> result = nse_option_chain_flow(
+        ...     symbols=["NIFTY", "BANKNIFTY", "RELIANCE"],
+        ...     output_dir="data/option_chain"
+        ... )
+    """
+    from src.tasks.option_chain_tasks import scrape_multiple_option_chains
+
+    # Default symbols if not provided
+    if symbols is None:
+        symbols = ["NIFTY", "BANKNIFTY"]
+
+    logger.info(
+        "starting_option_chain_flow",
+        symbols=symbols,
+        output_dir=output_dir,
+    )
+
+    # Start MLflow run
+    with mlflow.start_run(run_name=f"option_chain_{'-'.join(symbols)}"):
+        mlflow.set_tag("flow_type", "option_chain")
+        mlflow.log_param("symbols", ",".join(symbols))
+        mlflow.log_param("output_dir", output_dir)
+
+        try:
+            # Scrape all symbols
+            results = scrape_multiple_option_chains(
+                symbols=symbols,
+                output_dir=output_dir,
+                save_raw_json=save_raw_json,
+            )
+
+            # Calculate summary metrics
+            total_symbols = len(results)
+            successful = sum(1 for r in results if r.get("success"))
+            failed = total_symbols - successful
+            total_rows = sum(r.get("rows", 0) for r in results)
+
+            summary = {
+                "total_symbols": total_symbols,
+                "successful": successful,
+                "failed": failed,
+                "total_rows": total_rows,
+                "results": results,
+            }
+
+            # Log metrics
+            mlflow.log_metric("total_symbols", total_symbols)
+            mlflow.log_metric("successful_symbols", successful)
+            mlflow.log_metric("failed_symbols", failed)
+            mlflow.log_metric("total_rows", total_rows)
+
+            logger.info(
+                "option_chain_flow_complete",
+                **summary,
+            )
+
+            return summary
+
+        except Exception as e:
+            logger.error("option_chain_flow_failed", error=str(e))
+            mlflow.log_param("error", str(e))
+            raise
+
+
 if __name__ == "__main__":
     # For local testing, run the flow directly
     import sys

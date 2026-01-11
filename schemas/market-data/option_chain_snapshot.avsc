@@ -1,0 +1,159 @@
+{
+  "type": "record",
+  "name": "OptionChainSnapshot",
+  "namespace": "com.champion.market.raw",
+  "doc": "Option chain snapshot data from NSE for a specific underlying - preserves bid/ask, IV, OI snapshots",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Market/exchange timestamp when data was captured (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_option_chain')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Partition key: underlying symbol (e.g., 'NIFTY', 'BANKNIFTY', 'RELIANCE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "OptionChainPayload",
+        "doc": "Option chain snapshot payload containing strike-level data",
+        "fields": [
+          {
+            "name": "underlying",
+            "type": "string",
+            "doc": "Underlying symbol (e.g., 'NIFTY', 'BANKNIFTY', 'RELIANCE')"
+          },
+          {
+            "name": "underlying_value",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Current spot/index value of the underlying"
+          },
+          {
+            "name": "timestamp",
+            "type": {
+              "type": "long",
+              "logicalType": "timestamp-millis"
+            },
+            "doc": "Snapshot timestamp (milliseconds since epoch)"
+          },
+          {
+            "name": "expiry_date",
+            "type": "string",
+            "doc": "Option expiry date (YYYY-MM-DD format)"
+          },
+          {
+            "name": "strike_price",
+            "type": "double",
+            "doc": "Strike price"
+          },
+          {
+            "name": "option_type",
+            "type": {
+              "type": "enum",
+              "name": "OptionType",
+              "symbols": ["CE", "PE"]
+            },
+            "doc": "Option type: CE (Call European) or PE (Put European)"
+          },
+          {
+            "name": "bid_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Best bid price"
+          },
+          {
+            "name": "ask_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Best ask price"
+          },
+          {
+            "name": "last_price",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Last traded price"
+          },
+          {
+            "name": "volume",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Total traded volume"
+          },
+          {
+            "name": "open_interest",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Open interest (number of outstanding contracts)"
+          },
+          {
+            "name": "change_in_oi",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Change in open interest"
+          },
+          {
+            "name": "implied_volatility",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Implied volatility (percentage)"
+          },
+          {
+            "name": "delta",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Option delta (Greeks)"
+          },
+          {
+            "name": "theta",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Option theta (Greeks)"
+          },
+          {
+            "name": "gamma",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Option gamma (Greeks)"
+          },
+          {
+            "name": "vega",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Option vega (Greeks)"
+          }
+        ]
+      },
+      "doc": "Option chain data for a specific strike and option type"
+    }
+  ]
+}
