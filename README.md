@@ -88,15 +88,73 @@ Low latency is important — but never at the cost of correctness.
 ## Repository Structure
 
 ```text
-├── README.md
-├── docs/
-│   ├── architecture/   # System design & contracts
-│   ├── decisions/      # Technology Decision Records (TDRs)
-│   └── issues/         # Canonical issue definitions
-├── schemas/            # Avro schemas (source of truth)
-└── .github/
-    └── ISSUE_TEMPLATE/ # Enforced issue discipline
+├── docs/                    Documentation hub (00..07)
+│   ├── 00_getting_started/  Onboarding and quick start
+│   ├── 01_architecture/     System design and principles
+│   ├── 02_implementation/   Component deep dives
+│   ├── 03_user_guides/      How to use Champion
+│   ├── 04_development/      Contributing and standards
+│   ├── 05_api_reference/    API docs
+│   ├── 06_data_dictionaries/ Schemas and fields
+│   └── 07_decisions/        ADRs (architecture decisions)
+├── src/
+│   └── champion/            Unified main package
+│       ├── scrapers/        Data collection (NSE/BSE)
+│       ├── parsers/         Polars-based parsers
+│       ├── storage/         Parquet I/O and retention
+│       ├── warehouse/       ClickHouse client and loaders
+│       ├── features/        Technical and fundamental features
+│       ├── corporate_actions/ Corporate action processing
+│       ├── orchestration/   Prefect flows and tasks
+│       ├── ml/              ML utilities (tracking)
+│       ├── validation/      Validation utilities and flows
+│       └── utils/           Logging, retry, helpers
+├── tests/                   Unified test suite (unit/integration)
+├── scripts/                 CLI and ETL runners (data/)
+├── examples/                Manual test and analysis scripts
+├── pyproject.toml           Root packaging and tooling config
+└── Makefile                 Common automation
 ```
+
+See the documentation hub at [docs/README.md](docs/README.md).
+
+---
+
+## Quick Start (Unified Package)
+
+### Install dependencies
+
+Using Poetry (recommended):
+
+```bash
+poetry install
+poetry run pytest -q
+```
+
+Or using pip:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r <(poetry export -f requirements.txt --without-hashes)
+pytest -q
+```
+
+### Run ETL scripts
+
+```bash
+poetry run python scripts/data/run_index_etl.py
+poetry run python scripts/data/run_fundamentals_etl.py
+poetry run python scripts/data/run_macro_etl.py
+```
+
+### Verify package import
+
+```bash
+poetry run python -c "import champion; print('Champion package OK')"
+```
+
+For deeper guidance, start at [docs/00_getting_started/README.md](docs/00_getting_started/README.md) and [docs/02_implementation/README.md](docs/02_implementation/README.md).
 
 ---
 

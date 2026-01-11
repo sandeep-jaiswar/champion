@@ -17,10 +17,10 @@ from pathlib import Path
 import httpx
 import polars as pl
 
-from src.config import config
-from src.scrapers.base import BaseScraper
-from src.utils.logger import get_logger
-from src.utils.metrics import files_downloaded, scrape_duration
+from champion.config import config
+from champion.scrapers.base import BaseScraper
+from champion.utils.logger import get_logger
+from champion.utils.metrics import files_downloaded, scrape_duration
 
 logger = get_logger(__name__)
 

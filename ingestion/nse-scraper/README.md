@@ -23,6 +23,51 @@ NSE Website/FTP
 - **Observable**: Prometheus metrics, structured logging, distributed tracing
 - **Configurable**: Environment-based configuration with validation
 
+## Data Sources
+
+### 1. Market Data (Equity & Derivatives)
+
+| Scraper | Data Type | Source | Frequency | Details |
+|---------|-----------|--------|-----------|---------|
+| **Bhavcopy** | OHLC (Open, High, Low, Close) | NSE CM (Equity Market) | Daily | Equity prices, volumes, turnover for all listed scripts |
+| **BSE Bhavcopy** | BSE OHLC Data | BSE | Daily | Equity prices from BSE exchange |
+| **Option Chain** | Options Derivatives | NSE Derivatives | Intraday | Strike prices, open interest, IV for indices (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY) and equity options |
+| **Bulk Block Deals** | Large Transactions | NSE API | Daily | Bulk deals: transactions >0.5% of listed shares<br>Block deals: minimum 5L shares or ₹5 crore |
+
+### 2. Reference & Metadata
+
+| Scraper | Data Type | Source | Frequency | Details |
+|---------|-----------|--------|-----------|---------|
+| **Symbol Master** | Equity Master | NSE EQUITY_L list | Daily | Company symbols, ISIN, trading status, market lot, etc. |
+| **Trading Calendar** | Market Holidays | NSE Calendar | Annually | Trading days, holidays, settlement dates |
+| **Index Constituents** | Index Membership | NSE API | Quarterly | Members of NIFTY50, BANKNIFTY, NIFTYMIDCAP50, NIFTYIT |
+
+### 3. Corporate Actions
+
+| Scraper | Data Type | Source | Frequency | Details |
+|---------|-----------|--------|-----------|---------|
+| **Corporate Actions** | CA Events | NSE CA API | As announced | Dividends, splits, bonus, rights, mergers, delistings |
+
+### 4. Fundamentals & Financials
+
+| Scraper | Data Type | Source | Frequency | Details |
+|---------|-----------|--------|-----------|---------|
+| **MCA Financials** | Quarterly/Annual Results | BSE/MCA Portal | Quarterly | P&L, Balance Sheet, Cash Flow for listed companies |
+| **BSE Shareholding** | Shareholding Pattern | BSE | Quarterly | Promoter, FII, DII, Public shareholding % |
+
+### 5. Macroeconomic Indicators
+
+| Scraper | Data Type | Source | Frequency | Details |
+|---------|-----------|--------|-----------|---------|
+| **RBI Macro** | Policy Rates, FX Reserves | RBI DBIE Portal | Weekly/Monthly | Repo rate, reverse repo, CPI, WPI, FX reserves, inflation |
+| **MOSPI Macro** | Economic Indicators | MOSPI | Monthly | Industrial production, manufacturing data, economic indices |
+
+### Data Pipeline Flow
+
+```text
+Raw Data → Parse → Validate Schema → Kafka Topics → Data Lake (Parquet) → ClickHouse Warehouse
+```
+
 ## Project Structure
 
 ```text
@@ -117,6 +162,34 @@ docker-compose logs -f nse-scraper
 
 # Stop services
 docker-compose down
+```
+
+## Available ETL Scripts
+
+| Script | Purpose | Description |
+|--------|---------|-------------|
+| `run_etl.py` | Daily NSE Bhavcopy ETL | Ingests OHLC data for previous trading day |
+| `run_combined_etl.py` | Combined NSE+BSE ETL | Runs both NSE and BSE bhavcopy scraping |
+| `run_demo_etl.py` | Demo Pipeline | Sample pipeline with test data |
+| `run_bulk_block_deals.py` | Bulk & Block Deals | Scrapes large transaction data |
+| `run_symbol_enrichment.py` | Symbol Master Enrichment | Updates symbol metadata |
+| `run_trading_calendar.py` | Trading Calendar Sync | Updates market holidays |
+| `run_simple_etl.py` | Simplified ETL | Basic pipeline for testing |
+| `run_date_range.py` | Backfill Date Range | Historical data ingestion |
+| `run_local_files.py` | Process Local Files | Parse existing downloaded files |
+
+**Example Usage:**
+
+```bash
+# Run daily NSE bhavcopy ETL
+cd ingestion/nse-scraper
+poetry run python run_etl.py
+
+# Run bulk & block deals scraper
+poetry run python run_bulk_block_deals.py
+
+# Backfill historical data
+poetry run python run_date_range.py --start 2026-01-01 --end 2026-01-10
 ```
 
 ## Configuration

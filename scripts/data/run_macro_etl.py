@@ -19,7 +19,7 @@ import structlog
 import typer
 from rich.console import Console
 
-from src.orchestration.macro_flow import macro_indicators_flow
+from champion.orchestration.macro_flow import macro_indicators_flow
 
 # Initialize logging
 logger = structlog.get_logger()

@@ -18,14 +18,14 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import polars as pl
 
-from src.config import config
-from src.parsers.quarterly_financials_parser import QuarterlyFinancialsParser, compute_pe_ratio
-from src.parsers.shareholding_parser import ShareholdingPatternParser
-from src.utils.generate_fundamentals_sample import (
+from champion.config import config
+from champion.parsers.quarterly_financials_parser import QuarterlyFinancialsParser, compute_pe_ratio
+from champion.parsers.shareholding_parser import ShareholdingPatternParser
+from champion.utils.generate_fundamentals_sample import (
     generate_quarterly_financials_sample,
     generate_shareholding_pattern_sample,
 )
-from src.utils.logger import get_logger
+from champion.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

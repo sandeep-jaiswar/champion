@@ -1,0 +1,161 @@
+[tool.poetry]
+name = "champion"
+version = "0.1.0"
+description = "Production-grade data platform for market analytics"
+authors = ["Champion Team <team@champion.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [
+    { include = "champion", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# ============ Data Processing ============
+polars = "^0.20.0"
+pyarrow = "^15.0.0"
+pandas = "^2.1.0"
+numpy = "^1.26.0"
+
+# ============ HTTP & Scraping ============
+httpx = "^0.26.0"
+beautifulsoup4 = "^4.12.0"
+lxml = "^5.0.0"
+tenacity = "^8.2.0"  # Retry logic
+
+# ============ Data Storage ============
+# Parquet I/O handled by pyarrow
+# ClickHouse
+clickhouse-connect = "^0.7.0"
+brotli = "^1.2.0"
+
+# ============ Configuration & Validation ============
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+python-dotenv = "^1.0.0"
+jsonschema = "^4.20.0"
+cerberus = "^1.3.0"
+
+# ============ Date/Time ============
+python-dateutil = "^2.8.0"
+
+# ============ Orchestration & Workflow ============
+prefect = "^2.20.17"
+
+# ============ Streaming & Events ============
+confluent-kafka = { extras = ["avro"], version = "^2.3.0" }
+fastavro = "^1.9.0"
+
+# ============ Observability & Monitoring ============
+structlog = "^24.1.0"
+prometheus-client = "^0.19.0"
+opentelemetry-api = "^1.22.0"
+opentelemetry-sdk = "^1.22.0"
+
+# ============ Experiment Tracking & Logging ============
+mlflow = "^3.5.0"
+
+# ============ CLI ============
+typer = { extras = ["all"], version = "^0.12.5" }
+
+[tool.poetry.group.dev.dependencies]
+# ============ Testing ============
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+pytest-asyncio = "^0.23.0"
+
+# ============ Code Quality ============
+black = "^23.12.0"
+ruff = "^0.1.0"
+mypy = "^1.7.0"
+pre-commit = "^3.6.0"
+
+# ============ Type Stubs ============
+types-python-dateutil = "^2.8.0"
+pandas-stubs = "^2.1.0"
+
+[tool.poetry.scripts]
+# CLI entry points
+champion-scraper = "champion.scrapers.nse:main"
+champion-etl = "champion.orchestration.flows:main"
+champion-validate = "champion.validation:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ============ Tool Configuration ============
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "E402",  # module level import not at top
+    "C901",  # complex functions
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "kafka.*",
+    "confluent_kafka.*",
+    "clickhouse_connect.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --cov=champion --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["src/champion"]
+omit = [
+    "tests/*",
+    "*/tests/*",
+    "src/champion/__init__.py",
+    "src/champion/*/tests/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

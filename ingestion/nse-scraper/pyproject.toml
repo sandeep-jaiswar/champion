@@ -54,6 +54,7 @@ mlflow = "^3.5.0"
 
 # ClickHouse
 clickhouse-connect = "^0.7.0"
+brotli = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 # Testing

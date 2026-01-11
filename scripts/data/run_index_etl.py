@@ -19,7 +19,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "ingestion" / "nse-scraper"))
 
-from src.orchestration.flows import index_constituent_etl_flow
+from champion.orchestration.flows import index_constituent_etl_flow
 
 
 def parse_args():
