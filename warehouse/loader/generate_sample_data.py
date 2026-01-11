@@ -10,6 +10,9 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 import polars as pl
 
+# Constants for data generation
+MAX_INSTRUMENT_ID = 100000  # Maximum FinInstrmId value for deterministic hash-based IDs
+
 
 def generate_raw_equity_ohlc_sample(
     num_symbols: int = 10,
@@ -58,7 +61,7 @@ def generate_raw_equity_ohlc_sample(
                 'Sgmt': 'CM',
                 'Src': 'NSE',
                 'FinInstrmTp': 'STK',
-                'FinInstrmId': hash(symbol) % 100000,
+                'FinInstrmId': hash(symbol) % MAX_INSTRUMENT_ID,
                 'ISIN': f'INE{hash(symbol) % 900000:06d}01',
                 'TckrSymb': symbol,
                 'SctySrs': 'EQ',
@@ -147,7 +150,7 @@ def generate_normalized_equity_ohlc_sample(
             volume = 100000 + (hash(f"{symbol}{day}vol") % 1000000)
             
             # Generate deterministic FinInstrmId for the symbol
-            fin_instrm_id = hash(symbol) % 100000
+            fin_instrm_id = hash(symbol) % MAX_INSTRUMENT_ID
             
             record = {
                 # Envelope

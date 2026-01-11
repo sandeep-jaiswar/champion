@@ -303,7 +303,7 @@ class ClickHouseLoader:
             Prepared DataFrame with columns mapped to ClickHouse schema
         """
         # Apply column name mapping if configured for this table
-        if table in self.COLUMN_MAPPINGS and self.COLUMN_MAPPINGS[table]:
+        if table in self.COLUMN_MAPPINGS and len(self.COLUMN_MAPPINGS[table]) > 0:
             mapping = self.COLUMN_MAPPINGS[table]
             
             # Only rename columns that exist in the DataFrame
@@ -344,7 +344,8 @@ class ClickHouseLoader:
                         df = df.with_columns(
                             pl.col(col).str.strptime(pl.Date, format='%Y-%m-%d').alias(col)
                         )
-                    except Exception:
+                    except (pl.ComputeError, ValueError) as e:
+                        logger.warning(f"Failed to parse date column {col}: {e}")
                         pass  # Keep as is if parsing fails
         
         return df

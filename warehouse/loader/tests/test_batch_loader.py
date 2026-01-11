@@ -7,10 +7,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-# Add parent directory to path for imports
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
+# Import the loader - assumes tests are run from repository root
 from warehouse.loader.batch_loader import ClickHouseLoader
 
 
@@ -214,8 +211,9 @@ class TestColumnMapping:
         result = loader._prepare_dataframe_for_insert(df, 'normalized_equity_ohlc')
         
         # Check that timestamps were converted to DateTime
-        assert result['event_time'].dtype in [pl.Datetime, pl.Datetime('ms'), pl.Datetime('ns'), pl.Datetime('us')]
-        assert result['ingest_time'].dtype in [pl.Datetime, pl.Datetime('ms'), pl.Datetime('ns'), pl.Datetime('us')]
+        # Polars DateTime types can have different time units, so check base type
+        assert result['event_time'].dtype.base_type() == pl.Datetime
+        assert result['ingest_time'].dtype.base_type() == pl.Datetime
 
 
 class TestTableSupport:
