@@ -25,8 +25,8 @@ from prefect.tasks import task_input_hash
 
 from champion.config import config
 from champion.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
-from champion.scrapers.bhavcopy import BhavcopyScraper
-from src.utils import metrics
+from champion.scrapers.nse.bhavcopy import BhavcopyScraper
+from champion.utils import metrics
 
 logger = structlog.get_logger()
 
@@ -708,7 +708,7 @@ def index_constituent_etl_flow(
     Raises:
         Exception: If any step fails after retries
     """
-    from src.tasks.index_constituent_tasks import (
+    from champion.orchestration.tasks.index_constituent_tasks import (
         load_index_constituents_clickhouse,
         parse_index_constituents,
         scrape_index_constituents,

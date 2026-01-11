@@ -49,6 +49,11 @@ data/lake/**/*.json
 data/lake/**/tmp/
 data/lake/**/_temporary/
 !data/lake/**/.gitkeep
+data/deals/
+data/indices/
+
+# MLflow artifacts
+mlruns/
 
 # Quarantine data
 data/lake/quarantine/*.parquet

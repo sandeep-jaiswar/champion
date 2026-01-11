@@ -7,13 +7,14 @@ import mlflow
 import structlog
 from prefect import flow
 
-from src.tasks.macro_tasks import (
+from champion.orchestration.tasks.macro_tasks import (
     load_macro_clickhouse,
     merge_macro_dataframes,
     parse_macro_indicators,
     scrape_mospi_macro,
     scrape_rbi_macro,
     write_macro_parquet,
+    try_sources_in_order,
 )
 
 logger = structlog.get_logger()
@@ -29,6 +30,7 @@ def macro_indicators_flow(
     end_date,
     rbi_indicators=None,
     mospi_indicators=None,
+    source_order: list[str] | None = None,
     load_to_clickhouse: bool = True,
 ):
     """Complete ETL flow for macro indicators.
@@ -60,35 +62,36 @@ def macro_indicators_flow(
         mlflow.log_param("rbi_indicators", rbi_indicators or "default")
         mlflow.log_param("mospi_indicators", mospi_indicators or "default")
 
+        source_order = source_order or ["MoSPI", "RBI", "DEA", "NITI Aayog"]
+        mlflow.log_param("source_order", source_order)
+
         try:
-            # Step 1: Scrape RBI data
-            logger.info("step_1_scrape_rbi")
-            rbi_json_path = scrape_rbi_macro(start_date, end_date, rbi_indicators)
+            # Step 1: Try sources in order
+            logger.info("step_1_try_sources", source_order=source_order)
+            df, chosen_source = try_sources_in_order(
+                source_order=source_order,
+                start_date=start_date,
+                end_date=end_date,
+                rbi_indicators=rbi_indicators,
+                mospi_indicators=mospi_indicators,
+            )
 
-            # Step 2: Scrape MOSPI data
-            logger.info("step_2_scrape_mospi")
-            mospi_json_path = scrape_mospi_macro(start_date, end_date, mospi_indicators)
+            if chosen_source is None or df.height == 0:
+                raise RuntimeError("No macro data retrieved from any source")
 
-            # Step 3: Parse both sources
-            logger.info("step_3_parse_data")
-            rbi_df = parse_macro_indicators(rbi_json_path)
-            mospi_df = parse_macro_indicators(mospi_json_path)
+            mlflow.log_param("chosen_source", chosen_source)
 
-            # Step 4: Merge DataFrames
-            logger.info("step_4_merge_dataframes")
-            merged_df = merge_macro_dataframes([rbi_df, mospi_df])
+            # Step 2: Write to Parquet
+            logger.info("step_2_write_parquet")
+            parquet_path = write_macro_parquet(df, start_date, end_date)
 
-            # Step 5: Write to Parquet
-            logger.info("step_5_write_parquet")
-            parquet_path = write_macro_parquet(merged_df, start_date, end_date)
-
-            # Step 6: Load to ClickHouse (optional)
+            # Step 3: Load to ClickHouse (optional)
             if load_to_clickhouse:
-                logger.info("step_6_load_clickhouse")
+                logger.info("step_3_load_clickhouse")
                 rows_loaded = load_macro_clickhouse(parquet_path)
                 logger.info("clickhouse_load_complete", rows=rows_loaded)
 
-            logger.info("macro_etl_flow_complete", parquet_path=parquet_path)
+            logger.info("macro_etl_flow_complete", parquet_path=parquet_path, source=chosen_source)
             mlflow.log_param("status", "SUCCESS")
 
             return parquet_path

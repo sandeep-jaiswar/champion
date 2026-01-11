@@ -6,7 +6,7 @@ from typing import Any
 import structlog
 from prefect import flow
 
-from src.tasks.bulk_block_deals_tasks import (
+from champion.orchestration.tasks.bulk_block_deals_tasks import (
     load_bulk_block_deals_clickhouse,
     parse_bulk_block_deals,
     scrape_bulk_block_deals,

@@ -7,10 +7,6 @@ from typing import Optional
 import typer
 
 from champion.config import config
-from champion.orchestration.flows.macro_flow import macro_indicators_flow
-from champion.orchestration.flows.trading_calendar_flow import trading_calendar_etl_flow
-from champion.orchestration.flows.flows import index_constituent_etl_flow
-from champion.orchestration.flows.bulk_block_deals_flow import bulk_block_deals_etl_flow
 
 app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
@@ -21,22 +17,54 @@ def etl_index(
     effective_date: Optional[str] = typer.Option(None, help="YYYY-MM-DD effective date"),
 ):
     """Run the Index Constituent ETL flow."""
-    eff = (
-        date.fromisoformat(effective_date) if effective_date else date.today()
-    )
-    index_constituent_etl_flow(index_name=index_name, effective_date=eff)
+    eff = (date.fromisoformat(effective_date) if effective_date else date.today())
+    try:
+        from champion.orchestration.flows.flows import index_constituent_etl_flow
+
+        index_constituent_etl_flow(indices=[index_name], effective_date=eff)
+    except Exception as e:
+        typer.secho(
+            f"Index ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise
 
 
 @app.command("etl-macro")
-def etl_macro():
-    """Run macro indicators ETL flow."""
-    macro_indicators_flow()
+def etl_macro(
+    days: int = typer.Option(90, help="Number of days back to include"),
+):
+    """Run macro indicators ETL flow for a recent window."""
+    try:
+        from datetime import datetime, timedelta
+        from champion.orchestration.flows.macro_flow import macro_indicators_flow
+
+        end = datetime.now()
+        start = end - timedelta(days=days)
+        macro_indicators_flow(start_date=start, end_date=end)
+    except Exception as e:
+        typer.secho(
+            f"Macro ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise
 
 
 @app.command("etl-trading-calendar")
 def etl_trading_calendar():
     """Run trading calendar ETL flow."""
-    trading_calendar_etl_flow()
+    try:
+        from champion.orchestration.flows.trading_calendar_flow import (
+            trading_calendar_etl_flow,
+        )
+
+        trading_calendar_etl_flow()
+    except Exception as e:
+        typer.secho(
+            f"Trading calendar ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise
 
 
 @app.command("etl-bulk-deals")
@@ -53,14 +81,25 @@ def etl_bulk_deals(
             )
 
             bulk_block_deals_date_range_etl_flow(
-                start_date=date.fromisoformat(start_date),
-                end_date=date.fromisoformat(end_date),
+                start_date=start_date,
+                end_date=end_date,
             )
             return
         except Exception:
             # Fallback to single flow
             pass
-    bulk_block_deals_etl_flow()
+    try:
+        from champion.orchestration.flows.bulk_block_deals_flow import (
+            bulk_block_deals_etl_flow,
+        )
+
+        bulk_block_deals_etl_flow()
+    except Exception as e:
+        typer.secho(
+            f"Bulk/Block deals ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise
 
 
 @app.command("show-config")

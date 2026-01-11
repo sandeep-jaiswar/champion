@@ -6,7 +6,7 @@ from datetime import datetime
 import mlflow
 from prefect import flow
 
-from src.tasks.trading_calendar_tasks import (
+from champion.orchestration.tasks.trading_calendar_tasks import (
     load_trading_calendar_clickhouse,
     parse_trading_calendar,
     scrape_trading_calendar,

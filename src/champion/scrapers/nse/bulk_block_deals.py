@@ -198,8 +198,13 @@ class BulkBlockDealsScraper(BaseScraper):
                 self.logger.warning("Empty response from bulk deals API", date=date_str)
                 df = pl.DataFrame()
             else:
-                # Parse CSV using Polars (more efficient than Pandas)
-                df = pl.read_csv(StringIO(csv_text))
+                # Parse CSV with Polars; allow mixed types and comma-separated numbers without failing
+                df = pl.read_csv(
+                    StringIO(csv_text),
+                    infer_schema_length=0,
+                    ignore_errors=True,
+                    try_parse_dates=False,
+                )
                 # Clean column names: remove spaces
                 df = df.rename(mapping=lambda col: col.replace(' ', ''))
 
@@ -262,8 +267,13 @@ class BulkBlockDealsScraper(BaseScraper):
                 self.logger.warning("Empty response from block deals API", date=date_str)
                 df = pl.DataFrame()
             else:
-                # Parse CSV using Polars (more efficient than Pandas)
-                df = pl.read_csv(StringIO(csv_text))
+                # Parse CSV with Polars; allow mixed types and comma-separated numbers without failing
+                df = pl.read_csv(
+                    StringIO(csv_text),
+                    infer_schema_length=0,
+                    ignore_errors=True,
+                    try_parse_dates=False,
+                )
                 # Clean column names: remove spaces
                 df = df.rename(mapping=lambda col: col.replace(' ', ''))
 
