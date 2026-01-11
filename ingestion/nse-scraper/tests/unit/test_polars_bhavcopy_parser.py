@@ -135,7 +135,7 @@ def test_write_parquet(parser, sample_csv_file, trade_date, tmp_path):
     assert output_file.suffix == ".parquet"
 
     # Check partition path structure
-    expected_path = tmp_path / "normalized" / "ohlc" / "year=2024" / "month=01" / "day=02"
+    expected_path = tmp_path / "normalized" / "equity_ohlc" / "year=2024" / "month=01" / "day=02"
     assert expected_path in output_file.parents
 
 

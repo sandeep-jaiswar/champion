@@ -16,7 +16,7 @@ pyarrow = "^15.0.0"
 jsonschema = "^4.20.0"
 
 # Workflow
-prefect = "^2.14.0"
+prefect = "^2.20.17"
 
 # Logging
 structlog = "^24.1.0"
