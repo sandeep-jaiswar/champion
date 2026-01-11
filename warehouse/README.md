@@ -153,6 +153,7 @@ The Champion platform uses **NSE column names** for raw and normalized equity OH
 4. **Clear data lineage** - column names match NSE documentation
 
 #### NSE Column Naming (Raw & Normalized Layers)
+
 - `TradDt` - Trade date
 - `TckrSymb` - Ticker symbol
 - `FinInstrmId` - Financial instrument ID (unique identifier for securities)
@@ -161,10 +162,13 @@ The Champion platform uses **NSE column names** for raw and normalized equity OH
 - `ISIN` - International Securities Identification Number
 
 #### Normalized Column Naming (Features Layer)
+
 The features layer uses more developer-friendly names:
+
 - `symbol`, `trade_date`, `open`, `high`, `low`, `close`, `volume`
 
 #### Column Name Mapping
+
 The batch loader (`warehouse/loader/batch_loader.py`) includes a mapping layer that can translate between naming conventions. See `COLUMN_MAPPINGS` constant for supported mappings. This allows loading Parquet files that use either NSE names or normalized names.
 
 ### Deduplication Strategy and Sort Keys
@@ -204,6 +208,7 @@ ORDER BY FinInstrmId;
 #### Data Integrity Guarantees
 
 With the current schema design:
+
 1. **No unintended deduplication** - Each unique security maintains its own records
 2. **Idempotent loads** - Re-running the loader with same data won't create duplicates
 3. **Late-arriving data handling** - ReplacingMergeTree(ingest_time) keeps the latest version

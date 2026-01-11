@@ -21,7 +21,10 @@
 
 ## Test Results
 
+### Test Coverage
+
 **17/17 tests passing (100%)**
+
 - 11 unit tests
 - 6 integration tests
 - Coverage: 79-91%

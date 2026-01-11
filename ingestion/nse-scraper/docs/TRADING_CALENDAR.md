@@ -152,6 +152,7 @@ Table: `champion_market.trading_calendar`
 Partitioning: By year
 
 Indexes:
+
 - `is_trading_day` (set index)
 - `day_type` (set index)
 
