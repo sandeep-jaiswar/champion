@@ -208,7 +208,7 @@ class RBIMacroScraper(BaseScraper):
                 # Simple variation logic for demo data
                 days_elapsed = (current_date - start_date).days
                 variation = (days_elapsed % 30) * 0.01  # Small variations
-                value = meta["base_value"] + (variation * meta["variation"])
+                value = float(meta["base_value"]) + (variation * float(meta["variation"]))  # type: ignore[arg-type]
 
                 data["indicators"].append(
                     {

@@ -2,6 +2,7 @@
 
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 import structlog
@@ -76,7 +77,7 @@ def parse_bhavcopy_to_events(
     trade_date: str,
     output_parquet: bool = False,
     output_base_path: str | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Parse NSE bhavcopy CSV file to event dictionaries.
 
     This task uses the Polars-based parser to generate event dictionaries

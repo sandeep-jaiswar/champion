@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import httpx
 import polars as pl
@@ -88,7 +89,7 @@ def scrape_multiple_option_chains(
     symbols: list[str],
     output_dir: str = "data/option_chain",
     save_raw_json: bool = True,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Scrape option chain data for multiple symbols.
 
     Args:

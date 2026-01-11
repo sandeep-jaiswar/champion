@@ -3,6 +3,7 @@
 import os
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import clickhouse_connect
 import polars as pl
@@ -70,7 +71,7 @@ def parse_bulk_block_deals(
     file_path: str,
     deal_date: str,
     deal_type: str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Parse bulk or block deals JSON file to event dictionaries.
 
     Args:
@@ -114,7 +115,7 @@ def parse_bulk_block_deals(
 
 @task(name="write-bulk-block-deals-parquet", retries=2, retry_delay_seconds=30)
 def write_bulk_block_deals_parquet(
-    events: list[dict],
+    events: list[dict[str, Any]],
     deal_date: str,
     deal_type: str,
     output_base_path: str = "data/lake",

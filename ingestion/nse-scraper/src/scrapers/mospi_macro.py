@@ -12,7 +12,7 @@ For production, we may need to adapt based on actual MOSPI API availability.
 
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -230,7 +230,7 @@ class MOSPIMacroScraper(BaseScraper):
                 )
                 trend = months_elapsed * 0.4  # Gradual increase over time
                 seasonal = (current_date.month % 12) * 0.1  # Monthly seasonality
-                value = meta["base_value"] + trend + seasonal
+                value = float(meta["base_value"]) + trend + seasonal  # type: ignore[arg-type]
 
                 data["indicators"].append(
                     {

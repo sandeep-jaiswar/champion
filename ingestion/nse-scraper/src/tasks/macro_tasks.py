@@ -21,11 +21,11 @@ logger = structlog.get_logger()
 
 def get_clickhouse_config(attr: str, default):
     """Get ClickHouse config with fallback to default.
-    
+
     Args:
         attr: Attribute name to get from config
         default: Default value if attribute not found
-        
+
     Returns:
         Config value or default
     """

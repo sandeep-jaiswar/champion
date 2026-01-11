@@ -110,16 +110,16 @@ def test_data_quality(df):
     print(f"✓ Null counts: {null_counts}")
 
     # Check for duplicates
-    duplicates = df.group_by(["indicator_code", "indicator_date"]).count().filter(pl.col("count") > 1)
+    duplicates = (
+        df.group_by(["indicator_code", "indicator_date"]).count().filter(pl.col("count") > 1)
+    )
     print(f"✓ Duplicate entries: {len(duplicates)}")
 
     # Check value ranges
     print(f"✓ Value range: {df['value'].min():.2f} to {df['value'].max():.2f}")
 
     # Check dates
-    print(
-        f"✓ Date range: {df['indicator_date'].min()} to {df['indicator_date'].max()}"
-    )
+    print(f"✓ Date range: {df['indicator_date'].min()} to {df['indicator_date'].max()}")
 
     # Check categories
     categories = df["indicator_category"].unique().to_list()

@@ -1,7 +1,6 @@
 """Integration tests for macro indicator ETL pipeline."""
 
-import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import polars as pl
@@ -198,7 +197,6 @@ class TestDataMerging:
 
     def test_merge_deduplication(self):
         """Test that merge removes duplicates."""
-        from src.tasks.macro_tasks import merge_macro_dataframes
 
         # Create sample data with duplicates
         df1 = pl.DataFrame(

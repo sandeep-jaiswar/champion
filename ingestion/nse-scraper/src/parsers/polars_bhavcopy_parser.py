@@ -64,7 +64,6 @@ class PolarsBhavcopyParser:
 
     def __init__(self) -> None:
         """Initialize the parser."""
-        return None
 
     def parse(
         self, file_path: Path, trade_date: date, output_parquet: bool = False
@@ -330,7 +329,8 @@ class PolarsBhavcopyParser:
         Returns:
             Raw DataFrame with NSE column names
         """
-        file_path = Path(file_path) if isinstance(file_path, str) else file_path
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
         logger.info("Parsing raw CSV", path=str(file_path))
 
         # Read CSV with explicit schema
@@ -361,7 +361,7 @@ class PolarsBhavcopyParser:
         logger.info("Normalizing DataFrame", rows=len(df))
 
         # Rename NSE columns to normalized names
-        normalized_df = df.rename(
+        normalized_df: pl.DataFrame = df.rename(
             {
                 "TckrSymb": "symbol",
                 "TradDt": "trade_date",

@@ -109,7 +109,7 @@ class MacroIndicatorParser:
             "Macro indicators parsed",
             rows=len(df),
             indicators=df.select("indicator_code").unique().height,
-            date_range=f"{df['indicator_date'].min()} to {df['indicator_date'].max()}",
+            date_range=f"{df['indicator_date'].min()!r} to {df['indicator_date'].max()!r}",
         )
 
         return df
@@ -175,11 +175,13 @@ class MacroIndicatorParser:
             date_gaps = dates.with_columns(
                 (pl.col("indicator_date").diff().dt.total_days() - 1).alias("gap_days")
             ).filter(pl.col("gap_days") > MAX_DATE_GAP_DAYS)
-            
+
             if len(date_gaps) > 0:
                 logger.warning("Large gaps found in date series", gaps=len(date_gaps))
 
         # Check for duplicate entries
-        duplicates = df.group_by(["indicator_code", "indicator_date"]).count().filter(pl.col("count") > 1)
+        duplicates = (
+            df.group_by(["indicator_code", "indicator_date"]).count().filter(pl.col("count") > 1)
+        )
         if len(duplicates) > 0:
             logger.warning("Duplicate entries found", duplicates=len(duplicates))
