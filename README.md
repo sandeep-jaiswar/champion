@@ -192,6 +192,7 @@ Core components implemented and operational:
 
 - ✅ NSE Data Ingestion (Bhavcopy, Corporate Actions, Symbol Master, Trading Calendar, **Index Constituents**)
 - ✅ **Fundamentals Ingestion (Quarterly Financials, Shareholding Patterns, KPIs)**
+- ✅ **Macro Data Integration (RBI policy rates, MOSPI CPI/WPI, FX reserves)**
 - ✅ Polars-based ETL Pipeline (High-performance parsing & normalization)
 - ✅ Prefect Orchestration (Flow scheduling & task management)
 - ✅ Parquet Data Lake (Partitioned storage with retention policies)
@@ -421,6 +422,70 @@ LIMIT 10
 ```
 
 See [FUNDAMENTALS_README.md](./FUNDAMENTALS_README.md) for detailed documentation.
+
+### 7. Run Macro Data ETL (NEW)
+
+**Ingest macroeconomic indicators from RBI and MOSPI:**
+
+```bash
+# Ingest last 2 years of macro data (default)
+python run_macro_etl.py
+
+# Custom date range
+python run_macro_etl.py --start-date 2023-01-01 --end-date 2025-12-31
+
+# Skip ClickHouse load (Parquet only)
+python run_macro_etl.py --no-clickhouse
+
+# Specific indicators
+python run_macro_etl.py \
+  --rbi-indicators REPO_RATE,FX_RESERVES_TOTAL \
+  --mospi-indicators CPI_COMBINED,WPI_ALL
+
+# View results in ClickHouse
+clickhouse-client --database champion_market --query "
+SELECT 
+    indicator_code,
+    indicator_name,
+    indicator_category,
+    COUNT(*) as observations
+FROM macro_indicators
+GROUP BY indicator_code, indicator_name, indicator_category
+ORDER BY indicator_category, indicator_code
+"
+
+# CPI vs TCS stock price correlation
+clickhouse-client --database champion_market --query "
+WITH cpi_monthly AS (
+    SELECT 
+        toStartOfMonth(indicator_date) as month,
+        avg(value) as cpi_value
+    FROM macro_indicators
+    WHERE indicator_code = 'CPI_COMBINED'
+    GROUP BY month
+),
+tcs_monthly AS (
+    SELECT 
+        toStartOfMonth(TradDt) as month,
+        avg(ClsPric) as avg_close
+    FROM normalized_equity_ohlc
+    WHERE TckrSymb = 'TCS'
+    GROUP BY month
+)
+SELECT 
+    c.month,
+    c.cpi_value,
+    t.avg_close as tcs_price,
+    round((t.avg_close - LAG(t.avg_close) OVER (ORDER BY c.month)) / 
+          LAG(t.avg_close) OVER (ORDER BY c.month) * 100, 2) as price_change_pct
+FROM cpi_monthly c
+INNER JOIN tcs_monthly t ON c.month = t.month
+ORDER BY c.month DESC
+LIMIT 12
+"
+```
+
+See [docs/MACRO_DATA.md](./docs/MACRO_DATA.md) for detailed documentation on macro data integration, correlation analysis, and production considerations.
 
 ---
 

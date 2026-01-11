@@ -3,6 +3,7 @@
 import os
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import clickhouse_connect
 import polars as pl
@@ -70,7 +71,7 @@ def parse_index_constituents(
     index_name: str,
     effective_date: str | None = None,
     action: str = "ADD",
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Parse index constituent JSON file to event dictionaries.
 
     Args:
