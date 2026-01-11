@@ -142,7 +142,9 @@ class PolarsBhavcopyParser:
                     f"nse_cm_bhavcopy:{trade_date}:{symbol}:{fin_instrm_id}",
                 )
             )
-            for symbol, fin_instrm_id in zip(df["TckrSymb"].to_list(), df["FinInstrmId"].to_list(), strict=False)
+            for symbol, fin_instrm_id in zip(
+                df["TckrSymb"].to_list(), df["FinInstrmId"].to_list(), strict=False
+            )
         ]
 
         # Calculate timestamps
