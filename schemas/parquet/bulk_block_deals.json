@@ -1,0 +1,111 @@
+{
+  "name": "bulk_block_deals",
+  "type": "record",
+  "namespace": "champion.market.deals",
+  "doc": "Schema for NSE bulk and block deals data. Bulk deals are transactions where total quantity exceeds 0.5% of listed shares. Block deals are transactions with minimum 5 lakh shares or Rs 5 crore value.",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique identifier for this event (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "Timestamp when event was created (UTC)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "Timestamp when data was ingested (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse.bulk_block_deals')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for compatibility tracking"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Business entity identifier (symbol:deal_type:transaction_type:date)"
+    },
+    {
+      "name": "deal_date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      },
+      "doc": "Date of the deal"
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "doc": "Trading symbol (e.g., 'RELIANCE', 'TCS')"
+    },
+    {
+      "name": "client_name",
+      "type": "string",
+      "doc": "Name of the client/entity involved in the deal"
+    },
+    {
+      "name": "quantity",
+      "type": "long",
+      "doc": "Number of shares traded"
+    },
+    {
+      "name": "avg_price",
+      "type": "double",
+      "doc": "Average price per share for the deal"
+    },
+    {
+      "name": "deal_type",
+      "type": {
+        "type": "enum",
+        "name": "DealType",
+        "symbols": ["BULK", "BLOCK"]
+      },
+      "doc": "Type of deal: BULK (>0.5% of shares) or BLOCK (minimum 5L shares or Rs 5 crore)"
+    },
+    {
+      "name": "transaction_type",
+      "type": {
+        "type": "enum",
+        "name": "TransactionType",
+        "symbols": ["BUY", "SELL"]
+      },
+      "doc": "Transaction direction: BUY or SELL"
+    },
+    {
+      "name": "exchange",
+      "type": "string",
+      "default": "NSE",
+      "doc": "Exchange identifier"
+    },
+    {
+      "name": "year",
+      "type": "long",
+      "doc": "Year of deal date (for partitioning)"
+    },
+    {
+      "name": "month",
+      "type": "long",
+      "doc": "Month of deal date (for partitioning)"
+    },
+    {
+      "name": "day",
+      "type": "long",
+      "doc": "Day of deal date (for partitioning)"
+    }
+  ]
+}
