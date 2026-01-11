@@ -7,6 +7,7 @@ This script demonstrates how to analyze relationships between:
 - Repo rate changes and market volatility
 """
 
+import glob
 import sys
 from pathlib import Path
 
@@ -198,8 +199,6 @@ def main():
     ohlc_path = "data/lake/normalized/equity_ohlc"
 
     # Find latest parquet files
-    import glob
-
     macro_files = glob.glob(f"{macro_path}/*.parquet")
     ohlc_files = glob.glob(f"{ohlc_path}/**/*.parquet", recursive=True)
 

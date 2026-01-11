@@ -277,18 +277,17 @@ def load_macro_clickhouse(parquet_path: str) -> int:
         df = pl.read_parquet(parquet_path)
 
         # Connect to ClickHouse
+        # Get ClickHouse connection parameters
+        def get_clickhouse_config(attr: str, default):
+            """Get ClickHouse config with fallback to default."""
+            return getattr(config, "clickhouse", None) and getattr(config.clickhouse, attr, default) or default
+
         client = clickhouse_connect.get_client(
-            host=config.clickhouse.host if hasattr(config, "clickhouse") else "localhost",
-            port=config.clickhouse.port if hasattr(config, "clickhouse") else 9000,
-            username=config.clickhouse.username
-            if hasattr(config, "clickhouse")
-            else "champion_user",
-            password=config.clickhouse.password
-            if hasattr(config, "clickhouse")
-            else "champion_pass",
-            database=config.clickhouse.database
-            if hasattr(config, "clickhouse")
-            else "champion_market",
+            host=get_clickhouse_config("host", "localhost"),
+            port=get_clickhouse_config("port", 9000),
+            username=get_clickhouse_config("username", "champion_user"),
+            password=get_clickhouse_config("password", "champion_pass"),
+            database=get_clickhouse_config("database", "champion_market"),
         )
 
         # Convert metadata column to Map type for ClickHouse

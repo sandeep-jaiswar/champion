@@ -169,11 +169,10 @@ class MacroIndicatorParser:
         # Check for date gaps (warn only, don't fail)
         dates = df.select("indicator_date").unique().sort("indicator_date")
         if len(dates) > 1:
-            date_gaps = dates.select(
-                (pl.col("indicator_date").diff().dt.total_days() - 1)
-                .alias("gap_days")
-                .filter(pl.col("gap_days") > 30)
-            )
+            date_gaps = dates.with_columns(
+                (pl.col("indicator_date").diff().dt.total_days() - 1).alias("gap_days")
+            ).filter(pl.col("gap_days") > 30)
+            
             if len(date_gaps) > 0:
                 logger.warning("Large gaps found in date series", gaps=len(date_gaps))
 
