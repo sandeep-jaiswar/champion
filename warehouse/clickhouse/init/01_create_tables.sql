@@ -375,7 +375,65 @@ ON champion_market.symbol_master (series)
 TYPE set(100) GRANULARITY 1;
 
 -- ==============================================================================
--- 6. TRADING CALENDAR TABLE
+-- 6. INDEX CONSTITUENT TABLE
+-- ==============================================================================
+-- Purpose: Track index membership, rebalances, and constituent weights
+-- Retention: 10 years (historical reference for backtesting)
+-- Partitioning: By index_name and year of effective_date
+-- Engine: MergeTree for full historical tracking
+
+CREATE TABLE IF NOT EXISTS champion_market.index_constituent
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Index constituent payload
+    index_name          LowCardinality(String),
+    symbol              String,  -- Required field, no default
+    isin                Nullable(String),
+    company_name        Nullable(String),
+    effective_date      Date,
+    action              LowCardinality(String),  -- ADD, REMOVE, REBALANCE
+    weight              Nullable(Float64),
+    free_float_market_cap Nullable(Float64),
+    shares_for_index    Nullable(Int64),
+    announcement_date   Nullable(Date),
+    index_category      LowCardinality(Nullable(String)),
+    sector              LowCardinality(Nullable(String)),
+    industry            LowCardinality(Nullable(String)),
+    metadata            Map(String, String),
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(effective_date),
+    month               Int64 DEFAULT toMonth(effective_date),
+    day                 Int64 DEFAULT toDayOfMonth(effective_date)
+)
+ENGINE = MergeTree()
+PARTITION BY (index_name, toYear(effective_date))
+ORDER BY (index_name, symbol, effective_date, event_time)
+TTL effective_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_ic_isin 
+ON champion_market.index_constituent (isin) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_ic_action 
+ON champion_market.index_constituent (action) 
+TYPE set(10) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_ic_effective_date 
+ON champion_market.index_constituent (effective_date) 
+TYPE minmax GRANULARITY 1;
+
+-- 7. TRADING CALENDAR TABLE
 -- ==============================================================================
 -- Purpose: Trading calendar reference data for validation and date calculations
 -- Retention: 10 years (historical reference)

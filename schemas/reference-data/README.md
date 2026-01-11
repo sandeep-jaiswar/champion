@@ -153,6 +153,97 @@ else:
     assert ohlc is not None
 ```
 
+### 4. `index_constituent.avsc`
+
+**Topic**: `reference.nse.index_constituents`, `reference.bse.index_constituents`  
+**Owner**: Reference Data Domain  
+**Update Pattern**: Event-sourced (append-only for historical tracking)
+
+#### Purpose (Index Constituents)
+
+- Track index membership for NIFTY50, BANKNIFTY, and other major indices
+- Record constituent additions, removals, and rebalances with effective dates
+- Capture constituent weights (percentage) in index when available
+- Support historical backtesting with accurate index composition at any date
+- Enable index replication and tracking strategies
+
+#### Key Fields (Index Constituents)
+
+- `index_name`: Index identifier (e.g., 'NIFTY50', 'BANKNIFTY')
+- `symbol`: Trading symbol (e.g., 'RELIANCE', 'HDFCBANK')
+- `isin`: International Securities Identification Number
+- `company_name`: Company name
+- `effective_date`: Date when constituent change takes effect (days since epoch)
+- `action`: Action type (ADD, REMOVE, REBALANCE)
+- `weight`: Constituent weight in index (percentage, 0-100), if available
+- `free_float_market_cap`: Free float market capitalization in INR crores
+- `shares_for_index`: Number of shares used for index calculation
+- `announcement_date`: Date when change was announced
+- `index_category`: Category (e.g., 'Broad Market', 'Sectoral', 'Market Cap')
+- `sector`: Sector classification
+- `industry`: Industry classification
+
+#### Usage (Index Constituents)
+
+```python
+# Get current NIFTY50 constituents
+current_nifty50 = filter(
+    index_constituent_stream,
+    index_name="NIFTY50",
+    action="ADD",
+    effective_date=latest
+)
+
+# Track symbol across indices
+reliance_indices = filter(
+    index_constituent_stream,
+    symbol="RELIANCE",
+    action="ADD"
+)
+
+# Detect rebalance changes in a quarter
+q1_changes = filter(
+    index_constituent_stream,
+    effective_date >= "2026-01-01",
+    effective_date <= "2026-03-31",
+    action in ["ADD", "REMOVE"]
+)
+```
+
+#### ClickHouse Queries (Index Constituents)
+
+```sql
+-- Current NIFTY50 membership
+SELECT symbol, company_name, weight, sector
+FROM champion_market.index_constituent
+WHERE index_name = 'NIFTY50'
+  AND action = 'ADD'
+ORDER BY weight DESC NULLS LAST;
+
+-- Quarterly changes (adds/removes)
+SELECT index_name, action, symbol, effective_date
+FROM champion_market.index_constituent
+WHERE effective_date >= today() - INTERVAL 90 DAY
+  AND action IN ('ADD', 'REMOVE')
+ORDER BY index_name, effective_date DESC;
+
+-- Compare NIFTY50 vs BANKNIFTY
+SELECT 
+    n.symbol,
+    n.weight as nifty50_weight,
+    b.weight as banknifty_weight
+FROM (
+    SELECT symbol, weight
+    FROM champion_market.index_constituent
+    WHERE index_name = 'NIFTY50' AND action = 'ADD'
+) n
+INNER JOIN (
+    SELECT symbol, weight
+    FROM champion_market.index_constituent
+    WHERE index_name = 'BANKNIFTY' AND action = 'ADD'
+) b ON n.symbol = b.symbol;
+```
+
 ## Kafka Topics
 
 ### Symbol Master (Kafka Topic)
@@ -175,6 +266,14 @@ else:
 - **Key**: `exchange:trade_date` (e.g., "NSE:2026-01-26")
 - **Compaction**: Log compacted (one entry per exchange-date)
 - **Partitions**: 2 (very low volume)
+
+### Index Constituents (Kafka Topic)
+
+- **Topic**: `reference.nse.index_constituents`
+- **Key**: `index_name:symbol` (e.g., "NIFTY50:RELIANCE")
+- **Compaction**: None (event-sourced, retain all historical changes)
+- **Partitions**: 8 (partition by index_name for ordering guarantee)
+- **Notes**: Historical tracking requires all events; use effective_date for time-travel queries
 
 ## Data Flow
 

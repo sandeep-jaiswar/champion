@@ -1,0 +1,148 @@
+{
+  "type": "record",
+  "name": "IndexConstituent",
+  "namespace": "com.champion.reference",
+  "doc": "Index constituent reference data - tracks index membership, rebalances, and constituent weights",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Globally unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp when constituent change was recorded (milliseconds since epoch)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Platform ingestion timestamp (milliseconds since epoch)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source identifier (e.g., 'nse_index_constituents')"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version for evolution tracking (e.g., 'v1')"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Kafka partition key: index_name:symbol (e.g., 'NIFTY50:RELIANCE')"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "IndexConstituentPayload",
+        "doc": "Index constituent payload with membership details",
+        "fields": [
+          {
+            "name": "index_name",
+            "type": "string",
+            "doc": "Index identifier (e.g., 'NIFTY50', 'BANKNIFTY', 'NIFTYMIDCAP50')"
+          },
+          {
+            "name": "symbol",
+            "type": "string",
+            "doc": "Trading symbol (e.g., 'RELIANCE', 'HDFCBANK')"
+          },
+          {
+            "name": "isin",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "International Securities Identification Number"
+          },
+          {
+            "name": "company_name",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Company name"
+          },
+          {
+            "name": "effective_date",
+            "type": {
+              "type": "int",
+              "logicalType": "date"
+            },
+            "doc": "Date when this constituent change takes effect (days since epoch)"
+          },
+          {
+            "name": "action",
+            "type": {
+              "type": "enum",
+              "name": "ConstituentAction",
+              "symbols": ["ADD", "REMOVE", "REBALANCE"]
+            },
+            "doc": "Action type: ADD (new constituent), REMOVE (deleted constituent), REBALANCE (weight change only)"
+          },
+          {
+            "name": "weight",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Constituent weight in index (percentage, 0-100), if available"
+          },
+          {
+            "name": "free_float_market_cap",
+            "type": ["null", "double"],
+            "default": null,
+            "doc": "Free float market capitalization in INR crores"
+          },
+          {
+            "name": "shares_for_index",
+            "type": ["null", "long"],
+            "default": null,
+            "doc": "Number of shares used for index calculation"
+          },
+          {
+            "name": "announcement_date",
+            "type": ["null", {
+              "type": "int",
+              "logicalType": "date"
+            }],
+            "default": null,
+            "doc": "Date when change was announced (days since epoch)"
+          },
+          {
+            "name": "index_category",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Index category (e.g., 'Broad Market', 'Sectoral', 'Thematic')"
+          },
+          {
+            "name": "sector",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Sector classification of the constituent"
+          },
+          {
+            "name": "industry",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "Industry classification of the constituent"
+          },
+          {
+            "name": "metadata",
+            "type": ["null", {
+              "type": "map",
+              "values": "string"
+            }],
+            "default": null,
+            "doc": "Additional metadata as key-value pairs"
+          }
+        ]
+      },
+      "doc": "Index constituent membership data"
+    }
+  ]
+}
