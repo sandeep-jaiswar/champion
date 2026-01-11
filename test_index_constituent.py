@@ -11,9 +11,9 @@ from datetime import date
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "ingestion" / "nse-scraper"))
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.parsers.index_constituent_parser import IndexConstituentParser
+from champion.parsers.index_constituent_parser import IndexConstituentParser
 
 
 def create_sample_data(output_dir: Path) -> Path:
