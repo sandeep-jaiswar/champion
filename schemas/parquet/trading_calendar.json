@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Trading Calendar Parquet Schema",
+  "description": "Schema for trading calendar data stored in Parquet format",
+  "type": "object",
+  "properties": {
+    "trade_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Calendar date (YYYY-MM-DD)"
+    },
+    "is_trading_day": {
+      "type": "boolean",
+      "description": "Whether the exchange is open for trading on this date"
+    },
+    "day_type": {
+      "type": "string",
+      "enum": [
+        "NORMAL_TRADING",
+        "WEEKEND",
+        "PUBLIC_HOLIDAY",
+        "MARKET_HOLIDAY",
+        "SPECIAL_TRADING",
+        "HALF_DAY",
+        "MUHURAT_TRADING"
+      ],
+      "description": "Type of day"
+    },
+    "holiday_name": {
+      "type": ["string", "null"],
+      "description": "Name of the holiday if applicable"
+    },
+    "exchange": {
+      "type": "string",
+      "description": "Exchange code (NSE, BSE)"
+    },
+    "year": {
+      "type": "integer",
+      "description": "Year component for partitioning"
+    },
+    "month": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12,
+      "description": "Month component for partitioning"
+    },
+    "day": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31,
+      "description": "Day of month"
+    },
+    "weekday": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7,
+      "description": "Day of week (1=Monday, 7=Sunday) - ISO 8601 standard"
+    }
+  },
+  "required": [
+    "trade_date",
+    "is_trading_day",
+    "day_type",
+    "exchange",
+    "year",
+    "month",
+    "day",
+    "weekday"
+  ]
+}
