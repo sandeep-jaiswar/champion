@@ -120,11 +120,13 @@ def scrape_multiple_option_chains(
                 symbol=symbol,
                 error=str(e),
             )
-            results.append({
-                "symbol": symbol,
-                "success": False,
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "symbol": symbol,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
 
     logger.info(
         "multi_symbol_scrape_complete",
