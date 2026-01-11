@@ -2,10 +2,10 @@
 
 Scrapes daily bulk and block deals data from NSE.
 
-Bulk Deals: Transactions in a single scrip where total quantity traded is more than 0.5% 
+Bulk Deals: Transactions in a single scrip where total quantity traded is more than 0.5%
             of the number of equity shares of the company listed on the exchange.
-            
-Block Deals: Transactions executed through a separate trading window with minimum quantity 
+
+Block Deals: Transactions executed through a separate trading window with minimum quantity
              of 5 lakh shares or Rs 5 crore, whichever is less.
 """
 
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 class BulkBlockDealsScraper(BaseScraper):
     """Scraper for NSE bulk and block deals data.
-    
+
     NSE provides bulk and block deals data through their API endpoints.
     Data is available for the current day and historical dates.
     """
@@ -34,7 +34,7 @@ class BulkBlockDealsScraper(BaseScraper):
     # Based on NSE website structure at https://www.nseindia.com/report-detail/eq_security
     BULK_DEALS_API = "https://www.nseindia.com/api/historical/bulk-deals"
     BLOCK_DEALS_API = "https://www.nseindia.com/api/historical/block-deals"
-    
+
     # Alternative endpoints (fallback)
     BULK_DEALS_ARCHIVE = "https://archives.nseindia.com/content/equities/bulk.csv"
     BLOCK_DEALS_ARCHIVE = "https://archives.nseindia.com/content/equities/block.csv"
@@ -46,9 +46,9 @@ class BulkBlockDealsScraper(BaseScraper):
 
     def _get_session(self) -> httpx.Client:
         """Get or create an HTTP session with proper headers.
-        
+
         NSE requires specific headers to prevent blocking.
-        
+
         Returns:
             httpx.Client with appropriate headers
         """
@@ -71,7 +71,7 @@ class BulkBlockDealsScraper(BaseScraper):
                 self._session.get("https://www.nseindia.com/")
             except Exception as e:
                 self.logger.warning("Failed to establish NSE session", error=str(e))
-        
+
         return self._session
 
     def __enter__(self) -> "BulkBlockDealsScraper":
@@ -119,7 +119,7 @@ class BulkBlockDealsScraper(BaseScraper):
             output_dir.mkdir(parents=True, exist_ok=True)
 
             results = {}
-            
+
             # Determine which deal types to scrape
             scrape_bulk = deal_type in ("bulk", "both")
             scrape_block = deal_type in ("block", "both")
@@ -133,7 +133,7 @@ class BulkBlockDealsScraper(BaseScraper):
                 except Exception as e:
                     self.logger.error("Failed to scrape bulk deals", error=str(e))
                     if deal_type == "bulk":
-                        raise RuntimeError(f"Failed to scrape bulk deals: {e}")
+                        raise RuntimeError(f"Failed to scrape bulk deals: {e}") from e
 
             # Scrape block deals
             if scrape_block:
@@ -144,7 +144,7 @@ class BulkBlockDealsScraper(BaseScraper):
                 except Exception as e:
                     self.logger.error("Failed to scrape block deals", error=str(e))
                     if deal_type == "block":
-                        raise RuntimeError(f"Failed to scrape block deals: {e}")
+                        raise RuntimeError(f"Failed to scrape block deals: {e}") from e
 
             self.logger.info(
                 "Bulk/block deals scrape complete",
@@ -180,21 +180,21 @@ class BulkBlockDealsScraper(BaseScraper):
 
         try:
             session = self._get_session()
-            
+
             # Try API endpoint first
             api_url = f"{self.BULK_DEALS_API}?from={date_str}&to={date_str}"
-            
+
             response = session.get(api_url)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             # NSE API returns data in 'data' key
             if isinstance(data, dict) and "data" in data:
                 deals_data = data["data"]
             else:
                 deals_data = data
-            
+
             # Save to file if not dry run
             if not dry_run:
                 with open(output_file, "w") as f:
@@ -204,12 +204,12 @@ class BulkBlockDealsScraper(BaseScraper):
                     file=str(output_file),
                     deals=len(deals_data) if isinstance(deals_data, list) else "unknown",
                 )
-            
+
             return output_file
 
         except Exception as e:
             self.logger.error("Failed to scrape bulk deals", error=str(e), url=api_url)
-            raise RuntimeError(f"Failed to scrape bulk deals: {e}")
+            raise RuntimeError(f"Failed to scrape bulk deals: {e}") from e
 
     def _scrape_block_deals(
         self,
@@ -237,21 +237,21 @@ class BulkBlockDealsScraper(BaseScraper):
 
         try:
             session = self._get_session()
-            
+
             # Try API endpoint first
             api_url = f"{self.BLOCK_DEALS_API}?from={date_str}&to={date_str}"
-            
+
             response = session.get(api_url)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             # NSE API returns data in 'data' key
             if isinstance(data, dict) and "data" in data:
                 deals_data = data["data"]
             else:
                 deals_data = data
-            
+
             # Save to file if not dry run
             if not dry_run:
                 with open(output_file, "w") as f:
@@ -261,9 +261,9 @@ class BulkBlockDealsScraper(BaseScraper):
                     file=str(output_file),
                     deals=len(deals_data) if isinstance(deals_data, list) else "unknown",
                 )
-            
+
             return output_file
 
         except Exception as e:
             self.logger.error("Failed to scrape block deals", error=str(e), url=api_url)
-            raise RuntimeError(f"Failed to scrape block deals: {e}")
+            raise RuntimeError(f"Failed to scrape block deals: {e}") from e

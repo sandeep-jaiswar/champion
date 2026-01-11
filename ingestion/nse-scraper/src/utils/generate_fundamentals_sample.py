@@ -65,11 +65,13 @@ def generate_quarterly_financials_sample(
             revenue = base_revenue * growth_factor
             operating_profit = revenue * (0.15 + (hash(f"{symbol}op") % 15) / 100)  # 15-30%
             net_profit = operating_profit * (0.5 + (hash(f"{symbol}np") % 30) / 100)  # 50-80%
-            
-            total_assets = revenue * (1.5 + (hash(f"{symbol}assets") % 100) / 100)  # 1.5-2.5x revenue
+
+            total_assets = revenue * (
+                1.5 + (hash(f"{symbol}assets") % 100) / 100
+            )  # 1.5-2.5x revenue
             equity = total_assets * (0.4 + (hash(f"{symbol}equity") % 30) / 100)  # 40-70% of assets
             total_debt = total_assets - equity - (total_assets * 0.2)  # Some current liabilities
-            
+
             current_assets = total_assets * (0.3 + (hash(f"{symbol}ca") % 20) / 100)
             current_liabilities = current_assets * (0.7 + (hash(f"{symbol}cl") % 40) / 100)
 
@@ -107,8 +109,12 @@ def generate_quarterly_financials_sample(
                 "roe": round((net_profit / equity) * 100, 2) if equity > 0 else None,
                 "roa": round((net_profit / total_assets) * 100, 2) if total_assets > 0 else None,
                 "debt_to_equity": round(total_debt / equity, 2) if equity > 0 else None,
-                "current_ratio": round(current_assets / current_liabilities, 2) if current_liabilities > 0 else None,
-                "operating_margin": round((operating_profit / revenue) * 100, 2) if revenue > 0 else None,
+                "current_ratio": round(current_assets / current_liabilities, 2)
+                if current_liabilities > 0
+                else None,
+                "operating_margin": round((operating_profit / revenue) * 100, 2)
+                if revenue > 0
+                else None,
                 "net_margin": round((net_profit / revenue) * 100, 2) if revenue > 0 else None,
                 "year": quarter_end.year,
                 "quarter": quarter,
@@ -184,7 +190,9 @@ def generate_shareholding_pattern_sample(
             dii_pct = 5 + (hash(f"{symbol}dii") % 15)  # 5-20%
             public_pct = 100 - promoter_pct - fii_pct - dii_pct
 
-            total_shares = 1000000000 + (hash(symbol) % 9000000000)  # 100 crore to 1000 crore shares
+            total_shares = 1000000000 + (
+                hash(symbol) % 9000000000
+            )  # 100 crore to 1000 crore shares
 
             now = datetime.utcnow()
             record = {
@@ -220,7 +228,9 @@ def generate_shareholding_pattern_sample(
                 "employee_shares": int(total_shares * (hash(f"{symbol}emp") % 5) / 1000),
                 "total_shares_outstanding": total_shares,
                 "pledged_promoter_shares_percent": round((hash(f"{symbol}pledge") % 20) / 10, 2),
-                "pledged_promoter_shares": int(total_shares * promoter_pct * (hash(f"{symbol}pledge") % 20) / 10000),
+                "pledged_promoter_shares": int(
+                    total_shares * promoter_pct * (hash(f"{symbol}pledge") % 20) / 10000
+                ),
                 "year": quarter_end.year,
                 "quarter": quarter,
                 "metadata": {"source_type": "sample_generated"},

@@ -9,10 +9,10 @@ This parser handles the NSE CA format and produces structured events.
 import re
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import polars as pl
+
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -69,7 +69,7 @@ class CorporateActionsParser:
 
         return "OTHER"
 
-    def parse_split_ratio(self, purpose: str) -> Optional[Dict[str, int]]:
+    def parse_split_ratio(self, purpose: str) -> dict[str, int] | None:
         """Extract split ratio from PURPOSE field.
 
         Examples:
@@ -98,7 +98,7 @@ class CorporateActionsParser:
 
         return None
 
-    def parse_bonus_ratio(self, purpose: str) -> Optional[Dict[str, int]]:
+    def parse_bonus_ratio(self, purpose: str) -> dict[str, int] | None:
         """Extract bonus ratio from PURPOSE field.
 
         Examples:
@@ -123,7 +123,7 @@ class CorporateActionsParser:
 
         return None
 
-    def parse_dividend_amount(self, purpose: str) -> Optional[float]:
+    def parse_dividend_amount(self, purpose: str) -> float | None:
         """Extract dividend amount from PURPOSE field.
 
         Examples:
@@ -137,15 +137,13 @@ class CorporateActionsParser:
             Dividend amount, or None
         """
         # Pattern: "Rs. X" or "Rs X"
-        match = re.search(
-            r"rs\.?\s*(\d+(?:\.\d+)?)\s*/?\-?\s*per\s*share", purpose.lower()
-        )
+        match = re.search(r"rs\.?\s*(\d+(?:\.\d+)?)\s*/?\-?\s*per\s*share", purpose.lower())
         if match:
             return float(match.group(1))
 
         return None
 
-    def parse_date(self, date_str: Optional[str]) -> Optional[date]:
+    def parse_date(self, date_str: str | None) -> date | None:
         """Parse date string to date object.
 
         Args:
@@ -168,9 +166,7 @@ class CorporateActionsParser:
         logger.warning(f"Could not parse date: {date_str}")
         return None
 
-    def compute_adjustment_factor(
-        self, action_type: str, purpose: str
-    ) -> float:
+    def compute_adjustment_factor(self, action_type: str, purpose: str) -> float:
         """Compute adjustment factor from CA details.
 
         Args:
@@ -188,9 +184,7 @@ class CorporateActionsParser:
         elif action_type == "BONUS":
             ratio = self.parse_bonus_ratio(purpose)
             if ratio:
-                return (
-                    ratio["existing_shares"] + ratio["new_shares"]
-                ) / ratio["existing_shares"]
+                return (ratio["existing_shares"] + ratio["new_shares"]) / ratio["existing_shares"]
 
         # Dividend adjustment requires close price, so default to 1.0
         return 1.0
@@ -242,9 +236,7 @@ class CorporateActionsParser:
         df = df.with_columns(
             [
                 pl.col("PURPOSE")
-                .map_elements(
-                    self.parse_action_type, return_dtype=pl.Utf8
-                )
+                .map_elements(self.parse_action_type, return_dtype=pl.Utf8)
                 .alias("action_type"),
             ]
         )
@@ -254,9 +246,7 @@ class CorporateActionsParser:
             [
                 pl.struct(["action_type", "PURPOSE"])
                 .map_elements(
-                    lambda row: self.compute_adjustment_factor(
-                        row["action_type"], row["PURPOSE"]
-                    ),
+                    lambda row: self.compute_adjustment_factor(row["action_type"], row["PURPOSE"]),
                     return_dtype=pl.Float64,
                 )
                 .alias("adjustment_factor"),
@@ -268,12 +258,8 @@ class CorporateActionsParser:
         df = df.with_columns(
             [
                 pl.lit(str(uuid4())).alias("event_id"),
-                pl.lit(
-                    int(ingest_time.timestamp() * 1000)
-                ).alias("event_time"),
-                pl.lit(
-                    int(ingest_time.timestamp() * 1000)
-                ).alias("ingest_time"),
+                pl.lit(int(ingest_time.timestamp() * 1000)).alias("event_time"),
+                pl.lit(int(ingest_time.timestamp() * 1000)).alias("ingest_time"),
                 pl.lit(source).alias("source"),
                 pl.lit("v1").alias("schema_version"),
                 (pl.col("SYMBOL") + pl.lit(":NSE")).alias("entity_id"),
@@ -300,25 +286,17 @@ class CorporateActionsParser:
             # Partition by year
             for year in df["ex_date"].dt.year().unique().sort():
                 year_df = df.filter(pl.col("ex_date").dt.year() == year)
-                partition_path = (
-                    output_path / "raw" / "corporate_actions" / f"year={year}"
-                )
+                partition_path = output_path / "raw" / "corporate_actions" / f"year={year}"
                 partition_path.mkdir(parents=True, exist_ok=True)
 
                 output_file = partition_path / "data.parquet"
-                year_df.write_parquet(
-                    output_file, compression="snappy", use_pyarrow=True
-                )
-                logger.info(
-                    f"Wrote {len(year_df)} CA events to {output_file}"
-                )
+                year_df.write_parquet(output_file, compression="snappy", use_pyarrow=True)
+                logger.info(f"Wrote {len(year_df)} CA events to {output_file}")
 
             return output_path
         else:
             output_path.mkdir(parents=True, exist_ok=True)
             output_file = output_path / "corporate_actions.parquet"
-            df.write_parquet(
-                output_file, compression="snappy", use_pyarrow=True
-            )
+            df.write_parquet(output_file, compression="snappy", use_pyarrow=True)
             logger.info(f"Wrote {len(df)} CA events to {output_file}")
             return output_file

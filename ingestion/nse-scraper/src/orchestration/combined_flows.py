@@ -11,7 +11,6 @@ This module orchestrates ETL for both NSE and BSE data sources:
 import os
 import time
 from datetime import date, timedelta
-from pathlib import Path
 
 import mlflow
 import polars as pl
@@ -81,9 +80,7 @@ def deduplicate_by_isin(nse_df: pl.DataFrame | None, bse_df: pl.DataFrame | None
     nse_isins = set(nse_df.filter(pl.col("ISIN").is_not_null())["ISIN"].to_list())
 
     # Filter BSE to exclude symbols already in NSE (by ISIN)
-    bse_unique = bse_df.filter(
-        pl.col("ISIN").is_null() | ~pl.col("ISIN").is_in(nse_isins)
-    )
+    bse_unique = bse_df.filter(pl.col("ISIN").is_null() | ~pl.col("ISIN").is_in(nse_isins))
 
     # Combine NSE (all rows) with BSE (unique only)
     combined_df = pl.concat([nse_df, bse_unique], how="vertical")

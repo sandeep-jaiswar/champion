@@ -13,7 +13,6 @@ FinInstrmId as part of the canonical instrument ID.
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import polars as pl
 
@@ -99,11 +98,18 @@ class SymbolEnrichment:
             # Get the base columns from missing_isin (excluding the master columns that failed to match)
             base_cols = ["TckrSymb", "SctySrs", "FinInstrmId", "ISIN", "FinInstrmNm", "FinInstrmTp"]
             missing_base = missing_isin.select(base_cols)
-            
+
             # Join on TckrSymb only for missing records
             symbol_only_join = missing_base.join(
                 symbol_master_normalized.select(
-                    ["TckrSymb", "CompanyName", "FaceValue", "PaidUpValue", "LotSize", "ListingDate"]
+                    [
+                        "TckrSymb",
+                        "CompanyName",
+                        "FaceValue",
+                        "PaidUpValue",
+                        "LotSize",
+                        "ListingDate",
+                    ]
                 ),
                 on="TckrSymb",
                 how="left",
@@ -113,16 +119,16 @@ class SymbolEnrichment:
 
             # Get the matched records with the same schema as enriched
             matched = enriched.filter(pl.col("CompanyName").is_not_null())
-            
+
             # Ensure symbol_only_join has the same columns as matched
             # Add any missing columns with null values
             for col in matched.columns:
                 if col not in symbol_only_join.columns:
                     symbol_only_join = symbol_only_join.with_columns(pl.lit(None).alias(col))
-            
+
             # Select columns in the same order as matched
             symbol_only_join = symbol_only_join.select(matched.columns)
-            
+
             # Merge back into enriched dataframe
             enriched = pl.concat([matched, symbol_only_join], how="vertical")
 
@@ -130,10 +136,7 @@ class SymbolEnrichment:
         enriched = enriched.with_columns(
             [
                 (
-                    pl.col("TckrSymb").cast(str)
-                    + ":"
-                    + pl.col("FinInstrmId").cast(str)
-                    + ":NSE"
+                    pl.col("TckrSymb").cast(str) + ":" + pl.col("FinInstrmId").cast(str) + ":NSE"
                 ).alias("instrument_id"),
             ]
         )
@@ -213,9 +216,7 @@ class SymbolEnrichment:
         combined = pl.concat(all_instruments)
 
         # Get unique combinations based on all key fields
-        unique_instruments = combined.unique(
-            subset=["TckrSymb", "SctySrs", "FinInstrmId", "ISIN"]
-        )
+        unique_instruments = combined.unique(subset=["TckrSymb", "SctySrs", "FinInstrmId", "ISIN"])
 
         self.logger.info(
             "Extracted unique instruments",

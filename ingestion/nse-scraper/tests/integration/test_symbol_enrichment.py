@@ -9,13 +9,11 @@ This test demonstrates the full enrichment pipeline:
 """
 
 import tempfile
-from datetime import date
 from pathlib import Path
 
 import polars as pl
 import pytest
 
-from src.parsers.symbol_master_parser import SymbolMasterParser
 from src.parsers.symbol_enrichment import SymbolEnrichment
 
 
@@ -101,9 +99,7 @@ INFY,Infosys Limited,EQ,08-Feb-1995,5,1,INE009A01021,5
         assert "TckrSymb" in enriched_df.columns
         assert "FinInstrmId" in enriched_df.columns
 
-    def test_ibulhsgfin_multiple_instruments(
-        self, sample_equity_l_csv, sample_bhavcopy_parquets
-    ):
+    def test_ibulhsgfin_multiple_instruments(self, sample_equity_l_csv, sample_bhavcopy_parquets):
         """Test that IBULHSGFIN correctly shows multiple instruments."""
         # Parse and enrich
         df_symbol_master = pl.read_csv(sample_equity_l_csv, null_values=["-", "", "null"])
@@ -205,10 +201,7 @@ INFY,Infosys Limited,EQ,08-Feb-1995,5,1,INE009A01021,5
         df_ohlc = df_ohlc.with_columns(
             [
                 (
-                    pl.col("TckrSymb").cast(str)
-                    + ":"
-                    + pl.col("FinInstrmId").cast(str)
-                    + ":NSE"
+                    pl.col("TckrSymb").cast(str) + ":" + pl.col("FinInstrmId").cast(str) + ":NSE"
                 ).alias("computed_instrument_id")
             ]
         )
@@ -231,7 +224,7 @@ INFY,Infosys Limited,EQ,08-Feb-1995,5,1,INE009A01021,5
         # Should have 2 different FinInstrmNm values
         fin_instrm_names = ibulhsgfin_joined["FinInstrmNm"].to_list()
         assert len(set(fin_instrm_names)) == 2  # EQ and NCD have different instrument names
-        
+
         # Verify one is equity and one is debt
         series_list = ibulhsgfin_joined["SctySrs"].to_list()
         assert "EQ" in series_list

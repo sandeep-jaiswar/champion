@@ -1,19 +1,16 @@
 """Prefect tasks for trading calendar ingestion."""
 
 import time
-from datetime import date
 from pathlib import Path
 
 import mlflow
 import polars as pl
 import structlog
 from prefect import task
-from prefect.tasks import task_input_hash
 
 from src.config import config
 from src.parsers.trading_calendar_parser import TradingCalendarParser
 from src.scrapers.trading_calendar import TradingCalendarScraper
-from src.utils import metrics
 
 logger = structlog.get_logger()
 
@@ -207,7 +204,7 @@ def load_trading_calendar_clickhouse(parquet_path: str) -> int:
         # Insert into ClickHouse
         client.insert(
             "trading_calendar",
-            records,
+            [list(r.values()) for r in records],
             column_names=[
                 "trade_date",
                 "is_trading_day",

@@ -37,8 +37,8 @@ def sample_nifty50_data():
                     "isin": "INE002A01018",
                     "companyName": "Reliance Industries Ltd.",
                     "sector": "Energy",
-                    "industry": "Refineries"
-                }
+                    "industry": "Refineries",
+                },
             },
             {
                 "symbol": "HDFCBANK",
@@ -60,8 +60,8 @@ def sample_nifty50_data():
                     "isin": "INE040A01034",
                     "companyName": "HDFC Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
+                    "industry": "Banks",
+                },
             },
             {
                 "symbol": "TCS",
@@ -83,10 +83,10 @@ def sample_nifty50_data():
                     "isin": "INE467B01029",
                     "companyName": "Tata Consultancy Services Ltd.",
                     "sector": "Information Technology",
-                    "industry": "IT Services & Consulting"
-                }
-            }
-        ]
+                    "industry": "IT Services & Consulting",
+                },
+            },
+        ],
     }
 
 
@@ -117,8 +117,8 @@ def sample_banknifty_data():
                     "isin": "INE040A01034",
                     "companyName": "HDFC Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
+                    "industry": "Banks",
+                },
             },
             {
                 "symbol": "ICICIBANK",
@@ -139,10 +139,10 @@ def sample_banknifty_data():
                     "isin": "INE090A01021",
                     "companyName": "ICICI Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
-            }
-        ]
+                    "industry": "Banks",
+                },
+            },
+        ],
     }
 
 
@@ -365,9 +365,9 @@ class TestIndexConstituentParser:
                     "meta": {
                         "isin": "INE467B01029",
                         "companyName": "Tata Consultancy Services Ltd.",
-                    }
+                    },
                 }
-            ]
+            ],
         }
 
         json_file = tmp_path / "NIFTYIT_constituents.json"
@@ -394,21 +394,21 @@ class TestIndexConstituentParser:
                     "symbol": "RELIANCE",
                     "series": "EQ",
                     "close": 2860.0,
-                    "meta": {"isin": "INE002A01018"}
+                    "meta": {"isin": "INE002A01018"},
                 },
                 {
                     "symbol": "NIFTY50",
                     "series": "INDEX",  # Should be filtered
                     "close": 18000.0,
-                    "meta": {"isin": ""}
+                    "meta": {"isin": ""},
                 },
                 {
                     "symbol": "HDFCBANK",
                     "series": "BE",
                     "close": 1660.0,
-                    "meta": {"isin": "INE040A01034"}
-                }
-            ]
+                    "meta": {"isin": "INE040A01034"},
+                },
+            ],
         }
 
         json_file = tmp_path / "NIFTY50_constituents.json"

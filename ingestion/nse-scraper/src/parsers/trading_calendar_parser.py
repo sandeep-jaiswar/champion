@@ -16,9 +16,10 @@ import json
 from calendar import Calendar
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any
 
 import polars as pl
+
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -37,7 +38,7 @@ class TradingCalendarParser:
         """Initialize parser."""
         self.calendar_gen = Calendar(firstweekday=0)  # Monday = 0
         # Store holiday details for lookup
-        self.holiday_details: Dict[date, str] = {}
+        self.holiday_details: dict[date, str] = {}
 
     def parse(self, json_file_path: Path, year: int) -> pl.DataFrame:
         """Parse NSE trading calendar JSON and generate complete year calendar.
@@ -52,7 +53,7 @@ class TradingCalendarParser:
         logger.info("Parsing trading calendar", file=str(json_file_path), year=year)
 
         # Load holiday data
-        with open(json_file_path, "r") as f:
+        with open(json_file_path) as f:
             data = json.load(f)
 
         # Extract holidays by segment
@@ -68,15 +69,15 @@ class TradingCalendarParser:
             holidays=calendar_df.filter(~pl.col("is_trading_day"))["is_trading_day"]
             .count()
             .__sub__(
-                calendar_df.filter(
-                    pl.col("day_type").is_in(["WEEKEND", "NORMAL_TRADING"])
-                )["day_type"].count()
+                calendar_df.filter(pl.col("day_type").is_in(["WEEKEND", "NORMAL_TRADING"]))[
+                    "day_type"
+                ].count()
             ),
         )
 
         return calendar_df
 
-    def _extract_holidays(self, data: Dict[str, Any], year: int) -> Dict[str, Set[date]]:
+    def _extract_holidays(self, data: dict[str, Any], year: int) -> dict[str, set[date]]:
         """Extract holiday dates from NSE JSON response.
 
         Args:
@@ -102,11 +103,11 @@ class TradingCalendarParser:
 
                         if holiday_date:
                             segment_holidays.add(holiday_date)
-                            
+
                             # Store holiday name for later lookup
                             holiday_name = holiday.get("description", "Holiday")
                             self.holiday_details[holiday_date] = holiday_name
-                            
+
                             logger.debug(
                                 "Parsed holiday",
                                 segment=segment,
@@ -168,7 +169,7 @@ class TradingCalendarParser:
         return None
 
     def _generate_calendar(
-        self, year: int, holidays_by_segment: Dict[str, Set[date]]
+        self, year: int, holidays_by_segment: dict[str, set[date]]
     ) -> pl.DataFrame:
         """Generate complete trading calendar for the year.
 

@@ -9,11 +9,10 @@ Reference URLs:
 """
 
 import time
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 import httpx
-from bs4 import BeautifulSoup
 
 from src.config import config
 from src.scrapers.base import BaseScraper

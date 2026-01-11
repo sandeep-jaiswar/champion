@@ -116,22 +116,32 @@ class TestDataGenerators(unittest.TestCase):
     def test_quarter_calculation(self):
         """Test quarter calculation from month."""
         test_cases = [
-            (1, 1), (2, 1), (3, 1),  # Q1
-            (4, 2), (5, 2), (6, 2),  # Q2
-            (7, 3), (8, 3), (9, 3),  # Q3
-            (10, 4), (11, 4), (12, 4),  # Q4
+            (1, 1),
+            (2, 1),
+            (3, 1),  # Q1
+            (4, 2),
+            (5, 2),
+            (6, 2),  # Q2
+            (7, 3),
+            (8, 3),
+            (9, 3),  # Q3
+            (10, 4),
+            (11, 4),
+            (12, 4),  # Q4
         ]
 
         for month, expected_quarter in test_cases:
             quarter = (month - 1) // 3 + 1
-            self.assertEqual(quarter, expected_quarter, f"Month {month} should be Q{expected_quarter}")
+            self.assertEqual(
+                quarter, expected_quarter, f"Month {month} should be Q{expected_quarter}"
+            )
 
     def test_quarter_end_dates(self):
         """Test quarter end date calculation."""
         test_cases = [
-            (1, date(2024, 3, 31)),   # Q1 end
-            (2, date(2024, 6, 30)),   # Q2 end
-            (3, date(2024, 9, 30)),   # Q3 end
+            (1, date(2024, 3, 31)),  # Q1 end
+            (2, date(2024, 6, 30)),  # Q2 end
+            (3, date(2024, 9, 30)),  # Q3 end
             (4, date(2024, 12, 31)),  # Q4 end
         ]
 
@@ -154,10 +164,18 @@ class TestSchemaValidation(unittest.TestCase):
     def test_quarterly_financials_schema_fields(self):
         """Test that quarterly financials schema has required fields."""
         required_fields = [
-            "event_id", "event_time", "ingest_time",
-            "symbol", "company_name", "period_end_date",
-            "revenue", "net_profit", "eps",
-            "roe", "roa", "debt_to_equity",
+            "event_id",
+            "event_time",
+            "ingest_time",
+            "symbol",
+            "company_name",
+            "period_end_date",
+            "revenue",
+            "net_profit",
+            "eps",
+            "roe",
+            "roa",
+            "debt_to_equity",
         ]
 
         # This is a mock test - in reality would validate against schema file
@@ -182,8 +200,12 @@ class TestSchemaValidation(unittest.TestCase):
     def test_shareholding_pattern_schema_fields(self):
         """Test that shareholding pattern schema has required fields."""
         required_fields = [
-            "event_id", "event_time", "ingest_time",
-            "symbol", "company_name", "quarter_end_date",
+            "event_id",
+            "event_time",
+            "ingest_time",
+            "symbol",
+            "company_name",
+            "quarter_end_date",
             "promoter_shareholding_percent",
             "fii_shareholding_percent",
             "dii_shareholding_percent",

@@ -3,10 +3,10 @@
 Parses HTML/data from BSE shareholding disclosures into structured format.
 """
 
+import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-import uuid
 
 import polars as pl
 from bs4 import BeautifulSoup
@@ -37,7 +37,7 @@ class ShareholdingPatternParser:
         self.logger.info("Parsing shareholding file", file_path=str(file_path))
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 html_content = f.read()
 
             soup = BeautifulSoup(html_content, "html.parser")
@@ -56,7 +56,9 @@ class ShareholdingPatternParser:
             return df
 
         except Exception as e:
-            self.logger.error("Failed to parse shareholding file", file_path=str(file_path), error=str(e))
+            self.logger.error(
+                "Failed to parse shareholding file", file_path=str(file_path), error=str(e)
+            )
             raise
 
     def _extract_shareholding_data(
@@ -194,7 +196,9 @@ class ShareholdingPatternParser:
 
         return consolidated
 
-    def parse_batch(self, file_paths: list[Path], symbols: list[str], scrip_codes: list[str]) -> pl.DataFrame:
+    def parse_batch(
+        self, file_paths: list[Path], symbols: list[str], scrip_codes: list[str]
+    ) -> pl.DataFrame:
         """Parse multiple shareholding files.
 
         Args:
@@ -206,7 +210,7 @@ class ShareholdingPatternParser:
             Combined DataFrame
         """
         dfs = []
-        for file_path, symbol, scrip_code in zip(file_paths, symbols, scrip_codes):
+        for file_path, symbol, scrip_code in zip(file_paths, symbols, scrip_codes, strict=False):
             try:
                 df = self.parse(file_path, symbol, scrip_code)
                 if len(df) > 0:

@@ -8,7 +8,7 @@ This parser provides:
 - Parquet output with partitioned layout
 
 BSE Bhavcopy CSV Format:
-- Columns: SC_CODE, SC_NAME, SC_GROUP, SC_TYPE, OPEN, HIGH, LOW, CLOSE, LAST, 
+- Columns: SC_CODE, SC_NAME, SC_GROUP, SC_TYPE, OPEN, HIGH, LOW, CLOSE, LAST,
            PREVCLOSE, NO_TRADES, NO_OF_SHRS, NET_TURNOV, TDCLOINDI, ISIN_CODE
 - Example: 500325,RELIANCE,A,R,2750.00,2780.50,2740.00,2765.25,2765.00,2750.00,50000,5000000,13826250000.00,IEP,INE002A01018
 """
@@ -92,7 +92,10 @@ class PolarsBseParser:
             df = self._normalize_schema(df, trade_date)
 
             logger.info(
-                "Parsed BSE bhavcopy file", path=str(file_path), rows=len(df), columns=len(df.columns)
+                "Parsed BSE bhavcopy file",
+                path=str(file_path),
+                rows=len(df),
+                columns=len(df.columns),
             )
 
             # Convert to list of event dictionaries
@@ -145,7 +148,9 @@ class PolarsBseParser:
                 pl.lit(ingest_time).alias("ingest_time"),
                 pl.lit("bse_eq_bhavcopy").alias("source"),
                 pl.lit("v1").alias("schema_version"),
-                (pl.col("SC_NAME") + pl.lit(":") + pl.col("SC_CODE") + pl.lit(":BSE")).alias("entity_id"),
+                (pl.col("SC_NAME") + pl.lit(":") + pl.col("SC_CODE") + pl.lit(":BSE")).alias(
+                    "entity_id"
+                ),
             ]
         )
 
@@ -172,7 +177,6 @@ class PolarsBseParser:
                 pl.col("SC_CODE").alias("FinInstrmId"),  # Use BSE scrip code as instrument ID
                 pl.lit(trade_date.strftime("%Y-%m-%d")).alias("TradDt"),
                 pl.lit(trade_date.strftime("%Y-%m-%d")).alias("BizDt"),
-                
                 # Price fields
                 pl.col("OPEN").alias("OpnPric"),
                 pl.col("HIGH").alias("HghPric"),
@@ -180,18 +184,15 @@ class PolarsBseParser:
                 pl.col("CLOSE").alias("ClsPric"),
                 pl.col("LAST").alias("LastPric"),
                 pl.col("PREVCLOSE").alias("PrvsClsgPric"),
-                
                 # Volume and trades
                 pl.col("NO_OF_SHRS").alias("TtlTradgVol"),
                 pl.col("NET_TURNOV").alias("TtlTrfVal"),
                 pl.col("NO_TRADES").alias("TtlNbOfTxsExctd"),
-                
                 # BSE-specific fields
                 pl.col("SC_GROUP").alias("Sgmt"),  # Security group
                 pl.lit("BSE").alias("Src"),  # Source
                 pl.lit("STK").alias("FinInstrmTp"),  # Instrument type
                 pl.col("SC_GROUP").alias("SctySrs"),  # Series equivalent
-                
                 # Null fields (not available in BSE)
                 pl.lit(None).cast(pl.Date).alias("XpryDt"),
                 pl.lit(None).cast(pl.Date).alias("FininstrmActlXpryDt"),
@@ -221,14 +222,42 @@ class PolarsBseParser:
             "schema_version",
             "entity_id",
         ]
-        
+
         payload_cols = [
-            "TradDt", "BizDt", "Sgmt", "Src", "FinInstrmTp", "FinInstrmId", "ISIN",
-            "TckrSymb", "SctySrs", "XpryDt", "FininstrmActlXpryDt", "StrkPric", "OptnTp",
-            "FinInstrmNm", "OpnPric", "HghPric", "LwPric", "ClsPric", "LastPric",
-            "PrvsClsgPric", "UndrlygPric", "SttlmPric", "OpnIntrst", "ChngInOpnIntrst",
-            "TtlTradgVol", "TtlTrfVal", "TtlNbOfTxsExctd", "SsnId", "NewBrdLotQty",
-            "Rmks", "Rsvd01", "Rsvd02", "Rsvd03", "Rsvd04",
+            "TradDt",
+            "BizDt",
+            "Sgmt",
+            "Src",
+            "FinInstrmTp",
+            "FinInstrmId",
+            "ISIN",
+            "TckrSymb",
+            "SctySrs",
+            "XpryDt",
+            "FininstrmActlXpryDt",
+            "StrkPric",
+            "OptnTp",
+            "FinInstrmNm",
+            "OpnPric",
+            "HghPric",
+            "LwPric",
+            "ClsPric",
+            "LastPric",
+            "PrvsClsgPric",
+            "UndrlygPric",
+            "SttlmPric",
+            "OpnIntrst",
+            "ChngInOpnIntrst",
+            "TtlTradgVol",
+            "TtlTrfVal",
+            "TtlNbOfTxsExctd",
+            "SsnId",
+            "NewBrdLotQty",
+            "Rmks",
+            "Rsvd01",
+            "Rsvd02",
+            "Rsvd03",
+            "Rsvd04",
         ]
 
         normalized_df = normalized_df.select(metadata_cols + payload_cols)

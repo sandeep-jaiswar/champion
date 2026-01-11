@@ -91,9 +91,7 @@ HDFCBANK,HDFC Bank Limited,EQ,08-Nov-1995,1,1,INE040A01034,1
         events = parser.parse(sample_equity_l_csv, exchange="NSE")
 
         # Find all IBULHSGFIN events
-        ibulhsgfin_events = [
-            e for e in events if e["payload"]["symbol"] == "IBULHSGFIN"
-        ]
+        ibulhsgfin_events = [e for e in events if e["payload"]["symbol"] == "IBULHSGFIN"]
 
         # Should have 2 IBULHSGFIN entries (EQ and D1 series)
         assert len(ibulhsgfin_events) == 2

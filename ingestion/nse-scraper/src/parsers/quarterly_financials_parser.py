@@ -4,10 +4,10 @@ Parses financial data from MCA/BSE sources into structured format.
 Computes key financial ratios (ROE, ROA, debt ratios, margins).
 """
 
+import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-import uuid
 
 import polars as pl
 from bs4 import BeautifulSoup
@@ -49,7 +49,9 @@ class QuarterlyFinancialsParser:
                 raise ValueError(f"Unsupported file type: {file_path.suffix}")
 
         except Exception as e:
-            self.logger.error("Failed to parse financial file", file_path=str(file_path), error=str(e))
+            self.logger.error(
+                "Failed to parse financial file", file_path=str(file_path), error=str(e)
+            )
             raise
 
     def _parse_html(self, file_path: Path, symbol: str, cin: str | None) -> pl.DataFrame:
@@ -63,7 +65,7 @@ class QuarterlyFinancialsParser:
         Returns:
             Polars DataFrame
         """
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             html_content = f.read()
 
         soup = BeautifulSoup(html_content, "html.parser")
@@ -126,7 +128,7 @@ class QuarterlyFinancialsParser:
         """
         # This is a simplified placeholder. Actual parsing will depend on BSE/MCA HTML structure
         now = datetime.utcnow()
-        
+
         record = {
             "event_id": str(uuid.uuid4()),
             "event_time": now,
@@ -225,7 +227,7 @@ class QuarterlyFinancialsParser:
             cins = [None] * len(file_paths)
 
         dfs = []
-        for file_path, symbol, cin in zip(file_paths, symbols, cins):
+        for file_path, symbol, cin in zip(file_paths, symbols, cins, strict=False):
             try:
                 df = self.parse(file_path, symbol, cin)
                 if len(df) > 0:

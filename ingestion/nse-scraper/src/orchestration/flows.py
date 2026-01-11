@@ -15,6 +15,7 @@ import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Any
 
 import mlflow
 import polars as pl
@@ -685,7 +686,7 @@ def index_constituent_etl_flow(
     indices: list[str] | None = None,
     effective_date: date | None = None,
     load_to_clickhouse: bool = True,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Complete ETL flow for index constituent data.
 
     This flow:
@@ -797,7 +798,9 @@ def index_constituent_etl_flow(
             mlflow.log_metric("total_duration_seconds", duration)
             mlflow.log_metric("total_indices_processed", len(results))
 
-            total_constituents = sum(r["constituents"] for r in results.values())
+            total_constituents: int = sum(
+                int(r.get("constituents", 0)) for r in results.values()  # type: ignore
+            )
             mlflow.log_metric("total_constituents", total_constituents)
 
             logger.info(

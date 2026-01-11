@@ -13,12 +13,11 @@ Schema:
 """
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import polars as pl
-import structlog
 
 from src.utils.logger import get_logger
 from src.utils.metrics import rows_parsed
@@ -65,16 +64,16 @@ class BulkBlockDealsParser:
 
         try:
             import json
-            
+
             # Read JSON file
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
-            
+
             # Handle empty data
             if not data or (isinstance(data, list) and len(data) == 0):
                 self.logger.warning("No deals found in file", path=str(file_path))
                 return []
-            
+
             # Convert to Polars DataFrame based on NSE data structure
             # NSE bulk deals format (typical structure):
             # {
@@ -86,7 +85,7 @@ class BulkBlockDealsParser:
             #   "sellAvgPrice": 0,
             #   "dealDate": "10-JAN-2026"
             # }
-            
+
             # Create DataFrame from JSON data
             if isinstance(data, list):
                 df = pl.DataFrame(data)
@@ -94,7 +93,7 @@ class BulkBlockDealsParser:
                 # If data is wrapped in another structure, extract it
                 self.logger.error("Unexpected data format", data_type=type(data).__name__)
                 return []
-            
+
             # Normalize column names (handle variations in NSE API response)
             column_mapping = {
                 "symbol": "symbol",
@@ -114,66 +113,70 @@ class BulkBlockDealsParser:
                 "dealDate": "deal_date_str",
                 "DealDate": "deal_date_str",
             }
-            
+
             # Rename columns if they exist
             for old_name, new_name in column_mapping.items():
                 if old_name in df.columns:
                     df = df.rename({old_name: new_name})
-            
+
             # Check for required columns
             if "symbol" not in df.columns:
                 self.logger.error("Missing required column: symbol", columns=df.columns)
                 return []
-            
+
             # Process deals - create separate rows for buy and sell
             events = []
-            
+
             for row in df.iter_rows(named=True):
                 symbol = row.get("symbol", "").strip()
                 client_name = row.get("client_name", "").strip()
-                
+
                 if not symbol:
                     continue
-                
+
                 # Process buy transaction if quantity > 0
                 buy_qty = row.get("buy_quantity", 0) or 0
                 buy_price = row.get("buy_avg_price", 0.0) or 0.0
-                
+
                 if buy_qty > 0:
-                    events.append(self._create_event(
-                        deal_date=deal_date,
-                        symbol=symbol,
-                        client_name=client_name,
-                        quantity=buy_qty,
-                        avg_price=buy_price,
-                        deal_type=deal_type,
-                        transaction_type="BUY",
-                    ))
-                
+                    events.append(
+                        self._create_event(
+                            deal_date=deal_date,
+                            symbol=symbol,
+                            client_name=client_name,
+                            quantity=buy_qty,
+                            avg_price=buy_price,
+                            deal_type=deal_type,
+                            transaction_type="BUY",
+                        )
+                    )
+
                 # Process sell transaction if quantity > 0
                 sell_qty = row.get("sell_quantity", 0) or 0
                 sell_price = row.get("sell_avg_price", 0.0) or 0.0
-                
+
                 if sell_qty > 0:
-                    events.append(self._create_event(
-                        deal_date=deal_date,
-                        symbol=symbol,
-                        client_name=client_name,
-                        quantity=sell_qty,
-                        avg_price=sell_price,
-                        deal_type=deal_type,
-                        transaction_type="SELL",
-                    ))
-            
+                    events.append(
+                        self._create_event(
+                            deal_date=deal_date,
+                            symbol=symbol,
+                            client_name=client_name,
+                            quantity=sell_qty,
+                            avg_price=sell_price,
+                            deal_type=deal_type,
+                            transaction_type="SELL",
+                        )
+                    )
+
             rows_parsed.labels(scraper="bulk_block_deals", status="success").inc(len(events))
-            
+
             self.logger.info(
                 "Bulk/block deals parse complete",
                 path=str(file_path),
                 deals=len(events),
                 deal_type=deal_type,
             )
-            
+
             return events
 
         except Exception as e:
@@ -204,10 +207,10 @@ class BulkBlockDealsParser:
         Returns:
             Event dictionary
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         event_id = str(uuid.uuid4())
         entity_id = f"{symbol}:{deal_type}:{transaction_type}:{deal_date.strftime('%Y%m%d')}"
-        
+
         return {
             # Envelope fields (metadata)
             "event_id": event_id,
@@ -220,7 +223,7 @@ class BulkBlockDealsParser:
             "deal_date": deal_date,
             "symbol": symbol.upper(),
             "client_name": client_name,
-            "quantity": int(quantity) if isinstance(quantity, (int, float)) else 0,
+            "quantity": int(quantity) if isinstance(quantity, int | float) else 0,
             "avg_price": float(avg_price) if avg_price else 0.0,
             "deal_type": deal_type.upper(),
             "transaction_type": transaction_type.upper(),
@@ -266,16 +269,18 @@ class BulkBlockDealsParser:
         df = pl.DataFrame(events)
 
         # Ensure proper types
-        df = df.with_columns([
-            pl.col("deal_date").cast(pl.Date),
-            pl.col("event_time").cast(pl.Datetime),
-            pl.col("ingest_time").cast(pl.Datetime),
-            pl.col("quantity").cast(pl.Int64),
-            pl.col("avg_price").cast(pl.Float64),
-            pl.col("year").cast(pl.Int64),
-            pl.col("month").cast(pl.Int64),
-            pl.col("day").cast(pl.Int64),
-        ])
+        df = df.with_columns(
+            [
+                pl.col("deal_date").cast(pl.Date),
+                pl.col("event_time").cast(pl.Datetime),
+                pl.col("ingest_time").cast(pl.Datetime),
+                pl.col("quantity").cast(pl.Int64),
+                pl.col("avg_price").cast(pl.Float64),
+                pl.col("year").cast(pl.Int64),
+                pl.col("month").cast(pl.Int64),
+                pl.col("day").cast(pl.Int64),
+            ]
+        )
 
         # Create output directory with partitioning
         # Structure: data/lake/bulk_block_deals/deal_type=BULK/year=2026/month=01/day=10/
@@ -290,7 +295,9 @@ class BulkBlockDealsParser:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Write Parquet file
-        output_file = output_dir / f"{deal_type.lower()}_deals_{deal_date.strftime('%Y%m%d')}.parquet"
+        output_file = (
+            output_dir / f"{deal_type.lower()}_deals_{deal_date.strftime('%Y%m%d')}.parquet"
+        )
         df.write_parquet(output_file, compression="snappy")
 
         self.logger.info(
