@@ -146,6 +146,9 @@ def generate_normalized_equity_ohlc_sample(
             close_price = (open_price + high_price + low_price) / 3
             volume = 100000 + (hash(f"{symbol}{day}vol") % 1000000)
             
+            # Generate deterministic FinInstrmId for the symbol
+            fin_instrm_id = hash(symbol) % 100000
+            
             record = {
                 # Envelope
                 'event_id': str(uuid.uuid4()),
@@ -153,29 +156,43 @@ def generate_normalized_equity_ohlc_sample(
                 'ingest_time': int(datetime.now().timestamp() * 1000),
                 'source': 'nse_bhavcopy',
                 'schema_version': 'v1',
-                'entity_id': f'{symbol}:NSE',
+                'entity_id': f'{symbol}:{fin_instrm_id}:NSE',
                 
-                # Normalized payload
-                'instrument_id': f'{symbol}:NSE',
-                'symbol': symbol,
-                'exchange': 'NSE',
-                'isin': f'INE{hash(symbol) % 900000:06d}01',
-                'instrument_type': 'STK',
-                'series': 'EQ',
-                'trade_date': trade_date,
-                'prev_close': open_price - 1.0,
-                'open': open_price,
-                'high': high_price,
-                'low': low_price,
-                'close': close_price,
-                'last_price': close_price,
-                'settlement_price': close_price,
-                'volume': volume,
-                'turnover': volume * close_price,
-                'trades': volume // 100,
-                'adjustment_factor': 1.0,
-                'adjustment_date': None,
-                'is_trading_day': True,
+                # Normalized payload - using NSE column names matching ClickHouse schema
+                'TradDt': trade_date.isoformat(),
+                'BizDt': trade_date.isoformat(),
+                'Sgmt': 'CM',
+                'Src': 'NSE',
+                'FinInstrmTp': 'STK',
+                'FinInstrmId': fin_instrm_id,
+                'ISIN': f'INE{hash(symbol) % 900000:06d}01',
+                'TckrSymb': symbol,
+                'SctySrs': 'EQ',
+                'XpryDt': None,
+                'FininstrmActlXpryDt': None,
+                'StrkPric': None,
+                'OptnTp': None,
+                'FinInstrmNm': f'{symbol} Ltd',
+                'OpnPric': open_price,
+                'HghPric': high_price,
+                'LwPric': low_price,
+                'ClsPric': close_price,
+                'LastPric': close_price,
+                'PrvsClsgPric': open_price - 1.0,
+                'UndrlygPric': None,
+                'SttlmPric': close_price,
+                'OpnIntrst': None,
+                'ChngInOpnIntrst': None,
+                'TtlTradgVol': volume,
+                'TtlTrfVal': volume * close_price,
+                'TtlNbOfTxsExctd': volume // 100,
+                'SsnId': 'F1',
+                'NewBrdLotQty': 1,
+                'Rmks': None,
+                'Rsvd01': None,
+                'Rsvd02': None,
+                'Rsvd03': None,
+                'Rsvd04': None,
             }
             records.append(record)
     
@@ -189,8 +206,9 @@ def generate_normalized_equity_ohlc_sample(
     # Write partitioned by year/month/day
     for day in range(num_days):
         trade_date = base_date + timedelta(days=day)
+        date_str = trade_date.isoformat()
         
-        day_df = df.filter(pl.col('trade_date') == trade_date)
+        day_df = df.filter(pl.col('TradDt') == date_str)
         
         partition_dir = output_path / f'year={trade_date.year}' / f'month={trade_date.month:02d}' / f'day={trade_date.day:02d}'
         partition_dir.mkdir(parents=True, exist_ok=True)
