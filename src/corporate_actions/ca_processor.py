@@ -130,8 +130,9 @@ class CorporateActionsProcessor:
         action_type = CorporateActionType(ca_data["action_type"])
         adjustment_factor = ca_data.get("adjustment_factor", 1.0)
 
-        # If adjustment_factor not provided, compute it
-        if adjustment_factor == 1.0:
+        # If adjustment_factor not provided or is 1.0, compute it
+        # Use epsilon comparison for floating point
+        if abs(adjustment_factor - 1.0) < 1e-9:
             if action_type == CorporateActionType.SPLIT:
                 split_ratio = ca_data.get("split_ratio")
                 if split_ratio:

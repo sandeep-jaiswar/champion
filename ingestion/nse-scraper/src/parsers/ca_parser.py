@@ -112,7 +112,7 @@ class CorporateActionsParser:
             Dict with new_shares and existing_shares, or None
         """
         # Pattern: "X:Y" or "X for Y"
-        match = re.search(r"(\d+)\s*[:for]\s*(\d+)", purpose.lower())
+        match = re.search(r"(\d+)\s*(?:[:]\s*|for\s+)(\d+)", purpose.lower())
         if match:
             new_shares = int(match.group(1))
             existing_shares = int(match.group(2))

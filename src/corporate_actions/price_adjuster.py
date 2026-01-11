@@ -83,8 +83,8 @@ def apply_ca_adjustments(
         how="left",
     )
 
-    # Filter to only CA events after the trade date
-    # Compute adjustment: if ex_date > trade_date, apply the cumulative factor
+    # Filter to only CA events after the trade date and compute adjustment
+    # Apply the cumulative factor if ex_date > trade_date
     result = result.with_columns(
         [
             pl.when(pl.col("ex_date") > pl.col(trade_date_col))
@@ -101,10 +101,7 @@ def apply_ca_adjustments(
         .agg(
             [
                 pl.col("ca_adjustment").product().alias("adjustment_factor"),
-                pl.col("ex_date")
-                .filter(pl.col("ex_date") > pl.col(trade_date_col))
-                .max()
-                .alias("adjustment_date"),
+                pl.col("ex_date").max().alias("adjustment_date"),
             ]
         )
     )
