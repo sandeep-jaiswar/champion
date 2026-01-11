@@ -199,10 +199,122 @@ Based on NSE BhavCopy_NSE_CM format (covers equity + derivatives + government bo
 - Make nullable fields non-nullable
 - Change field semantics
 
+## Corporate Actions Adjustments
+
+### Purpose
+
+Corporate actions (splits, bonuses, dividends, rights issues) create discontinuities in historical price data. To ensure price continuity and accurate financial analysis, all OHLC prices are adjusted retrospectively when corporate actions occur.
+
+### Adjustment Process
+
+1. **CA Event Ingestion**: Corporate action events are scraped from NSE and stored in `corporate_actions` table
+2. **Adjustment Factor Computation**: For each CA event, an adjustment factor is computed:
+   - **Stock Split** (e.g., 1:5): `factor = new_shares / old_shares = 5.0`
+   - **Bonus Issue** (e.g., 1:2): `factor = (existing + new) / existing = 1.5`
+   - **Dividend**: `factor = 1.0 - (dividend / close_price)`
+3. **Cumulative Factors**: Multiple CA events are combined using cumulative products
+4. **Price Adjustment**: Historical prices before ex-date are divided by adjustment factor
+
+### Example: Stock Split
+
+**Scenario**: RELIANCE announces 1:5 split on 2024-01-15
+
+| Date       | Raw Close | Adjustment Factor | Adjusted Close | Notes                    |
+|------------|-----------|-------------------|----------------|--------------------------|
+| 2024-01-10 | 2500      | 5.0               | 500            | Before split, adjusted   |
+| 2024-01-11 | 2520      | 5.0               | 504            | Before split, adjusted   |
+| 2024-01-15 | 500       | 1.0               | 500            | Ex-date, no adjustment   |
+| 2024-01-16 | 505       | 1.0               | 505            | After split              |
+
+**Result**: Price continuity maintained at ~500 level
+
+### Example: Bonus Issue
+
+**Scenario**: TCS announces 1:2 bonus on 2024-02-20
+
+| Date       | Raw Close | Adjustment Factor | Adjusted Close | Notes                    |
+|------------|-----------|-------------------|----------------|--------------------------|
+| 2024-02-15 | 3600      | 1.5               | 2400           | Before bonus, adjusted   |
+| 2024-02-19 | 3650      | 1.5               | 2433           | Before bonus, adjusted   |
+| 2024-02-20 | 2400      | 1.0               | 2400           | Ex-date, no adjustment   |
+| 2024-02-21 | 2420      | 1.0               | 2420           | After bonus              |
+
+**Result**: Price continuity maintained at ~2400 level
+
+### Implementation Details
+
+**Module**: `src/corporate_actions/`
+
+- `ca_processor.py`: Computes adjustment factors from CA events
+- `price_adjuster.py`: Applies adjustments to OHLC data
+- Tests: `tests/test_ca_processor.py`, `tests/test_price_adjuster.py`
+
+**ClickHouse Tables**:
+
+- `corporate_actions`: Stores CA events with computed adjustment factors
+- `normalized_equity_ohlc`: Contains adjusted OHLC prices with metadata columns:
+  - `adjustment_factor`: Cumulative CA adjustment applied (1.0 = no adjustment)
+  - `adjustment_date`: Most recent CA ex-date affecting this record
+
+### Query Examples
+
+**View corporate actions for a symbol**:
+
+```sql
+SELECT 
+    symbol, 
+    ex_date, 
+    action_type, 
+    adjustment_factor,
+    purpose
+FROM champion_market.corporate_actions
+WHERE symbol = 'RELIANCE'
+ORDER BY ex_date DESC;
+```
+
+**Compare raw vs adjusted prices**:
+
+```sql
+SELECT 
+    r.TradDt as trade_date,
+    r.ClsPric as raw_close,
+    n.ClsPric as adjusted_close,
+    n.adjustment_factor,
+    (r.ClsPric - n.ClsPric) as adjustment_amount
+FROM champion_market.raw_equity_ohlc r
+JOIN champion_market.normalized_equity_ohlc n
+    ON r.TckrSymb = n.TckrSymb AND r.TradDt = n.TradDt
+WHERE r.TckrSymb = 'RELIANCE'
+    AND r.TradDt BETWEEN '2024-01-01' AND '2024-01-31'
+ORDER BY r.TradDt;
+```
+
+**Find all symbols with recent splits**:
+
+```sql
+SELECT 
+    symbol,
+    ex_date,
+    split_old_shares,
+    split_new_shares,
+    adjustment_factor
+FROM champion_market.corporate_actions
+WHERE action_type = 'SPLIT'
+    AND ex_date >= today() - INTERVAL 90 DAY
+ORDER BY ex_date DESC;
+```
+
+### Verification
+
+To verify CA adjustments are working correctly:
+
+1. **Continuity Check**: Prices before and after CA should maintain relative trends
+2. **Volume Check**: Trading volume should NOT be adjusted (it reflects actual shares traded)
+3. **Idempotency**: Re-running adjustment pipeline should produce identical results
+
 ## Next Steps
 
 1. **Reference Schemas**: Create symbol master and CA calendar schemas
 2. **Trade Schema**: Add `raw_equity_trade.avsc` for tick-by-tick data
 3. **Index Schema**: Add OHLC for NIFTY50, BANKNIFTY indices
 4. **Derivatives**: Add futures/options schemas
-5. **Corporate Actions**: Define split/bonus/dividend event schemas

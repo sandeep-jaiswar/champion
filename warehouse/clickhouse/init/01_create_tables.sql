@@ -222,5 +222,78 @@ AS SELECT
 FROM champion_market.normalized_equity_ohlc
 GROUP BY TradDt, coalesce(Sgmt, '');
 
+-- ==============================================================================
+-- 4. CORPORATE ACTIONS TABLE
+-- ==============================================================================
+-- Purpose: Store corporate action events for price adjustment computation
+-- Retention: 10 years (historical reference)
+-- Partitioning: Yearly (YYYY)
+
+CREATE TABLE IF NOT EXISTS champion_market.corporate_actions
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Corporate action payload
+    ca_id               String,
+    instrument_id       String,
+    symbol              String DEFAULT '',
+    exchange            LowCardinality(String) DEFAULT 'NSE',
+    company_name        Nullable(String),
+    series              LowCardinality(Nullable(String)),
+    isin                Nullable(String),
+    purpose             String,
+    action_type         LowCardinality(String),
+    
+    -- Dates
+    ex_date             Date,
+    record_date         Nullable(Date),
+    book_closure_start  Nullable(Date),
+    book_closure_end    Nullable(Date),
+    announcement_date   Nullable(Date),
+    
+    -- Ratios and amounts
+    face_value          Nullable(Float64),
+    split_old_shares    Nullable(Int64),
+    split_new_shares    Nullable(Int64),
+    bonus_new_shares    Nullable(Int64),
+    bonus_existing      Nullable(Int64),
+    dividend_amount     Nullable(Float64),
+    dividend_type       LowCardinality(Nullable(String)),
+    rights_shares       Nullable(Int64),
+    rights_existing     Nullable(Int64),
+    rights_price        Nullable(Float64),
+    
+    -- Adjustment
+    adjustment_factor   Float64 DEFAULT 1.0,
+    status              LowCardinality(String) DEFAULT 'ANNOUNCED',
+    
+    -- Metadata
+    raw_purpose         String,
+    year                Int64 DEFAULT toYear(ex_date),
+    month               Int64 DEFAULT toMonth(ex_date),
+    day                 Int64 DEFAULT toDayOfMonth(ex_date)
+)
+ENGINE = MergeTree()
+PARTITION BY toYear(ex_date)
+ORDER BY (symbol, ex_date, action_type, event_time)
+TTL ex_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_ca_isin 
+ON champion_market.corporate_actions (isin) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_ca_type 
+ON champion_market.corporate_actions (action_type) 
+TYPE set(100) GRANULARITY 1;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here
