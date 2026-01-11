@@ -17,7 +17,7 @@ from datetime import date
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "ingestion" / "nse-scraper"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from champion.orchestration.flows import index_constituent_etl_flow
 
@@ -113,7 +113,8 @@ def main():
         print("=" * 70)
         print("Query Examples (ClickHouse)")
         print("=" * 70)
-        print("""
+        print(
+            """
 # Get current NIFTY50 constituents
 clickhouse-client --query "
     SELECT symbol, company_name, weight
@@ -139,7 +140,8 @@ clickhouse-client --query "
     ORDER BY effective_date DESC
     LIMIT 20
 "
-        """)
+        """
+        )
 
         return 0
 
@@ -151,6 +153,7 @@ clickhouse-client --query "
         print(f"Error: {e}")
         print()
         import traceback
+
         traceback.print_exc()
         return 1
 

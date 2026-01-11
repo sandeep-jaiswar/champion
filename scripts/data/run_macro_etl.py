@@ -13,13 +13,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "ingestion" / "nse-scraper"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 import structlog
 import typer
-from rich.console import Console
-
 from champion.orchestration.macro_flow import macro_indicators_flow
+from rich.console import Console
 
 # Initialize logging
 logger = structlog.get_logger()
@@ -112,7 +111,7 @@ def main(
             load_to_clickhouse=clickhouse,
         )
 
-        console.print(f"\n[bold green]✓ ETL Complete![/bold green]")
+        console.print("\n[bold green]✓ ETL Complete![/bold green]")
         console.print(f"[green]Parquet file:[/green] {parquet_path}")
 
         if clickhouse:
@@ -126,9 +125,9 @@ def main(
             )
 
     except Exception as e:
-        console.print(f"\n[bold red]✗ ETL Failed![/bold red]")
+        console.print("\n[bold red]✗ ETL Failed![/bold red]")
         console.print(f"[red]Error:[/red] {str(e)}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":

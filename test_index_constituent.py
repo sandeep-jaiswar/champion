@@ -11,17 +11,17 @@ from datetime import date
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "ingestion" / "nse-scraper"))
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.parsers.index_constituent_parser import IndexConstituentParser
+from champion.parsers.index_constituent_parser import IndexConstituentParser
 
 
 def create_sample_data(output_dir: Path) -> Path:
     """Create sample NIFTY50 data for testing.
-    
+
     Args:
         output_dir: Directory to save sample JSON file
-        
+
     Returns:
         Path to created JSON file
     """
@@ -50,8 +50,8 @@ def create_sample_data(output_dir: Path) -> Path:
                     "isin": "INE002A01018",
                     "companyName": "Reliance Industries Ltd.",
                     "sector": "Energy",
-                    "industry": "Refineries"
-                }
+                    "industry": "Refineries",
+                },
             },
             {
                 "symbol": "HDFCBANK",
@@ -73,8 +73,8 @@ def create_sample_data(output_dir: Path) -> Path:
                     "isin": "INE040A01034",
                     "companyName": "HDFC Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
+                    "industry": "Banks",
+                },
             },
             {
                 "symbol": "TCS",
@@ -96,34 +96,34 @@ def create_sample_data(output_dir: Path) -> Path:
                     "isin": "INE467B01029",
                     "companyName": "Tata Consultancy Services Ltd.",
                     "sector": "Information Technology",
-                    "industry": "IT Services & Consulting"
-                }
-            }
-        ]
+                    "industry": "IT Services & Consulting",
+                },
+            },
+        ],
     }
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
     json_file = output_dir / "NIFTY50_constituents.json"
-    
+
     with open(json_file, "w") as f:
         json.dump(sample_data, f, indent=2)
-    
+
     print(f"✅ Created sample data: {json_file}")
     return json_file
 
 
 def test_parser(json_file: Path):
     """Test the parser with sample data.
-    
+
     Args:
         json_file: Path to JSON file with sample data
     """
     print("\n" + "=" * 70)
     print("Testing Index Constituent Parser")
     print("=" * 70)
-    
+
     parser = IndexConstituentParser()
-    
+
     # Parse the sample data
     events = parser.parse(
         file_path=json_file,
@@ -131,9 +131,9 @@ def test_parser(json_file: Path):
         effective_date=date(2026, 1, 11),
         action="ADD",
     )
-    
+
     print(f"\n✅ Parsed {len(events)} constituent events")
-    
+
     # Display sample event
     if events:
         print("\nSample Event:")
@@ -141,7 +141,7 @@ def test_parser(json_file: Path):
         print(f"  Source: {events[0]['source']}")
         print(f"  Entity ID: {events[0]['entity_id']}")
         print("\n  Payload:")
-        payload = events[0]['payload']
+        payload = events[0]["payload"]
         print(f"    Index: {payload['index_name']}")
         print(f"    Symbol: {payload['symbol']}")
         print(f"    Company: {payload['company_name']}")
@@ -151,13 +151,13 @@ def test_parser(json_file: Path):
         print(f"    Industry: {payload['industry']}")
         print(f"    Action: {payload['action']}")
         print(f"    Effective Date: {payload['effective_date']} (days since epoch)")
-    
+
     return events
 
 
 def test_parquet_writer(parser: IndexConstituentParser, events: list, output_dir: Path):
     """Test writing events to Parquet.
-    
+
     Args:
         parser: Parser instance
         events: List of events to write
@@ -166,26 +166,27 @@ def test_parquet_writer(parser: IndexConstituentParser, events: list, output_dir
     print("\n" + "=" * 70)
     print("Testing Parquet Writer")
     print("=" * 70)
-    
+
     parquet_file = parser.write_parquet(
         events=events,
         output_base_path=output_dir,
         index_name="NIFTY50",
         effective_date=date(2026, 1, 11),
     )
-    
+
     print(f"\n✅ Wrote Parquet file: {parquet_file}")
     print(f"  Size: {parquet_file.stat().st_size / 1024:.2f} KB")
-    
+
     # Read and verify
     import polars as pl
+
     df = pl.read_parquet(parquet_file)
     print(f"  Rows: {len(df)}")
     print(f"  Columns: {len(df.columns)}")
-    
+
     print("\n  Sample Data:")
     print(df.select(["symbol", "company_name", "weight", "sector"]).head(3))
-    
+
     return parquet_file
 
 
@@ -194,26 +195,22 @@ def main():
     print("=" * 70)
     print("Index Constituent Pipeline Manual Test")
     print("=" * 70)
-    
+
     # Setup test directories
     test_dir = Path("/tmp/index_constituent_test")
     test_dir.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         # Step 1: Create sample data
         json_file = create_sample_data(test_dir / "raw")
-        
+
         # Step 2: Test parser
         parser = IndexConstituentParser()
         events = test_parser(json_file)
-        
+
         # Step 3: Test Parquet writer
-        parquet_file = test_parquet_writer(
-            parser,
-            events,
-            test_dir / "lake"
-        )
-        
+        parquet_file = test_parquet_writer(parser, events, test_dir / "lake")
+
         # Summary
         print("\n" + "=" * 70)
         print("✅ All Tests Passed!")
@@ -221,15 +218,16 @@ def main():
         print(f"\nTest artifacts saved in: {test_dir}")
         print(f"  Raw JSON: {json_file}")
         print(f"  Parquet: {parquet_file}")
-        
+
         return 0
-        
+
     except Exception as e:
         print("\n" + "=" * 70)
         print("❌ Test Failed")
         print("=" * 70)
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
