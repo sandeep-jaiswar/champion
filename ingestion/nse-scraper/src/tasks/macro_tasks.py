@@ -1,9 +1,11 @@
 """Prefect tasks for macro indicator data ingestion."""
 
+import json
 import time
 from datetime import datetime
 from pathlib import Path
 
+import clickhouse_connect
 import mlflow
 import polars as pl
 import structlog
@@ -15,6 +17,21 @@ from src.scrapers.mospi_macro import MOSPIMacroScraper
 from src.scrapers.rbi_macro import RBIMacroScraper
 
 logger = structlog.get_logger()
+
+
+def get_clickhouse_config(attr: str, default):
+    """Get ClickHouse config with fallback to default.
+    
+    Args:
+        attr: Attribute name to get from config
+        default: Default value if attribute not found
+        
+    Returns:
+        Config value or default
+    """
+    if hasattr(config, "clickhouse"):
+        return getattr(config.clickhouse, attr, default)
+    return default
 
 
 @task(
@@ -170,7 +187,7 @@ def merge_macro_dataframes(dataframes: list[pl.DataFrame]) -> pl.DataFrame:
 
         if not non_empty_dfs:
             logger.warning("No non-empty DataFrames to merge")
-            return MacroIndicatorParser()._create_empty_dataframe()
+            return MacroIndicatorParser().create_empty_dataframe()
 
         # Concatenate all DataFrames
         merged_df = pl.concat(non_empty_dfs, how="vertical")
@@ -271,19 +288,10 @@ def load_macro_clickhouse(parquet_path: str) -> int:
     logger.info("starting_clickhouse_load", parquet_path=parquet_path)
 
     try:
-        import clickhouse_connect
-
         # Read Parquet
         df = pl.read_parquet(parquet_path)
 
         # Connect to ClickHouse
-        # Get ClickHouse connection parameters
-        def get_clickhouse_config(attr: str, default):
-            """Get ClickHouse config with fallback to default."""
-            if hasattr(config, "clickhouse"):
-                return getattr(config.clickhouse, attr, default)
-            return default
-
         client = clickhouse_connect.get_client(
             host=get_clickhouse_config("host", "localhost"),
             port=get_clickhouse_config("port", 9000),
@@ -307,8 +315,6 @@ def load_macro_clickhouse(parquet_path: str) -> int:
         # Parse metadata JSON strings to dicts for ClickHouse Map type
         for record in records:
             if record.get("metadata"):
-                import json
-
                 try:
                     record["metadata"] = json.loads(record["metadata"])
                 except (json.JSONDecodeError, TypeError):

@@ -14,6 +14,9 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Data quality constants
+MAX_DATE_GAP_DAYS = 30  # Maximum acceptable gap between data points (in days)
+
 
 class MacroIndicatorParser:
     """Parser for macro indicator JSON files."""
@@ -42,7 +45,7 @@ class MacroIndicatorParser:
 
         if not indicators:
             logger.warning("No indicators found in file", file=str(json_file_path))
-            return self._create_empty_dataframe()
+            return self.create_empty_dataframe()
 
         # Convert to DataFrame
         df = pl.DataFrame(indicators)
@@ -111,7 +114,7 @@ class MacroIndicatorParser:
 
         return df
 
-    def _create_empty_dataframe(self) -> pl.DataFrame:
+    def create_empty_dataframe(self) -> pl.DataFrame:
         """Create empty DataFrame with correct schema.
 
         Returns:
@@ -171,7 +174,7 @@ class MacroIndicatorParser:
         if len(dates) > 1:
             date_gaps = dates.with_columns(
                 (pl.col("indicator_date").diff().dt.total_days() - 1).alias("gap_days")
-            ).filter(pl.col("gap_days") > 30)
+            ).filter(pl.col("gap_days") > MAX_DATE_GAP_DAYS)
             
             if len(date_gaps) > 0:
                 logger.warning("Large gaps found in date series", gaps=len(date_gaps))

@@ -142,8 +142,6 @@ def test_parquet_write(df):
     print(f"  File size: {output_path.stat().st_size:,} bytes")
 
     # Read back and verify
-    import polars as pl
-
     df_read = pl.read_parquet(output_path)
     print(f"✓ Read back {len(df_read)} records")
     assert len(df_read) == len(df), "Row count mismatch!"
@@ -170,8 +168,6 @@ def main():
         print("\n" + "=" * 60)
         print("Merging DataFrames")
         print("=" * 60)
-
-        import polars as pl
 
         merged_df = pl.concat([rbi_df, mospi_df], how="vertical")
         merged_df = merged_df.unique(subset=["entity_id"], keep="last")
