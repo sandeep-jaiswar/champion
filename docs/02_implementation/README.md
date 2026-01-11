@@ -72,13 +72,33 @@ Scrape → Parse → Normalize → Validate → Write → Load
 
 ```
 src/champion/
-├── ingestion/          # Scrapers & parsers
+├── scrapers/           # Data collection (NSE/BSE)
+├── parsers/            # Polars-based parsers
 ├── storage/            # Parquet I/O
-├── warehouse/          # ClickHouse client
+├── warehouse/          # ClickHouse client & loaders
 ├── features/           # Feature engineering
-├── orchestration/      # Prefect flows
-└── utils/              # Shared utilities
+├── corporate_actions/  # Corporate actions processing
+├── orchestration/      # Prefect flows and tasks
+├── validation/         # Validation utilities & flows
+└── utils/              # Shared utilities (logging, retry)
 ```
+
+## Imports (New Paths)
+
+Use the unified `champion.*` package:
+
+```
+from champion.scrapers.nse import BhavcopyScraper
+from champion.parsers.index_constituent_parser import IndexConstituentParser
+from champion.storage.parquet_io import write_partitioned_parquet
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+from champion.features.indicators import compute_features
+from champion.corporate_actions.price_adjuster import apply_ca_adjustments
+from champion.validation.validator import ParquetValidator
+from champion.config import config
+```
+
+Legacy imports like `from src.parsers...` have been retired.
 
 ---
 
