@@ -13,7 +13,7 @@ Schema:
 """
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -165,7 +165,7 @@ class BulkBlockDealsParser:
                         transaction_type="SELL",
                     ))
             
-            rows_parsed.labels(parser="bulk_block_deals").inc(len(events))
+            rows_parsed.labels(scraper="bulk_block_deals", status="success").inc(len(events))
             
             self.logger.info(
                 "Bulk/block deals parse complete",
@@ -204,7 +204,7 @@ class BulkBlockDealsParser:
         Returns:
             Event dictionary
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         event_id = str(uuid.uuid4())
         entity_id = f"{symbol}:{deal_type}:{transaction_type}:{deal_date.strftime('%Y%m%d')}"
         
