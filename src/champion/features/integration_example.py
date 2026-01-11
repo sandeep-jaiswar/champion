@@ -17,15 +17,14 @@ from pathlib import Path
 
 import polars as pl
 
-# Add modules to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "warehouse"))
+# Ensure src/ is on path for editable runs
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from features.indicators import compute_features
+from champion.features.indicators import compute_features
 
 # Import warehouse loader for validation
 try:
-    from loader.batch_loader import ClickHouseLoader
+    from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
     LOADER_AVAILABLE = True
 except ImportError:
     LOADER_AVAILABLE = False

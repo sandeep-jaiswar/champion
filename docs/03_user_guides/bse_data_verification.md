@@ -35,7 +35,7 @@ python3 run_combined_etl.py --date 2026-01-09 --no-bse
 
 ```bash
 cd ingestion/nse-scraper
-python3 -c "from src.orchestration.combined_flows import bse_only_etl_flow; \
+python3 -c "from champion.orchestration.flows.combined_flows import bse_only_etl_flow; \
 from datetime import date; \
 bse_only_etl_flow(trade_date=date(2026, 1, 9))"
 ```

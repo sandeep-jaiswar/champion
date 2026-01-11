@@ -157,7 +157,7 @@ python run_bulk_block_deals.py --no-clickhouse
 
 ```python
 from datetime import date
-from src.orchestration.bulk_block_deals_flow import bulk_block_deals_etl_flow
+from champion.orchestration.flows.bulk_block_deals_flow import bulk_block_deals_etl_flow
 
 # Run ETL for specific date
 result = bulk_block_deals_etl_flow(

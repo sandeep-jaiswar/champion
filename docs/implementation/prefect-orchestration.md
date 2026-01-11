@@ -157,7 +157,7 @@ Comprehensive README covering:
 
 ```python
 from datetime import date
-from src.orchestration.flows import nse_bhavcopy_etl_flow
+from champion.orchestration.flows import nse_bhavcopy_etl_flow
 
 result = nse_bhavcopy_etl_flow(
     trade_date=date(2024, 1, 15),

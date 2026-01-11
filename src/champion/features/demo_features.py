@@ -19,10 +19,10 @@ from pathlib import Path
 import polars as pl
 import structlog
 
-# Add src to path to import features module
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Ensure src/ is on path for editable runs
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from features.indicators import compute_features
+from champion.features.indicators import compute_features
 
 # Configure logging
 structlog.configure(

@@ -178,7 +178,7 @@ Sample CSV with 5 rows included for quick testing:
 ```python
 # Replace old parser
 from src.parsers.bhavcopy_parser import BhavcopyParser  # OLD
-from src.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser  # NEW
+from champion.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser  # NEW
 
 # Same interface for events
 parser = PolarsBhavcopyParser()

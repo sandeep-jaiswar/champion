@@ -64,14 +64,52 @@ def scrape_bhavcopy(trade_date: date) -> str:
         date_str = trade_date.strftime("%Y%m%d")
         url = config.nse.bhavcopy_url.format(date=date_str)
 
-        # Download file
+        # Target file path
         local_path = config.storage.data_dir / f"BhavCopy_NSE_CM_{date_str}.csv"
         local_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Use scraper to download
-        scraper = BhavcopyScraper()
-        if not scraper.download_file(url, str(local_path)):
-            raise RuntimeError(f"Failed to download bhavcopy for {trade_date}")
+        # Fast path: if file already exists locally, skip download
+        if local_path.exists():
+            # Detect if the existing file is actually a ZIP (misnamed as .csv)
+            try:
+                with open(local_path, "rb") as f:
+                    signature = f.read(2)
+                if signature == b"PK":
+                    # Extract CSV from the ZIP content
+                    import zipfile
+                    from io import BytesIO
+
+                    logger.info("detected_zip_content_in_csv", file_path=str(local_path))
+                    with open(local_path, "rb") as f:
+                        zip_bytes = f.read()
+                    with zipfile.ZipFile(BytesIO(zip_bytes), "r") as zip_file:
+                        extracted_path = local_path.parent / f"{local_path.stem}_extracted.csv"
+                        for name in zip_file.namelist():
+                            if name.endswith(".csv"):
+                                with open(extracted_path, "wb") as out_f:
+                                    out_f.write(zip_file.read(name))
+                                local_path = extracted_path
+                                logger.info("extracted_csv_from_existing_zip", extracted=str(local_path))
+                                break
+                else:
+                    logger.info(
+                        "bhavcopy_file_exists_skipping_download",
+                        trade_date=str(trade_date),
+                        file_path=str(local_path),
+                    )
+            except Exception as e:
+                logger.warning("bhavcopy_existing_file_check_failed", error=str(e))
+        else:
+            # Use scraper to download (ZIP extract via scraper implementation)
+            scraper = BhavcopyScraper()
+            # Prefer scraper.scrape if available, else fallback to direct download
+            try:
+                csv_path = scraper.scrape(target_date=trade_date, dry_run=False)
+                local_path = csv_path
+            except Exception:
+                # Fallback to direct file download (older interface)
+                if not scraper.download_file(url, str(local_path)):
+                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}")
 
         duration = time.time() - start_time
 

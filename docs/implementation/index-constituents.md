@@ -111,7 +111,7 @@ python run_index_etl.py --no-clickhouse
 
 ```python
 from datetime import date
-from src.orchestration.flows import index_constituent_etl_flow
+from champion.orchestration.flows import index_constituent_etl_flow
 
 # Run ETL flow
 result = index_constituent_etl_flow(
@@ -128,14 +128,14 @@ print(f"Duration: {result['duration_seconds']} seconds")
 
 ```python
 # Just scraping
-from src.scrapers.index_constituent import IndexConstituentScraper
+from champion.scrapers.nse.index_constituent import IndexConstituentScraper
 
 with IndexConstituentScraper() as scraper:
     files = scraper.scrape(indices=["NIFTY50", "BANKNIFTY"])
     print(f"Scraped files: {files}")
 
 # Just parsing
-from src.parsers.index_constituent_parser import IndexConstituentParser
+from champion.parsers.index_constituent_parser import IndexConstituentParser
 from datetime import date
 from pathlib import Path
 

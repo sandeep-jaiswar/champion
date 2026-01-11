@@ -70,6 +70,7 @@ def write_index_constituents_parquet(
         pl.col("event_time").cast(pl.Datetime, strict=False),
         pl.col("ingest_time").cast(pl.Datetime, strict=False),
     ])
+    to_write = to_write.drop([c for c in ("index", "year", "month", "day") if c in to_write.columns])
     to_write.write_parquet(out_file, compression="snappy")
     return str(out_file)
 

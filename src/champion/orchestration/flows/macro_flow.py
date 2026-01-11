@@ -31,6 +31,7 @@ def macro_indicators_flow(
     rbi_indicators=None,
     mospi_indicators=None,
     source_order: list[str] | None = None,
+    fail_on_empty: bool = False,
     load_to_clickhouse: bool = True,
 ):
     """Complete ETL flow for macro indicators.
@@ -77,7 +78,11 @@ def macro_indicators_flow(
             )
 
             if chosen_source is None or df.height == 0:
-                raise RuntimeError("No macro data retrieved from any source")
+                mlflow.log_param("status", "EMPTY")
+                logger.warning("macro_no_data", source_order=source_order)
+                if fail_on_empty:
+                    raise RuntimeError("No macro data retrieved from any source")
+                return None
 
             mlflow.log_param("chosen_source", chosen_source)
 

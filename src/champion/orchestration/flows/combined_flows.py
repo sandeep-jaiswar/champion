@@ -17,20 +17,21 @@ import polars as pl
 import structlog
 from prefect import flow, task
 
-from champion.orchestration.flows import (
+from champion.orchestration.flows.flows import (
     load_clickhouse,
     normalize_polars,
     parse_polars_raw,
     scrape_bhavcopy,
     write_parquet,
 )
-from src.tasks.bse_tasks import parse_bse_polars, scrape_bse_bhavcopy
-from src.utils import metrics
+from champion.orchestration.tasks.bse_tasks import parse_bse_polars, scrape_bse_bhavcopy
+from champion.utils import metrics
 
 logger = structlog.get_logger()
 
 # Configure MLflow tracking URI from environment
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 

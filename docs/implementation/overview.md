@@ -147,7 +147,7 @@ data/lake/quarantine/
 ## Prefect Flow Integration Example
 
 ```python
-from validation.flows import validate_parquet_dataset
+from champion.validation.flows import validate_parquet_dataset
 
 # Validate with alerts
 result = await validate_parquet_dataset(
@@ -276,7 +276,7 @@ poetry run pytest tests/ -v --cov=validation
 ### Use in Prefect Flow
 
 ```python
-from validation.flows import validate_parquet_dataset
+from champion.validation.flows import validate_parquet_dataset
 
 result = await validate_parquet_dataset(
     file_path="path/to/data.parquet",

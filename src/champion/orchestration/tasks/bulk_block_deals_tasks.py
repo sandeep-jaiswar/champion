@@ -176,7 +176,10 @@ def write_bulk_block_deals_parquet(
         pl.col("day").cast(pl.Int64),
     ])
 
-    df.write_parquet(out_file, compression="snappy")
+    partition_cols = [c for c in ("year", "month", "day", "deal_type") if c in df.columns]
+    to_write = df.drop(partition_cols) if partition_cols else df
+
+    to_write.write_parquet(out_file, compression="snappy")
     return str(out_file)
 
 

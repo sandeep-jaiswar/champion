@@ -44,7 +44,7 @@ poetry run python prefect_dashboard.py
 
 ### 3️⃣ Programmatic
 ```python
-from src.orchestration.flows import nse_bhavcopy_etl_flow
+from champion.orchestration.flows import nse_bhavcopy_etl_flow
 from datetime import date
 
 result = nse_bhavcopy_etl_flow(

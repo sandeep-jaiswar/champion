@@ -25,7 +25,8 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
     out_dir = Path("data/lake/trading_calendar") / f"year={year}"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"calendar_{year}.parquet"
-    df.write_parquet(out_file, compression="snappy")
+    to_write = df.drop([c for c in ("year",) if c in df.columns])
+    to_write.write_parquet(out_file, compression="snappy")
     return str(out_file)
 
 

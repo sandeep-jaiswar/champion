@@ -182,7 +182,7 @@ Price columns adjusted: `OpnPric`, `HghPric`, `LwPric`, `ClsPric`, `PrvsClsgPric
 
 ```python
 import polars as pl
-from src.corporate_actions import compute_adjustment_factors, apply_ca_adjustments
+from champion.corporate_actions import compute_adjustment_factors, apply_ca_adjustments
 
 # Load corporate actions
 ca_df = pl.read_parquet('data/lake/normalized/corporate_actions/**/*.parquet')

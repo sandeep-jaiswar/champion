@@ -51,6 +51,7 @@ data/lake/**/_temporary/
 !data/lake/**/.gitkeep
 data/deals/
 data/indices/
+data/
 
 # MLflow artifacts
 mlruns/
