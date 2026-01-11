@@ -1,0 +1,65 @@
+{
+  "type": "record",
+  "name": "MacroIndicator",
+  "namespace": "com.champion.macro",
+  "doc": "Time series data for macroeconomic indicators from RBI, MOSPI, and other sources",
+  "fields": [
+    {
+      "name": "indicator_date",
+      "type": "string",
+      "doc": "Date of the indicator observation (ISO 8601 format YYYY-MM-DD)"
+    },
+    {
+      "name": "indicator_code",
+      "type": "string",
+      "doc": "Unique code identifying the indicator (e.g., REPO_RATE, CPI_COMBINED, WPI_ALL, FX_RESERVES)"
+    },
+    {
+      "name": "indicator_name",
+      "type": "string",
+      "doc": "Human-readable name of the indicator"
+    },
+    {
+      "name": "indicator_category",
+      "type": "string",
+      "doc": "Category of indicator (POLICY_RATE, INFLATION, FX_RESERVE, GDP, EMPLOYMENT)"
+    },
+    {
+      "name": "value",
+      "type": "double",
+      "doc": "Numeric value of the indicator"
+    },
+    {
+      "name": "unit",
+      "type": "string",
+      "doc": "Unit of measurement (%, INR Crore, USD Million, Index Points, etc.)"
+    },
+    {
+      "name": "frequency",
+      "type": "string",
+      "doc": "Frequency of data (DAILY, WEEKLY, MONTHLY, QUARTERLY, ANNUAL)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source (RBI, MOSPI, CMIE, etc.)"
+    },
+    {
+      "name": "source_url",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "URL of the data source"
+    },
+    {
+      "name": "metadata",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Additional metadata in JSON format"
+    },
+    {
+      "name": "ingestion_timestamp",
+      "type": "string",
+      "doc": "Timestamp when data was ingested (ISO 8601 format)"
+    }
+  ]
+}

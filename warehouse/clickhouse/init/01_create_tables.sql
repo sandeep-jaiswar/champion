@@ -701,5 +701,63 @@ CREATE INDEX IF NOT EXISTS idx_sp_scrip_code
 ON champion_market.shareholding_pattern (scrip_code) 
 TYPE bloom_filter GRANULARITY 4;
 
+-- ==============================================================================
+-- 11. MACRO INDICATORS TABLE
+-- ==============================================================================
+-- Purpose: Store macroeconomic time series data from RBI, MOSPI, and other sources
+-- Retention: 20 years (long-term economic analysis)
+-- Partitioning: By indicator_category and year of indicator_date
+-- Includes: Policy rates, CPI, WPI, FX reserves, GDP, employment metrics
+
+CREATE TABLE IF NOT EXISTS champion_market.macro_indicators
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Macro indicator payload
+    indicator_date      Date,
+    indicator_code      LowCardinality(String),  -- e.g., REPO_RATE, CPI_COMBINED, WPI_ALL
+    indicator_name      String,
+    indicator_category  LowCardinality(String),  -- POLICY_RATE, INFLATION, FX_RESERVE, GDP, EMPLOYMENT
+    value               Float64,
+    unit                LowCardinality(String),  -- %, INR Crore, USD Million, Index Points
+    frequency           LowCardinality(String),  -- DAILY, WEEKLY, MONTHLY, QUARTERLY, ANNUAL
+    source_url          Nullable(String),
+    metadata            Map(String, String),
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(indicator_date),
+    month               Int64 DEFAULT toMonth(indicator_date),
+    quarter             Int64 DEFAULT toQuarter(indicator_date)
+)
+ENGINE = ReplacingMergeTree(ingest_time)
+PARTITION BY (indicator_category, toYear(indicator_date))
+ORDER BY (indicator_code, indicator_date, event_time)
+TTL indicator_date + INTERVAL 20 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_mi_code 
+ON champion_market.macro_indicators (indicator_code) 
+TYPE set(100) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_mi_category 
+ON champion_market.macro_indicators (indicator_category) 
+TYPE set(20) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_mi_frequency 
+ON champion_market.macro_indicators (frequency) 
+TYPE set(10) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_mi_date 
+ON champion_market.macro_indicators (indicator_date) 
+TYPE minmax GRANULARITY 1;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here
