@@ -295,5 +295,84 @@ CREATE INDEX IF NOT EXISTS idx_ca_type
 ON champion_market.corporate_actions (action_type) 
 TYPE set(100) GRANULARITY 1;
 
+-- ==============================================================================
+-- 5. SYMBOL MASTER TABLE
+-- ==============================================================================
+-- Purpose: Canonical instrument master for validation and enrichment
+--          Maps NSE TckrSymb + SctySrs + FinInstrmId + ISIN to canonical instrument IDs
+-- Retention: 10 years (historical reference)
+-- Partitioning: By year of valid_from date
+-- This resolves one-to-many ticker cases (e.g., IBULHSGFIN with EQ + 18 NCD tranches)
+
+CREATE TABLE IF NOT EXISTS champion_market.symbol_master
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Canonical identifiers
+    instrument_id       String,  -- Primary key: symbol:exchange or symbol:fiid:exchange
+    symbol              String DEFAULT '',  -- Trading symbol (TckrSymb)
+    exchange            LowCardinality(String) DEFAULT 'NSE',
+    
+    -- Company information
+    company_name        Nullable(String),
+    isin                Nullable(String),
+    series              LowCardinality(Nullable(String)),  -- Security series (EQ, BE, GB, etc.)
+    
+    -- Listing details
+    listing_date        Nullable(Date),
+    face_value          Nullable(Float64),
+    paid_up_value       Nullable(Float64),
+    lot_size            Nullable(Int64),
+    
+    -- Classification (for enrichment)
+    sector              LowCardinality(Nullable(String)),
+    industry            LowCardinality(Nullable(String)),
+    market_cap_category LowCardinality(Nullable(String)),  -- LARGE_CAP, MID_CAP, SMALL_CAP
+    
+    -- Trading details
+    tick_size           Nullable(Float64),
+    is_index_constituent Nullable(Bool),
+    indices             Array(String),  -- List of indices (e.g., ['NIFTY50', 'NIFTYBANK'])
+    
+    -- Status
+    status              LowCardinality(String) DEFAULT 'ACTIVE',  -- ACTIVE, SUSPENDED, DELISTED
+    delisting_date      Nullable(Date),
+    
+    -- Additional metadata
+    metadata            Map(String, String),  -- Flexible metadata as key-value pairs
+    
+    -- Temporal validity
+    valid_from          Date,  -- Effective date for this version
+    valid_to            Nullable(Date),  -- Expiry date (NULL = current version)
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(valid_from)
+)
+ENGINE = ReplacingMergeTree(ingest_time)
+PARTITION BY toYear(valid_from)
+ORDER BY (symbol, instrument_id, valid_from, event_time)
+TTL valid_from + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_sm_isin 
+ON champion_market.symbol_master (isin) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_sm_status 
+ON champion_market.symbol_master (status) 
+TYPE set(10) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_sm_series 
+ON champion_market.symbol_master (series) 
+TYPE set(100) GRANULARITY 1;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here
