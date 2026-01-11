@@ -54,9 +54,7 @@ class IndexConstituentParser:
             Exception: If parsing fails
         """
         self.logger.info(
-            "Parsing index constituent file",
-            path=str(file_path),
-            index_name=index_name
+            "Parsing index constituent file", path=str(file_path), index_name=index_name
         )
 
         if effective_date is None:
@@ -64,22 +62,19 @@ class IndexConstituentParser:
 
         try:
             # Read JSON file
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             # Extract constituent data
             constituents = data.get("data", [])
-            
+
             if not constituents:
-                self.logger.warning(
-                    "No constituent data found in file",
-                    path=str(file_path)
-                )
+                self.logger.warning("No constituent data found in file", path=str(file_path))
                 return []
 
             # Convert to Polars DataFrame for efficient processing
             df = pl.DataFrame(constituents)
-            
+
             # Filter for equity series (exclude indices and other instruments)
             if "series" in df.columns:
                 df = df.filter(pl.col("series").is_in(["EQ", "BE"]))
@@ -93,43 +88,26 @@ class IndexConstituentParser:
             for row in df.iter_rows(named=True):
                 try:
                     event = self._row_to_event(
-                        row,
-                        index_name,
-                        effective_date,
-                        action,
-                        event_time,
-                        ingest_time
+                        row, index_name, effective_date, action, event_time, ingest_time
                     )
                     if event:
                         events.append(event)
-                        rows_parsed.labels(
-                            scraper="index_constituent",
-                            status="success"
-                        ).inc()
+                        rows_parsed.labels(scraper="index_constituent", status="success").inc()
                 except Exception as e:
-                    self.logger.error(
-                        "Failed to parse row",
-                        row=row,
-                        error=str(e)
-                    )
-                    rows_parsed.labels(
-                        scraper="index_constituent",
-                        status="failed"
-                    ).inc()
+                    self.logger.error("Failed to parse row", row=row, error=str(e))
+                    rows_parsed.labels(scraper="index_constituent", status="failed").inc()
 
             self.logger.info(
                 "Parsed index constituent file",
                 path=str(file_path),
                 index_name=index_name,
-                events=len(events)
+                events=len(events),
             )
             return events
 
         except Exception as e:
             self.logger.error(
-                "Failed to parse index constituent file",
-                path=str(file_path),
-                error=str(e)
+                "Failed to parse index constituent file", path=str(file_path), error=str(e)
             )
             raise
 
@@ -167,7 +145,7 @@ class IndexConstituentParser:
         event_id = str(
             uuid.uuid5(
                 uuid.NAMESPACE_DNS,
-                f"nse_index_constituent:{entity_id}:{effective_date.isoformat()}"
+                f"nse_index_constituent:{entity_id}:{effective_date.isoformat()}",
             )
         )
 
@@ -179,13 +157,7 @@ class IndexConstituentParser:
             "source": "nse_index_constituents",
             "schema_version": "v1",
             "entity_id": entity_id,
-            "payload": self._build_payload(
-                row,
-                index_name,
-                symbol,
-                effective_date,
-                action
-            ),
+            "payload": self._build_payload(row, index_name, symbol, effective_date, action),
         }
 
         return event
@@ -252,7 +224,8 @@ class IndexConstituentParser:
             "index_name": index_name,
             "symbol": symbol,
             "isin": safe_str(row.get("meta", {}).get("isin")) or safe_str(row.get("isin")),
-            "company_name": safe_str(row.get("meta", {}).get("companyName")) or safe_str(row.get("companyName")),
+            "company_name": safe_str(row.get("meta", {}).get("companyName"))
+            or safe_str(row.get("companyName")),
             "effective_date": effective_date_days,
             "action": action,
             "weight": weight,
@@ -261,7 +234,8 @@ class IndexConstituentParser:
             "announcement_date": None,  # Not available in current API
             "index_category": self._get_index_category(index_name),
             "sector": safe_str(row.get("meta", {}).get("sector")) or safe_str(row.get("sector")),
-            "industry": safe_str(row.get("meta", {}).get("industry")) or safe_str(row.get("industry")),
+            "industry": safe_str(row.get("meta", {}).get("industry"))
+            or safe_str(row.get("industry")),
             "metadata": None,  # Can be populated with additional data if needed
         }
 
@@ -329,7 +303,7 @@ class IndexConstituentParser:
         year = effective_date.year
         month = effective_date.month
         day = effective_date.day
-        
+
         output_dir = (
             output_base_path
             / "normalized"
@@ -343,13 +317,15 @@ class IndexConstituentParser:
 
         output_file = output_dir / f"data_{effective_date.isoformat()}.parquet"
 
+        # Drop any partition columns that might exist in the dataframe to avoid duplication
+        partition_cols = ["index_name", "year", "month", "day"]
+        cols_to_drop = [col for col in partition_cols if col in df.columns]
+        if cols_to_drop:
+            df = df.drop(cols_to_drop)
+
         # Write Parquet with compression
         df.write_parquet(output_file, compression="snappy")
 
-        self.logger.info(
-            "Wrote index constituent parquet",
-            path=str(output_file),
-            rows=len(df)
-        )
+        self.logger.info("Wrote index constituent parquet", path=str(output_file), rows=len(df))
 
         return output_file

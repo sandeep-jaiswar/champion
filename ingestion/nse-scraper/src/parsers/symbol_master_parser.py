@@ -109,13 +109,13 @@ class SymbolMasterParser:
                     self.logger.error("Failed to parse row", row=row, error=str(e))
                     rows_parsed.labels(scraper="symbol_master", status="failed").inc()
 
-            self.logger.info(
-                "Parsed symbol master file", path=str(file_path), events=len(events)
-            )
+            self.logger.info("Parsed symbol master file", path=str(file_path), events=len(events))
             return events
 
         except Exception as e:
-            self.logger.error("Failed to parse symbol master file", path=str(file_path), error=str(e))
+            self.logger.error(
+                "Failed to parse symbol master file", path=str(file_path), error=str(e)
+            )
             raise
 
     def _row_to_event(
@@ -206,6 +206,7 @@ class SymbolMasterParser:
             # If it's a date object, convert to days since epoch
             try:
                 from datetime import date
+
                 if isinstance(value, date):
                     epoch = date(1970, 1, 1)
                     return (value - epoch).days
@@ -215,6 +216,7 @@ class SymbolMasterParser:
 
         # Get current date in days since epoch for valid_from
         from datetime import date
+
         epoch = date(1970, 1, 1)
         valid_from_days = (date.today() - epoch).days
 

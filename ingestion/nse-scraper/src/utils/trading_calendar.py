@@ -5,10 +5,14 @@ Provides functions to check if dates are trading days and get next/previous trad
 
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List, Set
+from typing import TYPE_CHECKING
 
 import polars as pl
+
 from src.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from polars import DataFrame
 
 logger = get_logger(__name__)
 
@@ -30,8 +34,8 @@ class TradingCalendarValidator:
             calendar_path: Path to trading calendar Parquet file.
                           If None, loads from default location.
         """
-        self.calendar_df = None
-        self.trading_days_set: Set[date] = set()
+        self.calendar_df: DataFrame | None = None
+        self.trading_days_set: set[date] = set()
 
         if calendar_path:
             self.load_calendar(calendar_path)
@@ -74,14 +78,15 @@ class TradingCalendarValidator:
             self.calendar_df = pl.read_parquet(calendar_path)
 
             # Build set of trading days for fast lookup
-            trading_days_df = self.calendar_df.filter(pl.col("is_trading_day"))
-            self.trading_days_set = set(trading_days_df["trade_date"].to_list())
+            if self.calendar_df is not None:
+                trading_days_df = self.calendar_df.filter(pl.col("is_trading_day"))
+                self.trading_days_set = set(trading_days_df["trade_date"].to_list())
 
-            logger.info(
-                "Trading calendar loaded",
-                total_days=len(self.calendar_df),
-                trading_days=len(self.trading_days_set),
-            )
+                logger.info(
+                    "Trading calendar loaded",
+                    total_days=len(self.calendar_df),
+                    trading_days=len(self.trading_days_set),
+                )
 
         except Exception as e:
             logger.error("Failed to load trading calendar", path=calendar_path, error=str(e))
@@ -171,7 +176,7 @@ class TradingCalendarValidator:
 
         raise ValueError(f"No trading day found within {max_days} days before {from_date}")
 
-    def get_trading_days_in_range(self, start_date: date, end_date: date) -> List[date]:
+    def get_trading_days_in_range(self, start_date: date, end_date: date) -> list[date]:
         """Get all trading days in a date range.
 
         Args:

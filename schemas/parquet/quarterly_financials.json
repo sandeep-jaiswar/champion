@@ -1,0 +1,239 @@
+{
+  "type": "record",
+  "name": "QuarterlyFinancials",
+  "namespace": "com.champion.fundamentals",
+  "doc": "Quarterly financial statements from MCA filings (balance sheet, P&L, ratios)",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Event timestamp in milliseconds (UTC)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Ingestion timestamp in milliseconds (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source (MCA, BSE, etc.)"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version (semver)"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Company identifier (CIN or unique ID)"
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "doc": "Trading symbol (NSE/BSE)"
+    },
+    {
+      "name": "company_name",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Company name"
+    },
+    {
+      "name": "cin",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Corporate Identification Number"
+    },
+    {
+      "name": "period_end_date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      },
+      "doc": "Financial period end date"
+    },
+    {
+      "name": "period_type",
+      "type": "string",
+      "doc": "Period type: QUARTERLY, HALF_YEARLY, ANNUAL"
+    },
+    {
+      "name": "statement_type",
+      "type": "string",
+      "doc": "Statement type: STANDALONE, CONSOLIDATED"
+    },
+    {
+      "name": "filing_date",
+      "type": ["null", {
+        "type": "int",
+        "logicalType": "date"
+      }],
+      "default": null,
+      "doc": "Date of filing with MCA"
+    },
+    {
+      "name": "revenue",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Total revenue/sales (in crores)"
+    },
+    {
+      "name": "operating_profit",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Operating profit/EBIT (in crores)"
+    },
+    {
+      "name": "net_profit",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Net profit after tax (in crores)"
+    },
+    {
+      "name": "total_assets",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Total assets (in crores)"
+    },
+    {
+      "name": "total_liabilities",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Total liabilities (in crores)"
+    },
+    {
+      "name": "equity",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Shareholders' equity (in crores)"
+    },
+    {
+      "name": "total_debt",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Total debt (long-term + short-term) (in crores)"
+    },
+    {
+      "name": "current_assets",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Current assets (in crores)"
+    },
+    {
+      "name": "current_liabilities",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Current liabilities (in crores)"
+    },
+    {
+      "name": "cash_and_equivalents",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Cash and cash equivalents (in crores)"
+    },
+    {
+      "name": "inventories",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Inventories (in crores)"
+    },
+    {
+      "name": "depreciation",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Depreciation and amortization (in crores)"
+    },
+    {
+      "name": "interest_expense",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Interest expense (in crores)"
+    },
+    {
+      "name": "tax_expense",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Tax expense (in crores)"
+    },
+    {
+      "name": "eps",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Earnings per share"
+    },
+    {
+      "name": "book_value_per_share",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Book value per share"
+    },
+    {
+      "name": "roe",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Return on Equity (%)"
+    },
+    {
+      "name": "roa",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Return on Assets (%)"
+    },
+    {
+      "name": "debt_to_equity",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Debt to Equity ratio"
+    },
+    {
+      "name": "current_ratio",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Current ratio (current assets / current liabilities)"
+    },
+    {
+      "name": "operating_margin",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Operating margin (%)"
+    },
+    {
+      "name": "net_margin",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Net profit margin (%)"
+    },
+    {
+      "name": "year",
+      "type": "int",
+      "doc": "Year of period end date (partition column)"
+    },
+    {
+      "name": "quarter",
+      "type": "int",
+      "doc": "Quarter of period end date (1-4, partition column)"
+    },
+    {
+      "name": "metadata",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Additional metadata as key-value pairs"
+    }
+  ]
+}

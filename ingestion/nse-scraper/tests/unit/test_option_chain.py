@@ -1,8 +1,6 @@
 """Unit tests for option chain scraper and parser."""
 
-import json
 from datetime import datetime
-from pathlib import Path
 
 import polars as pl
 import pytest

@@ -1,6 +1,7 @@
 """Prefect flow for bulk and block deals ETL pipeline."""
 
 from datetime import date, timedelta
+from typing import Any
 
 import structlog
 from prefect import flow
@@ -21,7 +22,7 @@ def bulk_block_deals_etl_flow(
     deal_type: str = "both",
     load_to_clickhouse: bool = True,
     output_base_path: str = "data/lake",
-) -> dict:
+) -> dict[str, Any]:
     """ETL flow for bulk and block deals ingestion.
 
     This flow:
@@ -56,7 +57,7 @@ def bulk_block_deals_etl_flow(
         deal_type=deal_type,
     )
 
-    results = {
+    results: dict[str, Any] = {
         "target_date": target_date,
         "deal_types_processed": [],
         "total_events": 0,
@@ -67,7 +68,7 @@ def bulk_block_deals_etl_flow(
     # Process each deal type
     for dt, file_path in scraped_files.items():
         deal_type_upper = dt.upper()
-        results["deal_types_processed"].append(deal_type_upper)
+        results["deal_types_processed"].append(deal_type_upper)  # type: ignore
 
         # Step 2: Parse deals
         events = parse_bulk_block_deals(
@@ -76,7 +77,7 @@ def bulk_block_deals_etl_flow(
             deal_type=deal_type_upper,
         )
 
-        results["total_events"] += len(events)
+        results["total_events"] += len(events)  # type: ignore
 
         if events:
             # Step 3: Write to Parquet
@@ -87,7 +88,7 @@ def bulk_block_deals_etl_flow(
                 output_base_path=output_base_path,
             )
 
-            results["parquet_files"].append(parquet_file)
+            results["parquet_files"].append(parquet_file)  # type: ignore
 
             # Step 4: Load to ClickHouse (optional)
             if load_to_clickhouse and parquet_file:
@@ -95,7 +96,7 @@ def bulk_block_deals_etl_flow(
                     parquet_file=parquet_file,
                     deal_type=deal_type_upper,
                 )
-                results["clickhouse_rows"] += rows_loaded
+                results["clickhouse_rows"] += rows_loaded  # type: ignore
 
     logger.info(
         "bulk_block_deals_etl_flow_complete",
@@ -115,7 +116,7 @@ def bulk_block_deals_date_range_etl_flow(
     deal_type: str = "both",
     load_to_clickhouse: bool = True,
     output_base_path: str = "data/lake",
-) -> dict:
+) -> dict[str, Any]:
     """ETL flow for bulk and block deals ingestion over a date range.
 
     Args:
@@ -138,7 +139,7 @@ def bulk_block_deals_date_range_etl_flow(
     start = date.fromisoformat(start_date)
     end = date.fromisoformat(end_date)
 
-    summary = {
+    summary: dict[str, Any] = {
         "start_date": start_date,
         "end_date": end_date,
         "dates_processed": [],
@@ -157,9 +158,9 @@ def bulk_block_deals_date_range_etl_flow(
                 output_base_path=output_base_path,
             )
 
-            summary["dates_processed"].append(current_date.isoformat())
-            summary["total_events"] += result.get("total_events", 0)
-            summary["total_clickhouse_rows"] += result.get("clickhouse_rows", 0)
+            summary["dates_processed"].append(current_date.isoformat())  # type: ignore
+            summary["total_events"] += result.get("total_events", 0)  # type: ignore
+            summary["total_clickhouse_rows"] += result.get("clickhouse_rows", 0)  # type: ignore
 
         except Exception as e:
             logger.error(
@@ -167,10 +168,12 @@ def bulk_block_deals_date_range_etl_flow(
                 date=current_date.isoformat(),
                 error=str(e),
             )
-            summary["failed_dates"].append({
-                "date": current_date.isoformat(),
-                "error": str(e),
-            })
+            summary["failed_dates"].append(  # type: ignore
+                {
+                    "date": current_date.isoformat(),
+                    "error": str(e),
+                }
+            )
 
         current_date += timedelta(days=1)
 

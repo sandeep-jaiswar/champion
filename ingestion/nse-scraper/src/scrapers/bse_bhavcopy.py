@@ -46,8 +46,13 @@ class BseBhavcopyScraper(BaseScraper):
             url = config.bse.bhavcopy_url.format(date=date_str)
 
             # Download ZIP file
-            zip_path = config.storage.data_dir / f"BhavCopy_BSE_EQ_{target_date.strftime('%Y%m%d')}.csv.zip"
-            csv_path = config.storage.data_dir / f"BhavCopy_BSE_EQ_{target_date.strftime('%Y%m%d')}.csv"
+            zip_path = (
+                config.storage.data_dir
+                / f"BhavCopy_BSE_EQ_{target_date.strftime('%Y%m%d')}.csv.zip"
+            )
+            csv_path = (
+                config.storage.data_dir / f"BhavCopy_BSE_EQ_{target_date.strftime('%Y%m%d')}.csv"
+            )
 
             if not self._download_and_extract_zip(url, str(zip_path), str(csv_path)):
                 raise RuntimeError(f"Failed to download BSE bhavcopy for {target_date}")

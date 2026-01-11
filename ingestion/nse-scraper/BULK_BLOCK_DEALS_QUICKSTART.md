@@ -30,7 +30,8 @@ python3 verify_bulk_block_deals.py
 ```
 
 Expected output:
-```
+
+```text
 ✓ Parsed 6 bulk deal events
 ✓ Parsed 2 block deal events
 ✓ Written to Parquet files
@@ -74,7 +75,8 @@ python3 run_bulk_block_deals.py --no-clickhouse
 ### Partitioning
 
 Parquet files are partitioned by:
-```
+
+```text
 data/lake/bulk_block_deals/
   deal_type=BULK/
     year=2026/
@@ -139,7 +141,7 @@ print(f'Total rows: {len(df)}')
 
 ## Architecture
 
-```
+```text
 NSE API → Scraper → Parser → Parquet → ClickHouse
                         ↓
                     Prefect Flow
@@ -176,6 +178,7 @@ NSE API → Scraper → Parser → Parquet → ClickHouse
 ## Support
 
 For issues or questions:
+
 1. Check logs in Prefect UI
 2. Review error messages in console output
 3. Consult implementation guide for data quality notes

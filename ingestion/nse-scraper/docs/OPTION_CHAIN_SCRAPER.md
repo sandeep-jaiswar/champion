@@ -20,11 +20,13 @@ The NSE Option Chain Scraper is a production-grade tool for capturing option cha
 ### Command Line Interface
 
 Scrape NIFTY option chain every 5 minutes for 1 hour:
+
 ```bash
 poetry run python src/scrapers/option_chain.py --symbol NIFTY --interval 5m --duration 1h
 ```
 
 Scrape BANKNIFTY every 15 minutes for 2 hours:
+
 ```bash
 poetry run python src/scrapers/option_chain.py \
   --symbol BANKNIFTY \
@@ -34,6 +36,7 @@ poetry run python src/scrapers/option_chain.py \
 ```
 
 Single snapshot of RELIANCE:
+
 ```bash
 poetry run python src/scrapers/option_chain.py \
   --symbol RELIANCE \
@@ -44,11 +47,13 @@ poetry run python src/scrapers/option_chain.py \
 ## Testing
 
 Run unit tests:
+
 ```bash
 poetry run pytest tests/unit/test_option_chain.py -v
 ```
 
 Run manual test:
+
 ```bash
 poetry run python test_option_chain.py
 ```
@@ -57,7 +62,7 @@ poetry run python test_option_chain.py
 
 Data is written to Parquet files with Hive-style partitioning:
 
-```
+```text
 data/option_chain/
 ├── date=2024-01-15/
 │   ├── symbol=NIFTY/
@@ -75,6 +80,7 @@ data/option_chain/
 The option chain data follows the Avro schema defined in `schemas/market-data/option_chain_snapshot.avsc`.
 
 Key fields captured:
+
 - **Market Data**: underlying, strike_price, expiry_date, option_type (CE/PE)
 - **Pricing**: bid_price, ask_price, last_price
 - **Volume & OI**: volume, open_interest, change_in_oi

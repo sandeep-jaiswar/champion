@@ -21,7 +21,7 @@ class BaseScraper(ABC):
         self.logger = get_logger(f"{__name__}.{name}")
 
     @abstractmethod
-    def scrape(self, *args: Any, **kwargs: Any) -> None:
+    def scrape(self, *args: Any, **kwargs: Any) -> Any:
         """Scrape data from source.
 
         Must be implemented by subclasses.

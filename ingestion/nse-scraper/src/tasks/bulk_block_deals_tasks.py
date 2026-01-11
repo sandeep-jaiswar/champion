@@ -220,22 +220,24 @@ def load_bulk_block_deals_clickhouse(
         # Convert DataFrame to list of tuples for insertion
         data = []
         for row in df.iter_rows(named=True):
-            data.append((
-                row["event_id"],
-                row["event_time"],
-                row["ingest_time"],
-                row["source"],
-                row["schema_version"],
-                row["entity_id"],
-                row["deal_date"],
-                row["symbol"],
-                row["client_name"],
-                row["quantity"],
-                row["avg_price"],
-                row["deal_type"],
-                row["transaction_type"],
-                row["exchange"],
-            ))
+            data.append(
+                (
+                    row["event_id"],
+                    row["event_time"],
+                    row["ingest_time"],
+                    row["source"],
+                    row["schema_version"],
+                    row["entity_id"],
+                    row["deal_date"],
+                    row["symbol"],
+                    row["client_name"],
+                    row["quantity"],
+                    row["avg_price"],
+                    row["deal_type"],
+                    row["transaction_type"],
+                    row["exchange"],
+                )
+            )
 
         # Insert data
         client.insert(

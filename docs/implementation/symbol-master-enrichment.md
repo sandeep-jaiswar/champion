@@ -13,6 +13,7 @@ NSE bhavcopy data presents a challenge: multiple distinct securities can share t
   - 18+ Non-Convertible Debenture (NCD) tranches (series: D1, D2, etc.)
 
 Each of these has:
+
 - Unique `FinInstrmId` (Financial Instrument ID)
 - Unique `ISIN` (International Securities Identification Number)
 - Different `FinInstrmNm` (Instrument Name)
@@ -24,7 +25,7 @@ Without proper mapping, these would be incorrectly aggregated or deduplicated.
 
 The enrichment system creates canonical instrument identifiers by combining:
 
-```
+```text
 instrument_id = symbol:fiid:exchange
 Example: IBULHSGFIN:30125:NSE (Equity)
          IBULHSGFIN:14678:NSE (NCD Series I)
@@ -210,7 +211,8 @@ ORDER BY series;
 ```
 
 Expected result:
-```
+
+```text
 instrument_id              | symbol      | series | company_name                           | isin
 ---------------------------|-------------|--------|---------------------------------------|-------------
 IBULHSGFIN:30125:NSE      | IBULHSGFIN  | EQ     | Indiabulls Housing Finance Limited    | INE148I01020

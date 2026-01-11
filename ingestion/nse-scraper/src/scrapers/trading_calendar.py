@@ -3,6 +3,7 @@
 import json
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 
@@ -10,6 +11,9 @@ from src.config import config
 from src.scrapers.base import BaseScraper
 from src.utils.logger import get_logger
 from src.utils.metrics import files_downloaded, scrape_duration
+
+if TYPE_CHECKING:
+    pass
 
 logger = get_logger(__name__)
 
@@ -20,7 +24,7 @@ class TradingCalendarScraper(BaseScraper):
     def __init__(self) -> None:
         """Initialize trading calendar scraper."""
         super().__init__("trading_calendar")
-        self.session = None
+        self.session: httpx.Client | None = None
 
     def _establish_session(self) -> httpx.Client:
         """Establish session with NSE website.
@@ -76,9 +80,7 @@ class TradingCalendarScraper(BaseScraper):
                 return output_path
 
             # If API fails, create a minimal calendar file for the year
-            self.logger.warning(
-                "Failed to download from NSE API, creating minimal calendar file"
-            )
+            self.logger.warning("Failed to download from NSE API, creating minimal calendar file")
             self._create_minimal_calendar(year, output_path)
             self.logger.info(
                 "Created minimal trading calendar", year=year, file_path=str(output_path)

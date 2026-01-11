@@ -66,23 +66,21 @@ def test_parser():
         year = 2026
         df = parser.parse(test_file, year)
 
-        print(f"✓ Parser completed")
+        print("✓ Parser completed")
         print(f"✓ Total days: {len(df)}")
         print(f"✓ Trading days: {df.filter(df['is_trading_day'])['is_trading_day'].sum()}")
-        print(
-            f"✓ Holidays: {df.filter(df['day_type'] == 'MARKET_HOLIDAY')['day_type'].count()}"
-        )
+        print(f"✓ Holidays: {df.filter(df['day_type'] == 'MARKET_HOLIDAY')['day_type'].count()}")
         print(f"✓ Weekends: {df.filter(df['day_type'] == 'WEEKEND')['day_type'].count()}")
 
         # Show schema
-        print(f"\n✓ DataFrame schema:")
+        print("\n✓ DataFrame schema:")
         print(df.schema)
 
         # Show sample data
-        print(f"\n✓ Sample trading days:")
+        print("\n✓ Sample trading days:")
         print(df.filter(df["is_trading_day"]).head(5))
 
-        print(f"\n✓ Sample holidays:")
+        print("\n✓ Sample holidays:")
         print(df.filter(df["day_type"] == "MARKET_HOLIDAY").head(5))
 
         return True
@@ -102,7 +100,9 @@ def test_validator():
     from src.utils.trading_calendar import TradingCalendarValidator
 
     # Check if calendar exists
-    calendar_file = Path("data/lake/reference/trading_calendar/year=2026/trading_calendar_2026.parquet")
+    calendar_file = Path(
+        "data/lake/reference/trading_calendar/year=2026/trading_calendar_2026.parquet"
+    )
 
     if not calendar_file.exists():
         print(f"✗ Calendar file not found: {calendar_file}")
@@ -159,7 +159,7 @@ def test_full_etl():
         year = 2026
         result = trading_calendar_etl_flow(year=year, load_to_clickhouse=False)
 
-        print(f"✓ ETL completed successfully")
+        print("✓ ETL completed successfully")
         print(f"  Year: {result['year']}")
         print(f"  JSON Path: {result['json_path']}")
         print(f"  Parquet Path: {result['parquet_path']}")

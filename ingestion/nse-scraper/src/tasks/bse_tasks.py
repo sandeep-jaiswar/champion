@@ -1,7 +1,7 @@
 """BSE ETL tasks for Prefect orchestration."""
 
 import time
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import mlflow
@@ -9,9 +9,7 @@ import polars as pl
 import structlog
 from prefect import task
 from prefect.tasks import task_input_hash
-from datetime import timedelta
 
-from src.config import config
 from src.parsers.polars_bse_parser import PolarsBseParser
 from src.scrapers.bse_bhavcopy import BseBhavcopyScraper
 

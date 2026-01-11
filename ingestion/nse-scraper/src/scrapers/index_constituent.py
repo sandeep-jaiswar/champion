@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 class IndexConstituentScraper(BaseScraper):
     """Scraper for NSE index constituent data.
-    
+
     Fetches current index membership and historical rebalance data for NSE indices
     like NIFTY50, BANKNIFTY, NIFTYMIDCAP50, etc.
     """
@@ -35,9 +35,9 @@ class IndexConstituentScraper(BaseScraper):
 
     def _get_session(self) -> httpx.Client:
         """Get or create an HTTP session with proper headers.
-        
+
         NSE requires specific headers to prevent blocking.
-        
+
         Returns:
             httpx.Client with appropriate headers
         """
@@ -57,10 +57,10 @@ class IndexConstituentScraper(BaseScraper):
         return self._session
 
     def scrape(
-        self, 
+        self,
         indices: list[str] | None = None,
         output_dir: Path | None = None,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> dict[str, Path]:
         """Scrape index constituent data for specified indices.
 
@@ -76,11 +76,7 @@ class IndexConstituentScraper(BaseScraper):
         Raises:
             RuntimeError: If scraping fails for any index
         """
-        self.logger.info(
-            "Starting index constituent scrape",
-            indices=indices,
-            dry_run=dry_run
-        )
+        self.logger.info("Starting index constituent scrape", indices=indices, dry_run=dry_run)
 
         # Default to all supported indices
         if indices is None:
@@ -92,7 +88,7 @@ class IndexConstituentScraper(BaseScraper):
             self.logger.warning(
                 "Unsupported indices requested",
                 unsupported=unsupported,
-                supported=list(self.INDEX_ENDPOINTS.keys())
+                supported=list(self.INDEX_ENDPOINTS.keys()),
             )
             indices = [idx for idx in indices if idx in self.INDEX_ENDPOINTS]
 
@@ -108,36 +104,29 @@ class IndexConstituentScraper(BaseScraper):
             try:
                 data = self._scrape_index(session, index_name)
                 output_path = output_dir / f"{index_name}_constituents.json"
-                
+
                 # Save to file
                 with open(output_path, "w") as f:
                     json.dump(data, f, indent=2)
-                
+
                 results[index_name] = output_path
-                
+
                 self.logger.info(
                     "Index constituent scrape complete",
                     index=index_name,
                     output_path=str(output_path),
-                    constituents=len(data.get("data", []))
+                    constituents=len(data.get("data", [])),
                 )
-                
+
             except Exception as e:
-                self.logger.error(
-                    "Failed to scrape index",
-                    index=index_name,
-                    error=str(e)
-                )
+                self.logger.error("Failed to scrape index", index=index_name, error=str(e))
                 # Continue with other indices
                 continue
 
         if not results:
             raise RuntimeError("Failed to scrape any index constituents")
 
-        self.logger.info(
-            "Index constituent scrape completed",
-            scraped_indices=list(results.keys())
-        )
+        self.logger.info("Index constituent scrape completed", scraped_indices=list(results.keys()))
 
         return results
 
@@ -155,41 +144,38 @@ class IndexConstituentScraper(BaseScraper):
             RuntimeError: If request fails
         """
         url = self.INDEX_ENDPOINTS[index_name]
-        
+
         self.logger.info("Fetching index data", index=index_name, url=url)
-        
+
         try:
             # NSE often requires a visit to the main page first
             session.get("https://www.nseindia.com/")
-            
+
             # Now fetch the actual index data
             response = session.get(url)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             # Add metadata with current timestamp
             from datetime import datetime as dt
+
             data["index_name"] = index_name
             data["scraped_at"] = dt.now().isoformat()
-            
+
             return data
-            
-        except httpx.HTTPError as e:
+
+        except httpx.HTTPStatusError as e:
             self.logger.error(
                 "HTTP error scraping index",
                 index=index_name,
                 error=str(e),
-                status_code=getattr(e, "response", None) and e.response.status_code
+                status_code=e.response.status_code,
             )
-            raise RuntimeError(f"Failed to scrape {index_name}: {e}")
+            raise RuntimeError(f"Failed to scrape {index_name}: {e}") from e
         except Exception as e:
-            self.logger.error(
-                "Unexpected error scraping index",
-                index=index_name,
-                error=str(e)
-            )
-            raise RuntimeError(f"Failed to scrape {index_name}: {e}")
+            self.logger.error("Unexpected error scraping index", index=index_name, error=str(e))
+            raise RuntimeError(f"Failed to scrape {index_name}: {e}") from e
 
     def close(self) -> None:
         """Close the HTTP session."""

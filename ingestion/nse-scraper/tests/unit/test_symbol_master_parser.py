@@ -4,7 +4,6 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-import polars as pl
 import pytest
 
 from src.parsers.symbol_master_parser import SymbolMasterParser
@@ -92,9 +91,7 @@ HDFCBANK,HDFC Bank Limited,EQ,08-Nov-1995,1,1,INE040A01034,1
         events = parser.parse(sample_equity_l_csv, exchange="NSE")
 
         # Find all IBULHSGFIN events
-        ibulhsgfin_events = [
-            e for e in events if e["payload"]["symbol"] == "IBULHSGFIN"
-        ]
+        ibulhsgfin_events = [e for e in events if e["payload"]["symbol"] == "IBULHSGFIN"]
 
         # Should have 2 IBULHSGFIN entries (EQ and D1 series)
         assert len(ibulhsgfin_events) == 2
@@ -140,7 +137,7 @@ TESTCO,Test Company,-,NA,10,1,INE123456789,10
         # Listing date should be converted to days since epoch
         assert payload["listing_date"] is not None
         assert isinstance(payload["listing_date"], int)
-        
+
         # Verify it's a reasonable date (should be in the past)
         # 1995-11-08 is approximately 9443 days since epoch (1970-01-01)
         assert payload["listing_date"] > 9000
@@ -191,7 +188,7 @@ TEST2,Test (India) Pvt. Ltd.,EQ,01-Jan-2000,10,1,INE000000002,10
         events2_sorted = sorted(events2, key=lambda e: e["payload"]["symbol"])
 
         # Event IDs should be the same across runs
-        for e1, e2 in zip(events1_sorted, events2_sorted):
+        for e1, e2 in zip(events1_sorted, events2_sorted, strict=True):
             assert e1["event_id"] == e2["event_id"]
             assert e1["payload"]["instrument_id"] == e2["payload"]["instrument_id"]
 

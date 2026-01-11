@@ -2,8 +2,6 @@
 
 import json
 from datetime import date
-from pathlib import Path
-from unittest.mock import mock_open, patch
 
 import polars as pl
 import pytest
@@ -39,8 +37,8 @@ def sample_nifty50_data():
                     "isin": "INE002A01018",
                     "companyName": "Reliance Industries Ltd.",
                     "sector": "Energy",
-                    "industry": "Refineries"
-                }
+                    "industry": "Refineries",
+                },
             },
             {
                 "symbol": "HDFCBANK",
@@ -62,8 +60,8 @@ def sample_nifty50_data():
                     "isin": "INE040A01034",
                     "companyName": "HDFC Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
+                    "industry": "Banks",
+                },
             },
             {
                 "symbol": "TCS",
@@ -85,10 +83,10 @@ def sample_nifty50_data():
                     "isin": "INE467B01029",
                     "companyName": "Tata Consultancy Services Ltd.",
                     "sector": "Information Technology",
-                    "industry": "IT Services & Consulting"
-                }
-            }
-        ]
+                    "industry": "IT Services & Consulting",
+                },
+            },
+        ],
     }
 
 
@@ -119,8 +117,8 @@ def sample_banknifty_data():
                     "isin": "INE040A01034",
                     "companyName": "HDFC Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
+                    "industry": "Banks",
+                },
             },
             {
                 "symbol": "ICICIBANK",
@@ -141,10 +139,10 @@ def sample_banknifty_data():
                     "isin": "INE090A01021",
                     "companyName": "ICICI Bank Limited",
                     "sector": "Financial Services",
-                    "industry": "Banks"
-                }
-            }
-        ]
+                    "industry": "Banks",
+                },
+            },
+        ],
     }
 
 
@@ -175,14 +173,14 @@ class TestIndexConstituentParser:
         # Verify
         assert len(events) == 3
         assert all(isinstance(event, dict) for event in events)
-        
+
         # Check first event (RELIANCE)
         event = events[0]
         assert event["event_id"]
         assert event["source"] == "nse_index_constituents"
         assert event["schema_version"] == "v1"
         assert event["entity_id"] == "NIFTY50:RELIANCE"
-        
+
         payload = event["payload"]
         assert payload["index_name"] == "NIFTY50"
         assert payload["symbol"] == "RELIANCE"
@@ -213,7 +211,7 @@ class TestIndexConstituentParser:
 
         # Verify
         assert len(events) == 2
-        
+
         # Check first event (HDFCBANK)
         event = events[0]
         payload = event["payload"]
@@ -278,7 +276,7 @@ class TestIndexConstituentParser:
         today = date.today()
         epoch = date(1970, 1, 1)
         expected_days = (today - epoch).days
-        
+
         for event in events:
             assert event["payload"]["effective_date"] == expected_days
 
@@ -332,7 +330,7 @@ class TestIndexConstituentParser:
     def test_write_parquet_empty_events(self, parser, tmp_path):
         """Test that writing empty events raises ValueError."""
         output_base = tmp_path / "lake"
-        
+
         with pytest.raises(ValueError, match="No events to write"):
             parser.write_parquet(
                 events=[],
@@ -367,9 +365,9 @@ class TestIndexConstituentParser:
                     "meta": {
                         "isin": "INE467B01029",
                         "companyName": "Tata Consultancy Services Ltd.",
-                    }
+                    },
                 }
-            ]
+            ],
         }
 
         json_file = tmp_path / "NIFTYIT_constituents.json"
@@ -396,21 +394,21 @@ class TestIndexConstituentParser:
                     "symbol": "RELIANCE",
                     "series": "EQ",
                     "close": 2860.0,
-                    "meta": {"isin": "INE002A01018"}
+                    "meta": {"isin": "INE002A01018"},
                 },
                 {
                     "symbol": "NIFTY50",
                     "series": "INDEX",  # Should be filtered
                     "close": 18000.0,
-                    "meta": {"isin": ""}
+                    "meta": {"isin": ""},
                 },
                 {
                     "symbol": "HDFCBANK",
                     "series": "BE",
                     "close": 1660.0,
-                    "meta": {"isin": "INE040A01034"}
-                }
-            ]
+                    "meta": {"isin": "INE040A01034"},
+                },
+            ],
         }
 
         json_file = tmp_path / "NIFTY50_constituents.json"

@@ -49,9 +49,7 @@ class NSEConfig(BaseSettings):
         default="https://archives.nseindia.com/content/equities/EQUITY_L.csv"
     )
     ca_url: str = Field(default="https://www.nseindia.com/api/corporates-corporateActions")
-    option_chain_url: str = Field(
-        default="https://www.nseindia.com/api/option-chain-{instrument}"
-    )
+    option_chain_url: str = Field(default="https://www.nseindia.com/api/option-chain-{instrument}")
     holiday_calendar_url: str = Field(
         default="https://www.nseindia.com/api/holiday-master?type=trading"
     )
@@ -65,9 +63,7 @@ class BSEConfig(BaseSettings):
     bhavcopy_url: str = Field(
         default="https://www.bseindia.com/download/BhavCopy/Equity/EQ{date}_CSV.ZIP"
     )
-    equity_list_url: str = Field(
-        default="https://www.bseindia.com/corporates/List_Scrips.html"
-    )
+    equity_list_url: str = Field(default="https://www.bseindia.com/corporates/List_Scrips.html")
 
     model_config = SettingsConfigDict(env_prefix="BSE_")
 

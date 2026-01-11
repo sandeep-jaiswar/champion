@@ -5,10 +5,12 @@
 The Symbol Master Enrichment system resolves NSE's one-to-many ticker-to-instrument mapping by creating canonical instrument IDs that uniquely identify each tradeable security.
 
 **Problem**: Tickers like `IBULHSGFIN` represent multiple instruments:
+
 - 1 equity (EQ series)
 - 18+ NCD debt tranches (D1, D2, D3 series)
 
 **Solution**: Create canonical IDs: `symbol:fiid:exchange`
+
 - `IBULHSGFIN:30125:NSE` (Equity)
 - `IBULHSGFIN:14678:NSE` (NCD Series I)
 - `IBULHSGFIN:17505:NSE` (NCD Series II)
@@ -74,7 +76,7 @@ LIMIT 100;
 
 ### Data Flow
 
-```
+```text
 EQUITY_L.csv (NSE)        Bhavcopy Data (30+ days)
       ↓                            ↓
 Symbol Master Parser      Extract Instruments

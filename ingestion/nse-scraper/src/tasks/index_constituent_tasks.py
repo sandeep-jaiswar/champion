@@ -224,28 +224,30 @@ def load_index_constituents_clickhouse(
         # Match the order of columns in the ClickHouse table
         data = []
         for row in df.iter_rows(named=True):
-            data.append((
-                row["event_id"],
-                row["event_time"],
-                row["ingest_time"],
-                row["source"],
-                row["schema_version"],
-                row["entity_id"],
-                row["index_name"],
-                row["symbol"],
-                row.get("isin"),
-                row.get("company_name"),
-                row["effective_date"],
-                row["action"],
-                row.get("weight"),
-                row.get("free_float_market_cap"),
-                row.get("shares_for_index"),
-                row.get("announcement_date"),
-                row.get("index_category"),
-                row.get("sector"),
-                row.get("industry"),
-                row.get("metadata") if row.get("metadata") is not None else {},
-            ))
+            data.append(
+                (
+                    row["event_id"],
+                    row["event_time"],
+                    row["ingest_time"],
+                    row["source"],
+                    row["schema_version"],
+                    row["entity_id"],
+                    row["index_name"],
+                    row["symbol"],
+                    row.get("isin"),
+                    row.get("company_name"),
+                    row["effective_date"],
+                    row["action"],
+                    row.get("weight"),
+                    row.get("free_float_market_cap"),
+                    row.get("shares_for_index"),
+                    row.get("announcement_date"),
+                    row.get("index_category"),
+                    row.get("sector"),
+                    row.get("industry"),
+                    row.get("metadata") if row.get("metadata") is not None else {},
+                )
+            )
 
         # Insert data
         client.insert(

@@ -377,16 +377,19 @@ data/lake/normalized/index_constituent/
 ### Manual Verification Steps
 
 1. **Run ETL Pipeline**:
+
    ```bash
    python run_index_etl.py --indices NIFTY50 BANKNIFTY
    ```
 
 2. **Check Parquet Files**:
+
    ```bash
    ls -lR data/lake/normalized/index_constituent/
    ```
 
 3. **Query ClickHouse**:
+
    ```bash
    clickhouse-client --query "
        SELECT index_name, COUNT(*) as constituents
@@ -397,6 +400,7 @@ data/lake/normalized/index_constituent/
    ```
 
 4. **Verify Data Quality**:
+
    ```bash
    clickhouse-client --query "
        SELECT 
@@ -420,6 +424,7 @@ If NSE blocks requests:
 1. The scraper includes proper User-Agent headers
 2. It visits the main page before API calls
 3. Add delays between requests if needed:
+
    ```python
    import time
    time.sleep(2)  # 2 second delay
