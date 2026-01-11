@@ -198,6 +198,7 @@ Core components implemented and operational:
 - ✅ MLflow Experiment Tracking (Pipeline metadata & metrics)
 - ✅ Prometheus Metrics (Real-time observability)
 - ✅ Feature Store (Technical indicators: SMA, EMA, RSI)
+- ✅ Trading Calendar Validation (Holiday checking, date calculations)
 
 ---
 
@@ -288,6 +289,24 @@ SELECT
 FROM normalized_equity_ohlc
 GROUP BY trade_date
 ORDER BY trade_date DESC;
+
+# Trading calendar queries
+SELECT COUNT(*) FROM trading_calendar WHERE year = 2026;
+
+# Count trading days per month
+SELECT 
+    month,
+    SUM(CASE WHEN is_trading_day THEN 1 ELSE 0 END) as trading_days
+FROM trading_calendar
+WHERE year = 2026
+GROUP BY month
+ORDER BY month;
+
+# List holidays
+SELECT trade_date, holiday_name 
+FROM trading_calendar
+WHERE day_type = 'MARKET_HOLIDAY' AND year = 2026
+ORDER BY trade_date;
 ```
 
 **MLflow Experiments:**
@@ -569,6 +588,9 @@ poetry run python run_etl.py
 
 # Run only scraper
 poetry run python run_scraper.py
+
+# Run trading calendar ETL
+poetry run python run_trading_calendar.py
 
 # Test individual components
 poetry run python tests/manual/test_flow_manual.py
