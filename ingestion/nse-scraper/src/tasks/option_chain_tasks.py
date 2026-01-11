@@ -3,6 +3,7 @@
 from datetime import datetime
 from pathlib import Path
 
+import httpx
 import polars as pl
 import structlog
 from prefect import task
@@ -114,7 +115,8 @@ def scrape_multiple_option_chains(
                 save_raw_json=save_raw_json,
             )
             results.append(result)
-        except Exception as e:
+        except (httpx.RequestError, httpx.HTTPError, RuntimeError) as e:
+            # Log and continue for expected errors
             logger.error(
                 "symbol_scrape_failed",
                 symbol=symbol,

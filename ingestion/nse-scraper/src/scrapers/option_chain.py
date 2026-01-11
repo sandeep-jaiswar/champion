@@ -59,7 +59,7 @@ class OptionChainScraper(BaseScraper):
             # Initialize cookies by visiting the main page
             try:
                 self._session.get("https://www.nseindia.com")
-            except Exception as e:
+            except (httpx.RequestError, httpx.HTTPError) as e:
                 self.logger.warning("Failed to initialize session cookies", error=str(e))
 
         return self._session
@@ -248,7 +248,12 @@ class OptionChainScraper(BaseScraper):
         try:
             expiry_dt = datetime.strptime(expiry_date, "%d-%b-%Y")
             expiry_formatted = expiry_dt.strftime("%Y-%m-%d")
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            self.logger.warning(
+                "Failed to parse expiry date, using original format",
+                expiry_date=expiry_date,
+                error=str(e),
+            )
             expiry_formatted = expiry_date
 
         return {
@@ -400,15 +405,23 @@ def parse_interval(interval_str: str) -> int:
     """
     interval_str = interval_str.strip().lower()
 
-    if interval_str.endswith("s"):
-        seconds = int(interval_str[:-1])
-        return max(1, seconds // 60)
-    elif interval_str.endswith("m"):
-        return int(interval_str[:-1])
-    elif interval_str.endswith("h"):
-        return int(interval_str[:-1]) * 60
-    else:
-        raise ValueError(f"Invalid interval format: {interval_str}. Use '5m', '1h', etc.")
+    try:
+        if interval_str.endswith("s"):
+            seconds = int(interval_str[:-1])
+            return max(1, seconds // 60)
+        elif interval_str.endswith("m"):
+            return int(interval_str[:-1])
+        elif interval_str.endswith("h"):
+            return int(interval_str[:-1]) * 60
+        else:
+            raise ValueError(f"Invalid interval format: {interval_str}. Use '5m', '1h', etc.")
+    except ValueError as e:
+        # Re-raise with more context if it's our error, otherwise add context for parsing errors
+        if "Invalid interval format" in str(e):
+            raise
+        raise ValueError(
+            f"Invalid interval value in '{interval_str}': must be a number followed by s/m/h"
+        ) from e
 
 
 def main() -> None:

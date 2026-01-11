@@ -117,18 +117,14 @@ class TestOptionChainParser:
         assert "PE" in option_types
 
         # Verify CE data
-        ce_18400 = df.filter(
-            (pl.col("strike_price") == 18400.0) & (pl.col("option_type") == "CE")
-        )
+        ce_18400 = df.filter((pl.col("strike_price") == 18400.0) & (pl.col("option_type") == "CE"))
         assert len(ce_18400) == 1
         assert ce_18400["open_interest"][0] == 1500000
         assert ce_18400["implied_volatility"][0] == 15.25
         assert ce_18400["last_price"][0] == 150.75
 
         # Verify PE data
-        pe_18400 = df.filter(
-            (pl.col("strike_price") == 18400.0) & (pl.col("option_type") == "PE")
-        )
+        pe_18400 = df.filter((pl.col("strike_price") == 18400.0) & (pl.col("option_type") == "PE"))
         assert len(pe_18400) == 1
         assert pe_18400["open_interest"][0] == 1200000
         assert pe_18400["implied_volatility"][0] == 16.50
@@ -284,14 +280,22 @@ class TestIntervalParsing:
 
     def test_parse_invalid_format(self):
         """Test invalid interval format."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid interval format"):
             parse_interval("5")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid interval format"):
             parse_interval("abc")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid interval format"):
             parse_interval("5x")
+
+    def test_parse_invalid_number(self):
+        """Test invalid number in interval."""
+        with pytest.raises(ValueError, match="Invalid interval value"):
+            parse_interval("abc5m")
+
+        with pytest.raises(ValueError, match="Invalid interval value"):
+            parse_interval("5.5m")
 
 
 class TestSymbolMapping:
