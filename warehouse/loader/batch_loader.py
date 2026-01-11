@@ -52,6 +52,7 @@ class ClickHouseLoader:
         'raw_equity_ohlc': 'raw',
         'normalized_equity_ohlc': 'normalized',
         'features_equity_indicators': 'features',
+        'symbol_master': 'reference',
     }
     
     # Column name mapping: Parquet column -> ClickHouse column
