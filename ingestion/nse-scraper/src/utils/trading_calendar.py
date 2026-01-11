@@ -12,6 +12,11 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Constants for weekday handling (Python convention: Monday=0, Sunday=6)
+SATURDAY = 5
+SUNDAY = 6
+WEEKEND_DAYS = {SATURDAY, SUNDAY}
+
 
 class TradingCalendarValidator:
     """Validator for trading calendar operations."""
@@ -92,7 +97,7 @@ class TradingCalendarValidator:
         if not self.trading_days_set:
             logger.warning("Trading calendar not loaded, cannot validate")
             # Fallback: assume weekdays are trading days
-            return check_date.weekday() < 5
+            return check_date.weekday() not in WEEKEND_DAYS
 
         return check_date in self.trading_days_set
 
@@ -112,7 +117,7 @@ class TradingCalendarValidator:
         if not self.trading_days_set:
             # Fallback: just add days and skip weekends
             next_date = from_date + timedelta(days=1)
-            while next_date.weekday() >= 5:
+            while next_date.weekday() in WEEKEND_DAYS:
                 next_date += timedelta(days=1)
             return next_date
 
@@ -146,7 +151,7 @@ class TradingCalendarValidator:
         if not self.trading_days_set:
             # Fallback: just subtract days and skip weekends
             prev_date = from_date - timedelta(days=1)
-            while prev_date.weekday() >= 5:
+            while prev_date.weekday() in WEEKEND_DAYS:
                 prev_date -= timedelta(days=1)
             return prev_date
 

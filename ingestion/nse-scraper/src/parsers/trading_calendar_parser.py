@@ -23,6 +23,11 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Constants for better readability
+SATURDAY = 5  # Python weekday: 0=Monday, 6=Sunday
+SUNDAY = 6
+WEEKEND_DAYS = {SATURDAY, SUNDAY}
+
 
 class TradingCalendarParser:
     """Parser for NSE Trading Calendar JSON files."""
@@ -30,6 +35,8 @@ class TradingCalendarParser:
     def __init__(self):
         """Initialize parser."""
         self.calendar_gen = Calendar(firstweekday=0)  # Monday = 0
+        # Store holiday details for lookup
+        self.holiday_details: Dict[date, str] = {}
 
     def parse(self, json_file_path: Path, year: int) -> pl.DataFrame:
         """Parse NSE trading calendar JSON and generate complete year calendar.
@@ -94,11 +101,16 @@ class TradingCalendarParser:
 
                         if holiday_date:
                             segment_holidays.add(holiday_date)
+                            
+                            # Store holiday name for later lookup
+                            holiday_name = holiday.get("description", "Holiday")
+                            self.holiday_details[holiday_date] = holiday_name
+                            
                             logger.debug(
                                 "Parsed holiday",
                                 segment=segment,
                                 date=str(holiday_date),
-                                description=holiday.get("description", ""),
+                                description=holiday_name,
                             )
 
                     except Exception as e:
@@ -177,8 +189,8 @@ class TradingCalendarParser:
 
         current_date = start_date
         while current_date <= end_date:
-            # Determine if trading day
-            is_weekend = current_date.weekday() in [5, 6]  # Saturday=5, Sunday=6
+            # Determine if trading day (use WEEKEND_DAYS constant)
+            is_weekend = current_date.weekday() in WEEKEND_DAYS
             is_holiday = current_date in cm_holidays
 
             is_trading_day = not (is_weekend or is_holiday)
@@ -194,8 +206,7 @@ class TradingCalendarParser:
             # Get holiday name if applicable
             holiday_name = None
             if is_holiday:
-                # Find holiday name from data
-                holiday_name = self._get_holiday_name(current_date, holidays_by_segment)
+                holiday_name = self._get_holiday_name(current_date)
 
             # Determine segments status
             segments = [
@@ -213,6 +224,9 @@ class TradingCalendarParser:
                 },
             ]
 
+            # Use ISO 8601 weekday (1=Monday, 7=Sunday) for consistency with ClickHouse
+            iso_weekday = current_date.isoweekday()
+
             entry = {
                 "trade_date": current_date,
                 "is_trading_day": is_trading_day,
@@ -222,7 +236,7 @@ class TradingCalendarParser:
                 "year": current_date.year,
                 "month": current_date.month,
                 "day": current_date.day,
-                "weekday": current_date.weekday(),
+                "weekday": iso_weekday,  # ISO 8601: 1=Monday, 7=Sunday
                 "segments": segments,
             }
 
@@ -246,21 +260,13 @@ class TradingCalendarParser:
 
         return df
 
-    def _get_holiday_name(
-        self, target_date: date, holidays_by_segment: Dict[str, Set[date]]
-    ) -> str | None:
-        """Get holiday name for a date.
-
-        This is a simple implementation. In a production system,
-        you'd want to store the holiday name along with the date.
+    def _get_holiday_name(self, target_date: date) -> str | None:
+        """Get holiday name for a date from stored holiday details.
 
         Args:
             target_date: Date to check
-            holidays_by_segment: Holiday data
 
         Returns:
             Holiday name or None
         """
-        # Common holiday names (this should come from parsed data in production)
-        # For now, return a generic name
-        return "Holiday"
+        return self.holiday_details.get(target_date)
