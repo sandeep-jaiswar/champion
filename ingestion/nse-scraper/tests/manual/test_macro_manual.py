@@ -11,6 +11,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import polars as pl
+
 from src.parsers.macro_indicator_parser import MacroIndicatorParser
 from src.scrapers.mospi_macro import MOSPIMacroScraper
 from src.scrapers.rbi_macro import RBIMacroScraper
@@ -108,7 +110,7 @@ def test_data_quality(df):
     print(f"✓ Null counts: {null_counts}")
 
     # Check for duplicates
-    duplicates = df.group_by(["indicator_code", "indicator_date"]).count().filter(df["count"] > 1)
+    duplicates = df.group_by(["indicator_code", "indicator_date"]).count().filter(pl.col("count") > 1)
     print(f"✓ Duplicate entries: {len(duplicates)}")
 
     # Check value ranges

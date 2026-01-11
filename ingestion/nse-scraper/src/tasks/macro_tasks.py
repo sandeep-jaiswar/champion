@@ -280,7 +280,9 @@ def load_macro_clickhouse(parquet_path: str) -> int:
         # Get ClickHouse connection parameters
         def get_clickhouse_config(attr: str, default):
             """Get ClickHouse config with fallback to default."""
-            return getattr(config, "clickhouse", None) and getattr(config.clickhouse, attr, default) or default
+            if hasattr(config, "clickhouse"):
+                return getattr(config.clickhouse, attr, default)
+            return default
 
         client = clickhouse_connect.get_client(
             host=get_clickhouse_config("host", "localhost"),
