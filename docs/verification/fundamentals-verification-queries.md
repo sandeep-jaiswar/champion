@@ -141,7 +141,7 @@ LIMIT 30;
 
 ### Shareholding Patterns
 
-#### 1. Basic Data Verification
+#### 1. Shareholding Data Verification
 
 ```sql
 -- Count total records

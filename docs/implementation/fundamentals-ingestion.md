@@ -84,6 +84,7 @@ This implementation provides comprehensive ingestion and analysis of fundamental
 Stored in: `schemas/parquet/quarterly_financials.json`
 
 Key fields:
+
 - **Identifiers**: symbol, company_name, cin
 - **Period**: period_end_date, period_type (QUARTERLY/ANNUAL), statement_type (STANDALONE/CONSOLIDATED)
 - **P&L Items**: revenue, operating_profit, net_profit, depreciation, interest_expense, tax_expense
@@ -96,6 +97,7 @@ Key fields:
 Stored in: `schemas/parquet/shareholding_pattern.json`
 
 Key fields:
+
 - **Identifiers**: symbol, company_name, scrip_code, isin
 - **Period**: quarter_end_date, filing_date
 - **Promoter**: promoter_shareholding_percent, pledged_promoter_shares_percent
@@ -319,6 +321,7 @@ WHERE period_end_date >= '2023-01-01';
 ### Data Volume
 
 For 50 companies over 2 years (8 quarters):
+
 - **Quarterly Financials**: ~400 records (50 companies × 8 quarters)
 - **Shareholding Patterns**: ~400 records (50 companies × 8 quarters)
 - **Total Storage**: ~2-3 MB (Parquet compressed)
@@ -326,6 +329,7 @@ For 50 companies over 2 years (8 quarters):
 ### Query Performance
 
 Typical query response times on ClickHouse:
+
 - Simple aggregations: <100ms
 - Multi-table joins: <500ms
 - Complex analytics: <2s
@@ -401,15 +405,18 @@ Potential improvements:
 ## Acceptance Criteria Met
 
 ✅ **Sample of 50+ companies ingested for past 2 years**
+
 - Default pipeline processes NIFTY50 companies (50 symbols)
 - Configurable date range (default: 2 years)
 
 ✅ **Key KPIs computed and validated**
+
 - ROE, ROA, debt ratios automatically computed
 - PE ratios computed via join with OHLC data
 - Validation queries provided
 
 ✅ **Datasets joined with OHLC for multi-modal analysis**
+
 - Example queries demonstrate joins
 - PE ratio computation shows integration
 - Screening queries use combined data

@@ -174,6 +174,7 @@ python3 tests/unit/test_fundamentals.py -v
 ### Test Results
 
 All 14 tests pass:
+
 - ✅ ROE, ROA, debt ratios computation
 - ✅ Current ratio, margins computation
 - ✅ P/E ratio computation
