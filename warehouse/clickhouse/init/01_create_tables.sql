@@ -533,5 +533,173 @@ CREATE INDEX IF NOT EXISTS idx_bbd_quantity
 ON champion_market.bulk_block_deals (quantity) 
 TYPE minmax GRANULARITY 1;
 
+-- ==============================================================================
+-- 9. QUARTERLY FINANCIALS TABLE
+-- ==============================================================================
+-- Purpose: Store quarterly/annual financial statements from MCA filings
+-- Retention: 10 years (historical reference for analysis)
+-- Partitioning: By year and quarter of period_end_date
+
+CREATE TABLE IF NOT EXISTS champion_market.quarterly_financials
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Company identifiers
+    symbol              String DEFAULT '',
+    company_name        Nullable(String),
+    cin                 Nullable(String),
+    
+    -- Period information
+    period_end_date     Date,
+    period_type         LowCardinality(String),  -- QUARTERLY, HALF_YEARLY, ANNUAL
+    statement_type      LowCardinality(String),  -- STANDALONE, CONSOLIDATED
+    filing_date         Nullable(Date),
+    
+    -- Profit & Loss items (in crores)
+    revenue             Nullable(Float64),
+    operating_profit    Nullable(Float64),
+    net_profit          Nullable(Float64),
+    depreciation        Nullable(Float64),
+    interest_expense    Nullable(Float64),
+    tax_expense         Nullable(Float64),
+    
+    -- Balance sheet items (in crores)
+    total_assets        Nullable(Float64),
+    total_liabilities   Nullable(Float64),
+    equity              Nullable(Float64),
+    total_debt          Nullable(Float64),
+    current_assets      Nullable(Float64),
+    current_liabilities Nullable(Float64),
+    cash_and_equivalents Nullable(Float64),
+    inventories         Nullable(Float64),
+    
+    -- Per share metrics
+    eps                 Nullable(Float64),
+    book_value_per_share Nullable(Float64),
+    
+    -- Computed ratios
+    roe                 Nullable(Float64),
+    roa                 Nullable(Float64),
+    debt_to_equity      Nullable(Float64),
+    current_ratio       Nullable(Float64),
+    operating_margin    Nullable(Float64),
+    net_margin          Nullable(Float64),
+    
+    -- Additional metadata
+    metadata            Map(String, String),
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(period_end_date),
+    quarter             Int64 DEFAULT toQuarter(period_end_date)
+)
+ENGINE = ReplacingMergeTree(ingest_time)
+PARTITION BY (year, quarter)
+ORDER BY (symbol, period_end_date, statement_type, event_time)
+TTL period_end_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_qf_cin 
+ON champion_market.quarterly_financials (cin) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_qf_period_type 
+ON champion_market.quarterly_financials (period_type) 
+TYPE set(10) GRANULARITY 1;
+
+CREATE INDEX IF NOT EXISTS idx_qf_statement_type 
+ON champion_market.quarterly_financials (statement_type) 
+TYPE set(10) GRANULARITY 1;
+
+-- ==============================================================================
+-- 10. SHAREHOLDING PATTERN TABLE
+-- ==============================================================================
+-- Purpose: Store shareholding pattern data from BSE/NSE disclosures
+-- Retention: 10 years (historical reference for analysis)
+-- Partitioning: By year and quarter of quarter_end_date
+
+CREATE TABLE IF NOT EXISTS champion_market.shareholding_pattern
+(
+    -- Envelope fields (metadata)
+    event_id            String,
+    event_time          DateTime64(3, 'UTC'),
+    ingest_time         DateTime64(3, 'UTC'),
+    source              LowCardinality(String),
+    schema_version      LowCardinality(String),
+    entity_id           String,
+    
+    -- Company identifiers
+    symbol              String DEFAULT '',
+    company_name        Nullable(String),
+    scrip_code          Nullable(String),
+    isin                Nullable(String),
+    
+    -- Period information
+    quarter_end_date    Date,
+    filing_date         Nullable(Date),
+    
+    -- Promoter shareholding
+    promoter_shareholding_percent Nullable(Float64),
+    promoter_shares     Nullable(Int64),
+    pledged_promoter_shares_percent Nullable(Float64),
+    pledged_promoter_shares Nullable(Int64),
+    
+    -- Public shareholding
+    public_shareholding_percent Nullable(Float64),
+    public_shares       Nullable(Int64),
+    
+    -- Institutional shareholding
+    institutional_shareholding_percent Nullable(Float64),
+    institutional_shares Nullable(Int64),
+    fii_shareholding_percent Nullable(Float64),
+    fii_shares          Nullable(Int64),
+    dii_shareholding_percent Nullable(Float64),
+    dii_shares          Nullable(Int64),
+    
+    -- Specific institutional categories
+    mutual_fund_shareholding_percent Nullable(Float64),
+    mutual_fund_shares  Nullable(Int64),
+    insurance_companies_percent Nullable(Float64),
+    insurance_companies_shares Nullable(Int64),
+    banks_shareholding_percent Nullable(Float64),
+    banks_shares        Nullable(Int64),
+    
+    -- Employee shareholding
+    employee_shareholding_percent Nullable(Float64),
+    employee_shares     Nullable(Int64),
+    
+    -- Total shares
+    total_shares_outstanding Nullable(Int64),
+    
+    -- Additional metadata
+    metadata            Map(String, String),
+    
+    -- Computed partition columns
+    year                Int64 DEFAULT toYear(quarter_end_date),
+    quarter             Int64 DEFAULT toQuarter(quarter_end_date)
+)
+ENGINE = ReplacingMergeTree(ingest_time)
+PARTITION BY (year, quarter)
+ORDER BY (symbol, quarter_end_date, event_time)
+TTL quarter_end_date + INTERVAL 10 YEAR
+SETTINGS 
+    index_granularity = 8192;
+
+-- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_sp_isin 
+ON champion_market.shareholding_pattern (isin) 
+TYPE bloom_filter GRANULARITY 4;
+
+CREATE INDEX IF NOT EXISTS idx_sp_scrip_code 
+ON champion_market.shareholding_pattern (scrip_code) 
+TYPE bloom_filter GRANULARITY 4;
+
 -- Note: User permissions are managed via environment variables and docker-entrypoint
 -- No need for explicit GRANT statements here

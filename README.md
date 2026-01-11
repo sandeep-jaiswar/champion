@@ -191,6 +191,7 @@ This will automatically run markdown linting and other checks on staged files.
 Core components implemented and operational:
 
 - ✅ NSE Data Ingestion (Bhavcopy, Corporate Actions, Symbol Master, Trading Calendar, **Index Constituents**)
+- ✅ **Fundamentals Ingestion (Quarterly Financials, Shareholding Patterns, KPIs)**
 - ✅ Polars-based ETL Pipeline (High-performance parsing & normalization)
 - ✅ Prefect Orchestration (Flow scheduling & task management)
 - ✅ Parquet Data Lake (Partitioned storage with retention policies)
@@ -360,6 +361,66 @@ ORDER BY weight DESC NULLS LAST
 LIMIT 10
 "
 ```
+
+### 6. Run Fundamentals ETL (NEW)
+
+**Ingest quarterly financials and shareholding patterns:**
+
+```bash
+# Generate sample data for NIFTY50 companies (past 2 years)
+python run_fundamentals_etl.py
+
+# Specific companies
+python run_fundamentals_etl.py --symbols RELIANCE TCS INFY HDFCBANK
+
+# Custom date range
+python run_fundamentals_etl.py --start-date 2022-01-01 --end-date 2024-12-31
+
+# View results in ClickHouse
+clickhouse-client --database champion_market --query "
+SELECT 
+    symbol,
+    period_end_date,
+    revenue,
+    net_profit,
+    eps,
+    roe,
+    debt_to_equity
+FROM quarterly_financials
+ORDER BY revenue DESC
+LIMIT 10
+"
+
+# Compute P/E ratios (join with OHLC)
+clickhouse-client --database champion_market --query "
+SELECT 
+    f.symbol,
+    f.eps,
+    o.ClsPric as price,
+    (o.ClsPric / f.eps) as pe_ratio
+FROM quarterly_financials f
+ASOF LEFT JOIN normalized_equity_ohlc o
+    ON f.symbol = o.TckrSymb 
+WHERE f.eps > 0
+ORDER BY f.period_end_date DESC
+LIMIT 10
+"
+
+# View shareholding patterns
+clickhouse-client --database champion_market --query "
+SELECT 
+    symbol,
+    quarter_end_date,
+    promoter_shareholding_percent,
+    fii_shareholding_percent,
+    dii_shareholding_percent
+FROM shareholding_pattern
+ORDER BY quarter_end_date DESC
+LIMIT 10
+"
+```
+
+See [FUNDAMENTALS_README.md](./FUNDAMENTALS_README.md) for detailed documentation.
 
 ---
 

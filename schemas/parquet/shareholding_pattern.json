@@ -1,0 +1,229 @@
+{
+  "type": "record",
+  "name": "ShareholdingPattern",
+  "namespace": "com.champion.fundamentals",
+  "doc": "Shareholding pattern data from BSE/NSE disclosures",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "Unique event identifier (UUID)"
+    },
+    {
+      "name": "event_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Event timestamp in milliseconds (UTC)"
+    },
+    {
+      "name": "ingest_time",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Ingestion timestamp in milliseconds (UTC)"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "Data source (BSE, NSE, etc.)"
+    },
+    {
+      "name": "schema_version",
+      "type": "string",
+      "doc": "Schema version (semver)"
+    },
+    {
+      "name": "entity_id",
+      "type": "string",
+      "doc": "Company identifier (scrip code or unique ID)"
+    },
+    {
+      "name": "symbol",
+      "type": "string",
+      "doc": "Trading symbol (NSE/BSE)"
+    },
+    {
+      "name": "company_name",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Company name"
+    },
+    {
+      "name": "scrip_code",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "BSE scrip code"
+    },
+    {
+      "name": "isin",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "ISIN code"
+    },
+    {
+      "name": "quarter_end_date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      },
+      "doc": "Quarter end date for shareholding data"
+    },
+    {
+      "name": "filing_date",
+      "type": ["null", {
+        "type": "int",
+        "logicalType": "date"
+      }],
+      "default": null,
+      "doc": "Date of filing/disclosure"
+    },
+    {
+      "name": "promoter_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Promoter shareholding percentage"
+    },
+    {
+      "name": "promoter_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by promoters"
+    },
+    {
+      "name": "public_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Public shareholding percentage"
+    },
+    {
+      "name": "public_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by public"
+    },
+    {
+      "name": "institutional_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Institutional shareholding percentage (FII + DII)"
+    },
+    {
+      "name": "institutional_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by institutions"
+    },
+    {
+      "name": "fii_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Foreign Institutional Investor shareholding percentage"
+    },
+    {
+      "name": "fii_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by FII"
+    },
+    {
+      "name": "dii_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Domestic Institutional Investor shareholding percentage"
+    },
+    {
+      "name": "dii_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by DII"
+    },
+    {
+      "name": "mutual_fund_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Mutual fund shareholding percentage"
+    },
+    {
+      "name": "mutual_fund_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by mutual funds"
+    },
+    {
+      "name": "insurance_companies_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Insurance companies shareholding percentage"
+    },
+    {
+      "name": "insurance_companies_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by insurance companies"
+    },
+    {
+      "name": "banks_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Banks shareholding percentage"
+    },
+    {
+      "name": "banks_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by banks"
+    },
+    {
+      "name": "employee_shareholding_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Employee shareholding percentage (ESOP)"
+    },
+    {
+      "name": "employee_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of shares held by employees"
+    },
+    {
+      "name": "total_shares_outstanding",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Total number of shares outstanding"
+    },
+    {
+      "name": "pledged_promoter_shares_percent",
+      "type": ["null", "double"],
+      "default": null,
+      "doc": "Percentage of promoter shares pledged"
+    },
+    {
+      "name": "pledged_promoter_shares",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Number of promoter shares pledged"
+    },
+    {
+      "name": "year",
+      "type": "int",
+      "doc": "Year of quarter end date (partition column)"
+    },
+    {
+      "name": "quarter",
+      "type": "int",
+      "doc": "Quarter of year (1-4, partition column)"
+    },
+    {
+      "name": "metadata",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Additional metadata as key-value pairs"
+    }
+  ]
+}
