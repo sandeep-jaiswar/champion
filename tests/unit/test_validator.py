@@ -280,3 +280,82 @@ def test_validate_additional_properties(validator):
 
     assert result.critical_failures > 0
     assert any("unexpected_field" in e["message"] for e in result.error_details)
+
+
+def test_validate_dataframe_streaming_with_custom_batch_size(validator):
+    """Test validation works with custom batch size."""
+    df = pl.DataFrame(
+        {
+            "event_id": [f"uuid-{i}" for i in range(100)],
+            "price": [100.0 + i for i in range(100)],
+            "volume": [1000 + i for i in range(100)],
+        }
+    )
+
+    # Validate with smaller batch size
+    result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10)
+
+    assert result.total_rows == 100
+    assert result.valid_rows == 100
+    assert result.critical_failures == 0
+
+
+def test_validate_dataframe_streaming_large_dataset(validator):
+    """Test streaming validation with large dataset (100k+ rows)."""
+    # Create a large dataset to test memory efficiency
+    num_rows = 100_000
+    df = pl.DataFrame(
+        {
+            "event_id": [f"uuid-{i}" for i in range(num_rows)],
+            "price": [100.0 + (i % 1000) for i in range(num_rows)],
+            "volume": [1000 + (i % 5000) for i in range(num_rows)],
+        }
+    )
+
+    result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10000)
+
+    assert result.total_rows == num_rows
+    assert result.valid_rows == num_rows
+    assert result.critical_failures == 0
+
+
+def test_validate_dataframe_streaming_with_errors_across_batches(validator):
+    """Test that errors are correctly tracked across multiple batches."""
+    # Create dataset with errors in different batches
+    num_rows = 25000
+    df = pl.DataFrame(
+        {
+            "event_id": [f"uuid-{i}" for i in range(num_rows)],
+            # Add negative prices at specific positions across batches
+            "price": [100.0 if i % 10000 != 5000 else -50.0 for i in range(num_rows)],
+            "volume": [1000 for _ in range(num_rows)],
+        }
+    )
+
+    result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10000)
+
+    # Should find errors at indices: 5000, 15000
+    assert result.total_rows == num_rows
+    assert result.critical_failures == 2
+    assert 5000 in [e["row_index"] for e in result.error_details]
+    assert 15000 in [e["row_index"] for e in result.error_details]
+
+
+def test_validate_dataframe_batch_boundary_handling(validator):
+    """Test that batch boundaries don't affect validation results."""
+    # Test with a dataset where batch boundaries matter
+    num_rows = 15
+    df = pl.DataFrame(
+        {
+            "event_id": [f"uuid-{i}" for i in range(num_rows)],
+            # Add error at position 9 (boundary of batch size 10)
+            "price": [100.0 if i != 9 else -50.0 for i in range(num_rows)],
+            "volume": [1000 for _ in range(num_rows)],
+        }
+    )
+
+    result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10)
+
+    assert result.total_rows == num_rows
+    assert result.critical_failures == 1
+    assert result.error_details[0]["row_index"] == 9
