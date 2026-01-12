@@ -14,10 +14,10 @@ app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
 
 def validate_date_format(date_str: str) -> date:
-    """Validate ISO date format (YYYY-MM-DD).
+    """Validate ISO date format (YYYY-MM-DD or YYYYMMDD).
 
     Args:
-        date_str: Date string to validate
+        date_str: Date string to validate in ISO 8601 format
 
     Returns:
         date: Parsed date object
