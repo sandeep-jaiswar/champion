@@ -41,28 +41,33 @@ Scrape → Parse → Normalize → Validate → Write → Load
 ## Component Overview
 
 ### Ingestion Layer
+
 - NSE Bhavcopy (3,283 securities daily)
 - Symbol Master (2,223 companies)
 - Fundamentals (quarterly financials)
 - Index Constituents, Bulk/Block Deals, Trading Calendar
 
 ### Processing Layer
+
 - Parses CSV/JSON/ZIP formats
 - Polars for 50-100x performance
 - Robust error handling
 - Structured logging
 
 ### Storage Layer
+
 - Bronze (raw), Silver (cleaned), Gold (analytics)
 - Parquet with partitioning
 - Configurable retention
 
 ### Warehouse Layer
+
 - ClickHouse for OLAP
 - Optimized for aggregations
 - Real-time insert capability
 
 ### Orchestration Layer
+
 - Prefect flows for each pipeline
 - Automatic scheduling
 - Retry with backoff

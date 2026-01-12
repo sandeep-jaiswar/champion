@@ -24,10 +24,10 @@ logger = structlog.get_logger()
 )
 def scrape_bse_bhavcopy(trade_date: date) -> str:
     """Scrape BSE bhavcopy data for a given date.
-    
+
     Args:
         trade_date: Date to scrape for
-        
+
     Returns:
         Path to downloaded CSV file
     """
@@ -45,11 +45,11 @@ def scrape_bse_bhavcopy(trade_date: date) -> str:
 )
 def parse_bse_polars(csv_path: str, trade_date: date) -> pl.DataFrame | None:
     """Parse BSE bhavcopy CSV into Polars DataFrame.
-    
+
     Args:
         csv_path: Path to CSV file
         trade_date: Date the data represents
-        
+
     Returns:
         Parsed DataFrame or None if parsing fails/empty
     """
@@ -62,7 +62,7 @@ def parse_bse_polars(csv_path: str, trade_date: date) -> pl.DataFrame | None:
             return None
         logger.info("bse_bhavcopy_parsed", rows=len(df), columns=len(df.columns))
         return df
-    except (FileNotFoundError, IOError, OSError) as e:
+    except (FileNotFoundError, OSError) as e:
         logger.error("bse_file_read_failed", error=str(e), path=csv_path, retryable=True)
         return None
     except ValueError as e:

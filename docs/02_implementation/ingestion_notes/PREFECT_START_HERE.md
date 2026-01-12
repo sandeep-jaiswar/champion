@@ -12,6 +12,7 @@ poetry run python run_stack.py
 ```
 
 This automatically starts:
+
 - ✅ Docker Compose (Kafka, ClickHouse)
 - ✅ Prefect Server
 - ✅ MLflow Server
@@ -24,8 +25,8 @@ This automatically starts:
 
 | Dashboard | URL | What You See |
 |-----------|-----|--------------|
-| **Prefect** | http://localhost:4200 | Real-time flow monitoring |
-| **MLflow** | http://localhost:5000 | Metrics & performance trends |
+| **Prefect** | <http://localhost:4200> | Real-time flow monitoring |
+| **MLflow** | <http://localhost:5000> | Metrics & performance trends |
 | **CLI Dashboard** | `poetry run python prefect_dashboard.py` | Terminal visualization |
 
 ---
@@ -62,12 +63,14 @@ prefect flow-run ls -l 10
 ## 📈 What's Being Tracked
 
 **Metrics per task:**
+
 - Duration (seconds)
 - Rows processed
 - File size
 - Validation status
 
 **Visible in:**
+
 - Prefect UI → Flow runs → Task details
 - MLflow → Experiment metrics
 - Terminal logs → Real-time output

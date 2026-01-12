@@ -14,12 +14,14 @@ All historical data successfully ingested:
 ## 📊 Data Quality
 
 ✅ **100% Data Integrity:**
+
 - Symbol: Complete (0 nulls)
 - Client Name: Complete (0 nulls)
 - Quantity: Complete (0 nulls)
 - Price: Complete (0 nulls)
 
 ✅ **20 Columns Preserved:**
+
 ```
 event_id, event_time, ingest_time, source, schema_version,
 entity_id, deal_date, symbol, client_name, quantity, avg_price,
@@ -48,25 +50,30 @@ data/lake/bulk_block_deals/
 ## 📈 Key Insights
 
 ### Top Active Symbols
+
 1. **MOBIKWIK** - 892 events, 809.7M quantity
 2. **QUADFUTURE** - 535 events, 222.5M quantity
 3. **MTNL** - 473 events, 1.17B quantity
 
 ### Deal Type Split
+
 - **BULK:** 92.89% (46,889 events)
 - **BLOCK:** 7.11% (3,587 events)
 
 ### Transaction Distribution
+
 - **BUY:** 51.24% (25,866 events)
 - **SELL:** 48.76% (24,610 events)
 
 ### Price Range
+
 - Min: ₹0.03
 - Max: ₹152,350
 - Mean: ₹433.05
 - Median: ₹153.96
 
 ### Volume
+
 - Total Quantity: 111.8B units
 - Mean per Event: 2.2M units
 - Median per Event: 400K units
@@ -74,6 +81,7 @@ data/lake/bulk_block_deals/
 ## 🔄 Daily Ingestion Setup
 
 ### Option 1: Manual Daily Run
+
 ```bash
 # Run for today
 poetry run python daily_ingestion.py
@@ -83,6 +91,7 @@ poetry run python daily_ingestion.py 2026-01-12
 ```
 
 ### Option 2: Automated via Cron (Linux/Mac)
+
 ```bash
 # Add to crontab (crontab -e)
 # Run daily at 22:30 IST (5:00 PM UTC) after market close
@@ -90,6 +99,7 @@ poetry run python daily_ingestion.py 2026-01-12
 ```
 
 ### Option 3: Automated via CLI
+
 ```bash
 # Test daily ETL for tomorrow
 poetry run champion etl-bulk-deals --start-date $(date -d +1day +%Y-%m-%d) --end-date $(date -d +1day +%Y-%m-%d)
@@ -98,11 +108,13 @@ poetry run champion etl-bulk-deals --start-date $(date -d +1day +%Y-%m-%d) --end
 ## 📊 Analytics & Queries
 
 ### Run Full Analytics Suite
+
 ```bash
 poetry run python analytics.py
 ```
 
 Includes:
+
 - Top 10 most active symbols
 - Deal type distribution
 - Transaction type split
@@ -115,6 +127,7 @@ Includes:
 ### Custom Polars Queries
 
 **Example: Query specific symbol trades**
+
 ```python
 import polars as pl
 from pathlib import Path
@@ -140,6 +153,7 @@ mlflow ui --backend-store-uri file://./mlruns
 Open browser: `http://localhost:5000`
 
 **Available Metrics:**
+
 - `dates_processed` - Number of dates successfully ingested
 - `failed_dates` - Number of dates with errors
 - `total_events` - Total events ingested
@@ -148,12 +162,14 @@ Open browser: `http://localhost:5000`
 ## 🔧 Configuration
 
 **Environment Variables:**
+
 ```bash
 export MLFLOW_TRACKING_URI=file:///path/to/mlruns
 export PYTHONPATH=/media/sandeep-jaiswar/DataDrive/champion/src:$PYTHONPATH
 ```
 
 **Prefect Settings** (in code):
+
 - Flow execution: Sequential
 - Task retries: 1 (per-date basis)
 - Timeout: None (no timeout)

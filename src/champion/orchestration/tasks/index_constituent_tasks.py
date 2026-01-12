@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import polars as pl
 import structlog
 
-from champion.config import config
 from champion.parsers.index_constituent_parser import IndexConstituentParser
 from champion.scrapers.nse.index_constituent import IndexConstituentScraper
 
@@ -15,9 +14,9 @@ logger = structlog.get_logger()
 
 
 def scrape_index_constituents(
-    indices: List[str] | None = None,
+    indices: list[str] | None = None,
     output_dir: Path | None = None,
-) -> Dict[str, Path]:
+) -> dict[str, Path]:
     """Scrape index constituents for given indices.
 
     Returns a mapping of index name to JSON file path.
@@ -31,17 +30,19 @@ def parse_index_constituents(
     index_name: str,
     effective_date: str | date,
     action: str = "ADD",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Parse index constituent JSON into event dictionaries."""
     eff_date = (
         effective_date if isinstance(effective_date, date) else date.fromisoformat(effective_date)
     )
     parser = IndexConstituentParser()
-    return parser.parse(file_path=Path(file_path), index_name=index_name, effective_date=eff_date, action=action)
+    return parser.parse(
+        file_path=Path(file_path), index_name=index_name, effective_date=eff_date, action=action
+    )
 
 
 def write_index_constituents_parquet(
-    events: List[Dict[str, Any]],
+    events: list[dict[str, Any]],
     index_name: str,
     effective_date: str | date,
     output_base_path: str | Path = "data/lake",
@@ -69,11 +70,15 @@ def write_index_constituents_parquet(
 
     df = pl.DataFrame(events)
     # Cast common types
-    to_write = df.with_columns([
-        pl.col("event_time").cast(pl.Datetime, strict=False),
-        pl.col("ingest_time").cast(pl.Datetime, strict=False),
-    ])
-    to_write = to_write.drop([c for c in ("index", "year", "month", "day") if c in to_write.columns])
+    to_write = df.with_columns(
+        [
+            pl.col("event_time").cast(pl.Datetime, strict=False),
+            pl.col("ingest_time").cast(pl.Datetime, strict=False),
+        ]
+    )
+    to_write = to_write.drop(
+        [c for c in ("index", "year", "month", "day") if c in to_write.columns]
+    )
     to_write.write_parquet(out_file, compression="snappy")
     return str(out_file)
 
@@ -89,12 +94,30 @@ def load_index_constituents_clickhouse(
     try:
         df = pl.read_parquet(str(parquet_file))
         return len(df)
-    except (FileNotFoundError, IOError, OSError) as e:
-        logger.error("parquet_read_failed", error=str(e), path=str(parquet_file), index=index_name, retryable=True)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "parquet_read_failed",
+            error=str(e),
+            path=str(parquet_file),
+            index=index_name,
+            retryable=True,
+        )
         return 0
     except ValueError as e:
-        logger.error("parquet_invalid_format", error=str(e), path=str(parquet_file), index=index_name, retryable=False)
+        logger.error(
+            "parquet_invalid_format",
+            error=str(e),
+            path=str(parquet_file),
+            index=index_name,
+            retryable=False,
+        )
         return 0
     except Exception as e:
-        logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_file), index=index_name, retryable=False)
+        logger.critical(
+            "fatal_parquet_read_error",
+            error=str(e),
+            path=str(parquet_file),
+            index=index_name,
+            retryable=False,
+        )
         return 0

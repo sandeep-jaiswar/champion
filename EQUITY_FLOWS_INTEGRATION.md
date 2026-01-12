@@ -1,16 +1,19 @@
 # Equity Flows Integration Summary
 
 ## Overview
+
 Complete equity data ETL pipeline integration with three major flows now operational under the unified `champion` package.
 
 ## Completed Components
 
 ### 1. Corporate Actions ETL Flow
+
 **Module:** `src/champion/orchestration/flows/corporate_actions_flow.py`
 
 **Purpose:** Scrape, parse, and persist corporate actions data from NSE
 
 **Tasks:**
+
 - `scrape_ca_task`: Scrapes corporate actions via `CorporateActionsScraper`
 - `parse_ca_task`: Parses using `CorporateActionsParser`, returns `pl.DataFrame | None`
 - `write_ca_parquet_task`: Writes to Parquet with schema validation
@@ -19,17 +22,20 @@ Complete equity data ETL pipeline integration with three major flows now operati
 **Output:** `data/lake/reference/corporate_actions/effective_date=YYYY-MM-DD/`
 
 **Features:**
+
 - Graceful empty data handling
 - Automatic partition creation
 - MLflow experiment: `corporate-actions-etl`
 - File-based MLflow backend default
 
 ### 2. BSE Integration Tasks Module
+
 **Module:** `src/champion/orchestration/tasks/bse_tasks.py`
 
 **Purpose:** Provide task wrappers for BSE equity data (bhavcopy) scraping and parsing
 
 **Tasks:**
+
 - `scrape_bse_bhavcopy(trade_date)`: Scrapes BSE bhavcopy via `BseBhavcopyScraper`
   - Returns: Path to downloaded CSV
   - Retries: 2 (30s delay)
@@ -40,16 +46,19 @@ Complete equity data ETL pipeline integration with three major flows now operati
 **Usage:** Integrated into `combined_equity_etl_flow`
 
 ### 3. Combined Equity ETL Flow
+
 **Module:** `src/champion/orchestration/flows/combined_flows.py`
 
 **Purpose:** Unified NSE + BSE equity bhavcopy ingestion
 
 **Updated Imports:**
+
 - Fixed to use `champion.orchestration.flows.flows` (NSE tasks)
 - Fixed to use `champion.orchestration.tasks.bse_tasks` (BSE tasks)
 - Fixed to use `champion.utils` for shared utilities
 
 **Flow Parameters:**
+
 - `trade_date`: Date to fetch bhavcopy for
 - `output_base_path`: Base output directory
 - `enable_bse`: Toggle BSE inclusion (default: True)
@@ -57,6 +66,7 @@ Complete equity data ETL pipeline integration with three major flows now operati
 - MLflow metrics/tracking parameters
 
 **Outputs:**
+
 - NSE: `data/lake/intraday/bhavcopy/trade_date=YYYY-MM-DD/`
 - BSE: `data/lake/intraday/bhavcopy_bse/trade_date=YYYY-MM-DD/` (if enabled)
 
@@ -76,6 +86,7 @@ poetry run champion --help
 ```
 
 ### Available Commands
+
 - `etl-index`: Index constituent data
 - `etl-macro`: Macro indicators
 - `etl-trading-calendar`: Trading calendar
@@ -87,6 +98,7 @@ poetry run champion --help
 ## Class Name Corrections
 
 **Fixed Import Issues:**
+
 - `BSEBhavcopyScraper` → `BseBhavcopyScraper` (correct casing in scrapers module)
 - `PolarsBseParser` (confirmed correct casing in parsers module)
 - Updated in [bse_tasks.py](src/champion/orchestration/tasks/bse_tasks.py) lines 15-16, 35
@@ -94,6 +106,7 @@ poetry run champion --help
 ## Integration Testing
 
 ✅ **Import Tests:** All modules import successfully
+
 ```
 ✓ Corporate actions ETL flow
 ✓ Combined equity ETL flow  
@@ -101,22 +114,27 @@ poetry run champion --help
 ```
 
 ✅ **Test Suite:** All 92 tests passing (100% compatibility)
+
 - No breaking changes to existing flows
 - New modules integrated seamlessly
 
 ✅ **CLI Verification:** All commands parse correctly
+
 - `champion etl-corporate-actions` ready
 - `champion etl-combined-equity` ready
 
 ## Configuration
 
 ### MLflow Backend
+
 Default: File-based (`file:./mlruns`)
+
 - Avoids HTTP connection issues
 - Set in CLI via `os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")`
 - Individual flows respect this default
 
 ### Storage Structure
+
 ```
 data/lake/
 ├── intraday/
@@ -129,6 +147,7 @@ data/lake/
 ## Architecture Alignment
 
 **Unified Package Structure:**
+
 ```
 src/champion/
 ├── orchestration/

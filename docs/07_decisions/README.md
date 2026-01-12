@@ -5,6 +5,7 @@ Decisions that shaped Champion's design. Read these to understand the "why" behi
 ## Process
 
 When making significant technical decisions:
+
 1. Create ADR following template in [ADR Template](template.md)
 2. Get team review and consensus
 3. Archive in this directory
@@ -21,16 +22,20 @@ When making significant technical decisions:
 ## By Category
 
 ### Data Storage
+
 - [ADR-001: ClickHouse](adr-001-clickhouse-warehouse.md)
 - [ADR-004: Parquet Lake](adr-004-parquet-lake.md)
 
 ### Data Processing
+
 - [ADR-002: Polars](adr-002-polars-parsing.md)
 
 ### Orchestration
+
 - [ADR-003: Prefect](adr-003-prefect-orchestration.md)
 
 ### Architecture
+
 - [ADR-005: DDD](adr-005-domain-driven-design.md)
 
 ---

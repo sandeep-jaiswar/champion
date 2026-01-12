@@ -29,9 +29,10 @@ poetry run python prefect_dashboard.py  # Terminal 4
 
 ### 1️⃣ Prefect Dashboard (Real-time Flow Monitoring)
 
-**Access:** http://localhost:4200
+**Access:** <http://localhost:4200>
 
 **Shows:**
+
 - ✅ All running flows and their status
 - 📊 Task dependencies and execution timeline
 - 📈 Performance metrics per task
@@ -40,6 +41,7 @@ poetry run python prefect_dashboard.py  # Terminal 4
 - 💾 Historical run data
 
 **Key Features:**
+
 ```
 Dashboard → Flows → NSE Bhavcopy ETL
                   ├── Runs (last 10)
@@ -59,9 +61,10 @@ Dashboard → Flows → NSE Bhavcopy ETL
 
 ### 2️⃣ MLflow Tracking (Metrics & Experiments)
 
-**Access:** http://localhost:5000
+**Access:** <http://localhost:5000>
 
 **Tracks:**
+
 - 📊 Metrics per task (duration, rows processed)
 - 📈 Performance trends across multiple runs
 - 📝 Parameters (trade_date, load_to_clickhouse)
@@ -69,6 +72,7 @@ Dashboard → Flows → NSE Bhavcopy ETL
 - 📉 Historical data analysis
 
 **Example Metrics Visualization:**
+
 ```
 Runs Timeline:
 ├── 2026-01-11 run
@@ -89,11 +93,13 @@ Runs Timeline:
 ### 3️⃣ CLI Visualization Dashboard
 
 **Run:**
+
 ```bash
 poetry run python prefect_dashboard.py
 ```
 
 **Displays:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 🚀 CHAMPION DATA PIPELINE DASHBOARD                      │
@@ -315,6 +321,7 @@ http://localhost:4200
 ### Dashboard Features
 
 **Left Sidebar:**
+
 ```
 Dashboard
 ├── Flows (all available flows)
@@ -331,6 +338,7 @@ Dashboard
 ```
 
 **Main Panel - Flow Details:**
+
 ```
 nse-bhavcopy-etl
 ├── Runs (tab)
@@ -358,6 +366,7 @@ nse-bhavcopy-etl
 ```
 
 **Run Details View:**
+
 ```
 Flow Run Details
 ├── Timeline
@@ -642,8 +651,8 @@ poetry run python prefect_dashboard.py
 
 | Component | Status | Access | Purpose |
 |-----------|--------|--------|---------|
-| Prefect Server | ✅ Running | http://localhost:4200 | Flow orchestration & monitoring |
-| MLflow Server | ✅ Running | http://localhost:5000 | Metrics & experiment tracking |
+| Prefect Server | ✅ Running | <http://localhost:4200> | Flow orchestration & monitoring |
+| MLflow Server | ✅ Running | <http://localhost:5000> | Metrics & experiment tracking |
 | Prefect Agent | ✅ Running | (background) | Execute scheduled flows |
 | Dashboard | ✅ Ready | `python prefect_dashboard.py` | Visualization |
 | Docker Services | ✅ Running | (background) | Kafka, ClickHouse infrastructure |

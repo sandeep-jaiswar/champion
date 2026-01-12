@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import csv
 from datetime import date
 from pathlib import Path
-import csv
-from typing import Any, Dict, List
+from typing import Any
 
 import polars as pl
 import structlog
 
-from champion.config import config
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
 
 logger = structlog.get_logger()
@@ -17,7 +16,7 @@ logger = structlog.get_logger()
 def scrape_bulk_block_deals(
     target_date: str | date,
     deal_type: str = "both",
-) -> Dict[str, Path]:
+) -> dict[str, Path]:
     """Scrape bulk and/or block deals for a date."""
     d = target_date if isinstance(target_date, date) else date.fromisoformat(target_date)
     with BulkBlockDealsScraper() as scraper:
@@ -28,7 +27,7 @@ def parse_bulk_block_deals(
     file_path: str | Path,
     deal_date: str | date,
     deal_type: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Parse CSV deals file into standardized event dictionaries."""
     d = deal_date if isinstance(deal_date, date) else date.fromisoformat(deal_date)
     path = Path(file_path)
@@ -39,7 +38,7 @@ def parse_bulk_block_deals(
         reader = csv.reader(f)
         columns = next(reader, [])
 
-    dtype_map = {col: pl.Utf8 for col in columns}
+    dtype_map = dict.fromkeys(columns, pl.Utf8)
     df = pl.read_csv(
         str(path),
         dtypes=dtype_map,
@@ -75,12 +74,14 @@ def parse_bulk_block_deals(
             logger.critical("unexpected_float_conversion_error", value=val, error=str(e))
             return 0.0
 
-    events: List[Dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
     for row in df.iter_rows(named=True):
         symbol = str(row.get("Symbol") or row.get("SYMBOL") or "").strip()
         client = str(row.get("ClientName") or row.get("CLIENT_NAME") or "").strip()
         security_name = str(row.get("SecurityName") or row.get("SECURITY_NAME") or "").strip()
-        buy_sell_raw = str(row.get("Buy/Sell") or row.get("BuySell") or row.get("BUY_SELL") or "").strip()
+        buy_sell_raw = str(
+            row.get("Buy/Sell") or row.get("BuySell") or row.get("BUY_SELL") or ""
+        ).strip()
         transaction_type = buy_sell_raw.upper() if buy_sell_raw else ""
         quantity = _to_int(row.get("QuantityTraded") or row.get("Qty") or row.get("QTY"))
         price = _to_float(
@@ -121,9 +122,9 @@ def _event(
     security_name: str,
     remarks: str,
     raw_buy_sell: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     import uuid
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
 
     now = datetime.now(UTC)
     event_id = str(uuid.uuid4())
@@ -153,7 +154,7 @@ def _event(
 
 
 def write_bulk_block_deals_parquet(
-    events: List[Dict[str, Any]],
+    events: list[dict[str, Any]],
     deal_date: str | date,
     deal_type: str,
     output_base_path: str | Path = "data/lake",
@@ -176,16 +177,18 @@ def write_bulk_block_deals_parquet(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"{deal_type.lower()}_deals_{d.strftime('%Y%m%d')}.parquet"
 
-    df = pl.DataFrame(events).with_columns([
-        pl.col("deal_date").cast(pl.Date),
-        pl.col("event_time").cast(pl.Datetime, strict=False),
-        pl.col("ingest_time").cast(pl.Datetime, strict=False),
-        pl.col("quantity").cast(pl.Int64),
-        pl.col("avg_price").cast(pl.Float64),
-        pl.col("year").cast(pl.Int64),
-        pl.col("month").cast(pl.Int64),
-        pl.col("day").cast(pl.Int64),
-    ])
+    df = pl.DataFrame(events).with_columns(
+        [
+            pl.col("deal_date").cast(pl.Date),
+            pl.col("event_time").cast(pl.Datetime, strict=False),
+            pl.col("ingest_time").cast(pl.Datetime, strict=False),
+            pl.col("quantity").cast(pl.Int64),
+            pl.col("avg_price").cast(pl.Float64),
+            pl.col("year").cast(pl.Int64),
+            pl.col("month").cast(pl.Int64),
+            pl.col("day").cast(pl.Int64),
+        ]
+    )
 
     partition_cols = [c for c in ("year", "month", "day", "deal_type") if c in df.columns]
     to_write = df.drop(partition_cols) if partition_cols else df
@@ -202,12 +205,30 @@ def load_bulk_block_deals_clickhouse(
     try:
         df = pl.read_parquet(str(parquet_file))
         return len(df)
-    except (FileNotFoundError, IOError, OSError) as e:
-        logger.error("parquet_read_failed", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=True)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "parquet_read_failed",
+            error=str(e),
+            path=str(parquet_file),
+            deal_type=deal_type,
+            retryable=True,
+        )
         return 0
     except ValueError as e:
-        logger.error("parquet_invalid_format", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=False)
+        logger.error(
+            "parquet_invalid_format",
+            error=str(e),
+            path=str(parquet_file),
+            deal_type=deal_type,
+            retryable=False,
+        )
         return 0
     except Exception as e:
-        logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=False)
+        logger.critical(
+            "fatal_parquet_read_error",
+            error=str(e),
+            path=str(parquet_file),
+            deal_type=deal_type,
+            retryable=False,
+        )
         return 0

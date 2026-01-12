@@ -89,7 +89,9 @@ def scrape_bhavcopy(trade_date: date) -> str:
                                 with open(extracted_path, "wb") as out_f:
                                     out_f.write(zip_file.read(name))
                                 local_path = extracted_path
-                                logger.info("extracted_csv_from_existing_zip", extracted=str(local_path))
+                                logger.info(
+                                    "extracted_csv_from_existing_zip", extracted=str(local_path)
+                                )
                                 break
                 else:
                     logger.info(
@@ -97,10 +99,12 @@ def scrape_bhavcopy(trade_date: date) -> str:
                         trade_date=str(trade_date),
                         file_path=str(local_path),
                     )
-            except (IOError, OSError) as e:
+            except OSError as e:
                 logger.error("bhavcopy_existing_file_check_failed", error=str(e), retryable=True)
             except Exception as e:
-                logger.warning("bhavcopy_existing_file_check_unexpected_error", error=str(e), retryable=False)
+                logger.warning(
+                    "bhavcopy_existing_file_check_unexpected_error", error=str(e), retryable=False
+                )
         else:
             # Use scraper to download (ZIP extract via scraper implementation)
             scraper = BhavcopyScraper()
@@ -110,14 +114,16 @@ def scrape_bhavcopy(trade_date: date) -> str:
                 local_path = csv_path
             except (ConnectionError, TimeoutError) as e:
                 # Network-related errors are retryable, fallback to direct download
-                logger.warning("scraper_network_error_fallback_to_direct", error=str(e), retryable=True)
+                logger.warning(
+                    "scraper_network_error_fallback_to_direct", error=str(e), retryable=True
+                )
                 if not scraper.download_file(url, str(local_path)):
-                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}")
+                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}") from e
             except Exception as e:
                 # Other errors, fallback to direct file download (older interface)
                 logger.warning("scraper_error_fallback_to_direct", error=str(e), retryable=False)
                 if not scraper.download_file(url, str(local_path)):
-                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}")
+                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}") from e
 
         duration = time.time() - start_time
 
@@ -135,16 +141,30 @@ def scrape_bhavcopy(trade_date: date) -> str:
         return str(local_path)
 
     except (ConnectionError, TimeoutError) as e:
-        logger.error("bhavcopy_scrape_network_failed", trade_date=str(trade_date), error=str(e), retryable=True)
+        logger.error(
+            "bhavcopy_scrape_network_failed",
+            trade_date=str(trade_date),
+            error=str(e),
+            retryable=True,
+        )
         raise
-    except (FileNotFoundError, IOError, OSError) as e:
-        logger.error("bhavcopy_scrape_file_failed", trade_date=str(trade_date), error=str(e), retryable=True)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "bhavcopy_scrape_file_failed", trade_date=str(trade_date), error=str(e), retryable=True
+        )
         raise
     except ValueError as e:
-        logger.error("bhavcopy_scrape_validation_failed", trade_date=str(trade_date), error=str(e), retryable=False)
+        logger.error(
+            "bhavcopy_scrape_validation_failed",
+            trade_date=str(trade_date),
+            error=str(e),
+            retryable=False,
+        )
         raise
     except Exception as e:
-        logger.critical("bhavcopy_scrape_fatal_error", trade_date=str(trade_date), error=str(e), retryable=False)
+        logger.critical(
+            "bhavcopy_scrape_fatal_error", trade_date=str(trade_date), error=str(e), retryable=False
+        )
         raise RuntimeError(f"Fatal error during bhavcopy scrape: {e}") from e
 
 
@@ -193,14 +213,23 @@ def parse_polars_raw(csv_file_path: str, trade_date: date) -> pl.DataFrame:
 
         return df
 
-    except (FileNotFoundError, IOError, OSError) as e:
-        logger.error("polars_parse_file_failed", csv_file_path=csv_file_path, error=str(e), retryable=True)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "polars_parse_file_failed", csv_file_path=csv_file_path, error=str(e), retryable=True
+        )
         raise
     except ValueError as e:
-        logger.error("polars_parse_validation_failed", csv_file_path=csv_file_path, error=str(e), retryable=False)
+        logger.error(
+            "polars_parse_validation_failed",
+            csv_file_path=csv_file_path,
+            error=str(e),
+            retryable=False,
+        )
         raise
     except Exception as e:
-        logger.critical("polars_parse_fatal_error", csv_file_path=csv_file_path, error=str(e), retryable=False)
+        logger.critical(
+            "polars_parse_fatal_error", csv_file_path=csv_file_path, error=str(e), retryable=False
+        )
         raise RuntimeError(f"Fatal error during CSV parsing: {e}") from e
 
 
@@ -331,7 +360,7 @@ def write_parquet(
 
         return str(output_file)
 
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error("parquet_write_io_failed", error=str(e), retryable=True)
         # Track failure in Prometheus
         metrics.parquet_write_failed.labels(table="normalized_equity_ohlc").inc()
@@ -446,7 +475,12 @@ def load_clickhouse(
         return stats
 
     except (ConnectionError, TimeoutError) as e:
-        logger.error("clickhouse_load_network_failed", parquet_file=parquet_file, error=str(e), retryable=True)
+        logger.error(
+            "clickhouse_load_network_failed",
+            parquet_file=parquet_file,
+            error=str(e),
+            retryable=True,
+        )
         # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
         # Don't fail the flow if ClickHouse is unavailable
@@ -457,8 +491,10 @@ def load_clickhouse(
             "duration_seconds": 0,
             "error": str(e),
         }
-    except (FileNotFoundError, IOError, OSError) as e:
-        logger.error("clickhouse_load_file_failed", parquet_file=parquet_file, error=str(e), retryable=True)
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "clickhouse_load_file_failed", parquet_file=parquet_file, error=str(e), retryable=True
+        )
         # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
         # Don't fail the flow if ClickHouse is unavailable
@@ -470,7 +506,12 @@ def load_clickhouse(
             "error": str(e),
         }
     except ValueError as e:
-        logger.error("clickhouse_load_validation_failed", parquet_file=parquet_file, error=str(e), retryable=False)
+        logger.error(
+            "clickhouse_load_validation_failed",
+            parquet_file=parquet_file,
+            error=str(e),
+            retryable=False,
+        )
         # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
         # Don't fail the flow if ClickHouse is unavailable
@@ -482,7 +523,9 @@ def load_clickhouse(
             "error": str(e),
         }
     except Exception as e:
-        logger.critical("clickhouse_load_fatal_error", parquet_file=parquet_file, error=str(e), retryable=False)
+        logger.critical(
+            "clickhouse_load_fatal_error", parquet_file=parquet_file, error=str(e), retryable=False
+        )
         # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
         # Don't fail the flow if ClickHouse is unavailable
@@ -650,7 +693,7 @@ def nse_bhavcopy_etl_flow(
             )
 
             raise
-        except (FileNotFoundError, IOError, OSError) as e:
+        except (FileNotFoundError, OSError) as e:
             flow_duration = time.time() - flow_start_time
 
             logger.error(
@@ -1007,13 +1050,15 @@ def index_constituent_etl_flow(
             mlflow.log_param("status", "failed")
             mlflow.log_param("error", str(e))
             raise
-        except (FileNotFoundError, IOError, OSError) as e:
+        except (FileNotFoundError, OSError) as e:
             logger.error("index_constituent_etl_flow_file_failed", error=str(e), retryable=True)
             mlflow.log_param("status", "failed")
             mlflow.log_param("error", str(e))
             raise
         except ValueError as e:
-            logger.error("index_constituent_etl_flow_validation_failed", error=str(e), retryable=False)
+            logger.error(
+                "index_constituent_etl_flow_validation_failed", error=str(e), retryable=False
+            )
             mlflow.log_param("status", "failed")
             mlflow.log_param("error", str(e))
             raise

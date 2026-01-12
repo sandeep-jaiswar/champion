@@ -10,6 +10,7 @@ python run_stack.py
 ```
 
 This will automatically:
+
 - ✅ Start Docker Compose (Kafka, ClickHouse, etc.)
 - ✅ Start Prefect Server
 - ✅ Start MLflow Server
@@ -25,12 +26,12 @@ After running `python run_stack.py`, access:
 
 | Component | URL | Purpose |
 |-----------|-----|---------|
-| **Prefect UI** | http://localhost:4200 | View flows, runs, logs, schedule |
-| **MLflow UI** | http://localhost:5000 | Metrics, experiments, run history |
-| **ClickHouse** | http://localhost:8123 | Query warehouse data |
-| **Kafka UI** | http://localhost:8080 | Topic management (if enabled) |
-| **Prometheus** | http://localhost:9090 | System metrics (if enabled) |
-| **Grafana** | http://localhost:3000 | Custom dashboards (if enabled) |
+| **Prefect UI** | <http://localhost:4200> | View flows, runs, logs, schedule |
+| **MLflow UI** | <http://localhost:5000> | Metrics, experiments, run history |
+| **ClickHouse** | <http://localhost:8123> | Query warehouse data |
+| **Kafka UI** | <http://localhost:8080> | Topic management (if enabled) |
+| **Prometheus** | <http://localhost:9090> | System metrics (if enabled) |
+| **Grafana** | <http://localhost:3000> | Custom dashboards (if enabled) |
 
 ---
 
@@ -43,6 +44,7 @@ python prefect_dashboard.py
 ```
 
 **Displays:**
+
 - 📊 Complete pipeline architecture
 - 🔀 All 6 flows with status & schedule
 - 📈 Data lineage & transformations
@@ -150,7 +152,7 @@ Parameters Logged:
 └─ clickhouse_table
 ```
 
-Access at: http://localhost:5000
+Access at: <http://localhost:5000>
 
 ---
 
@@ -263,7 +265,8 @@ curl http://localhost:4200/api/flows
 ### Configure Alerts
 
 Alerts can be configured in Prefect UI:
-1. Go to http://localhost:4200
+
+1. Go to <http://localhost:4200>
 2. Navigate to "Notifications"
 3. Add notification for failures, completions, etc.
 
@@ -439,8 +442,9 @@ docker-compose up -d
 ## 📞 Support
 
 For issues or questions:
+
 1. Check logs: `prefect flow-run logs -f <run-id>`
-2. View dashboard: http://localhost:4200
+2. View dashboard: <http://localhost:4200>
 3. Check status: `python prefect_dashboard.py`
 4. Review docs: [src/orchestration/README.md](src/orchestration/README.md)
 
@@ -450,8 +454,8 @@ For issues or questions:
 
 | Component | Status | URL |
 |-----------|--------|-----|
-| Prefect Server | 🟢 Running | http://localhost:4200 |
-| MLflow Server | 🟢 Running | http://localhost:5000 |
+| Prefect Server | 🟢 Running | <http://localhost:4200> |
+| MLflow Server | 🟢 Running | <http://localhost:5000> |
 | Prefect Agent | 🟢 Running | (background) |
 | Docker Services | 🟢 Running | (docker-compose) |
 | Dashboard | 🟢 Ready | `python prefect_dashboard.py` |

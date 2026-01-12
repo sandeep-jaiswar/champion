@@ -5,8 +5,8 @@ from pathlib import Path
 import polars as pl
 import structlog
 
-from champion.scrapers.nse.trading_calendar import TradingCalendarScraper
 from champion.parsers.trading_calendar_parser import TradingCalendarParser
+from champion.scrapers.nse.trading_calendar import TradingCalendarScraper
 
 logger = structlog.get_logger()
 
@@ -38,12 +38,16 @@ def load_trading_calendar_clickhouse(parquet_path: str | Path) -> int:
     try:
         df = pl.read_parquet(str(parquet_path))
         return len(df)
-    except (FileNotFoundError, IOError, OSError) as e:
+    except (FileNotFoundError, OSError) as e:
         logger.error("parquet_read_failed", error=str(e), path=str(parquet_path), retryable=True)
         return 0
     except ValueError as e:
-        logger.error("parquet_invalid_format", error=str(e), path=str(parquet_path), retryable=False)
+        logger.error(
+            "parquet_invalid_format", error=str(e), path=str(parquet_path), retryable=False
+        )
         return 0
     except Exception as e:
-        logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_path), retryable=False)
+        logger.critical(
+            "fatal_parquet_read_error", error=str(e), path=str(parquet_path), retryable=False
+        )
         return 0

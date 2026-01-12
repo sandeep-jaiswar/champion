@@ -18,21 +18,25 @@ Complete documentation for the Champion data platform.
 ## By Role
 
 ### 👤 New Developer
+
 1. [Getting Started](00_getting_started/#getting-started) - Setup and first run
 2. [Architecture Overview](01_architecture/) - Understand how things fit together
 3. [Development Guide](04_development/) - How to write code for Champion
 
 ### 📊 Data Analyst
+
 1. [User Guides](03_user_guides/) - How to use Champion
 2. [Data Dictionaries](06_data_dictionaries/) - Schema and field reference
 3. [Implementation: Querying](02_implementation/queries.md) - Query examples
 
 ### 🏗️ Architect
+
 1. [Architecture](01_architecture/) - Complete system design
 2. [Decisions](07_decisions/) - Design rationale
 3. [Implementation](02_implementation/) - Technical details
 
 ### 👨‍💼 Manager/Lead
+
 1. [Architecture Overview](00_getting_started/architecture_overview.md) - High-level view
 2. [Decisions](07_decisions/) - Key design choices
 3. [Development Guide](04_development/) - Development process
@@ -130,11 +134,13 @@ docs/
 ## Finding Information
 
 **By search term:**
+
 - `ctrl+p` then search for topic (works in VS Code)
 - Use table of contents above
 - Navigate by role (see "By Role" section)
 
 **Documentation sections:**
+
 - High-level? Start with Getting Started or Architecture
 - How does X work? Check Implementation
 - Need specific fields? See Data Dictionaries
@@ -142,7 +148,8 @@ docs/
 
 ## Contributing
 
-Found an issue in the docs? 
+Found an issue in the docs?
+
 1. See [Development Guide](04_development/) for git workflow
 2. Make the fix
 3. Submit a PR

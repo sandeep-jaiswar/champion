@@ -14,6 +14,7 @@ Welcome to Champion - a production-grade stock market intelligence platform. Thi
 ## What is Champion?
 
 Champion is a comprehensive stock market analytics platform that:
+
 - **Ingests** real-time and historical market data from NSE/BSE
 - **Processes** data through Polars (50-100x faster than Pandas)
 - **Stores** efficiently in Parquet + ClickHouse
@@ -102,15 +103,19 @@ champion/
 ## Common Tasks
 
 ### Run Data Pipeline
+
 → See [User Guide: Running ETL](../03_user_guides/running_etl_pipelines.md)
 
 ### Query Data Warehouse
+
 → See [User Guide: Querying Warehouse](../03_user_guides/querying_warehouse.md)
 
 ### Add New Data Source
+
 → See [Development: Adding Components](../04_development/adding_new_components.md)
 
 ### Understand Architecture
+
 → See [Architecture Overview](architecture_overview.md)
 
 ## Key Concepts

@@ -18,13 +18,16 @@
 ## 🚀 Three Ways to Start
 
 ### 1️⃣ Automated (Recommended)
+
 ```bash
 cd ingestion/nse-scraper
 poetry run python run_stack.py
 ```
+
 Starts everything automatically in 30 seconds.
 
 ### 2️⃣ Manual Step-by-Step
+
 ```bash
 # Terminal 1
 prefect server start
@@ -43,6 +46,7 @@ poetry run python prefect_dashboard.py
 ```
 
 ### 3️⃣ Programmatic
+
 ```python
 from champion.orchestration.flows import nse_bhavcopy_etl_flow
 from datetime import date
@@ -58,7 +62,8 @@ result = nse_bhavcopy_etl_flow(
 ## 📊 Three Dashboards Available
 
 ### Dashboard 1: Prefect UI
-- **URL:** http://localhost:4200
+
+- **URL:** <http://localhost:4200>
 - **Real-time monitoring** of all flows
 - View task execution timeline
 - Stream live logs
@@ -66,7 +71,8 @@ result = nse_bhavcopy_etl_flow(
 - Configure schedules
 
 ### Dashboard 2: MLflow UI
-- **URL:** http://localhost:5000
+
+- **URL:** <http://localhost:5000>
 - **Metrics tracking** per task
 - Performance trends over time
 - Parameter comparisons
@@ -74,6 +80,7 @@ result = nse_bhavcopy_etl_flow(
 - Custom experiment tracking
 
 ### Dashboard 3: CLI Visualization
+
 - **Command:** `poetry run python prefect_dashboard.py`
 - Terminal-based ASCII art
 - Pipeline architecture diagram
@@ -175,6 +182,7 @@ NSE/BSE APIs
 ## 🎯 Complete Feature Set
 
 ### ✅ Orchestration Features
+
 - Automatic scheduling (cron-based)
 - Retry logic with exponential backoff
 - Task dependencies & sequencing
@@ -183,6 +191,7 @@ NSE/BSE APIs
 - Cache for expensive operations (24-hour)
 
 ### ✅ Monitoring Features
+
 - Real-time flow execution tracking
 - Task-level performance metrics
 - Data volume monitoring
@@ -191,6 +200,7 @@ NSE/BSE APIs
 - Live log streaming
 
 ### ✅ Metrics Tracking
+
 - Per-task duration tracking
 - Rows processed/filtered/written
 - File sizes and memory usage
@@ -198,6 +208,7 @@ NSE/BSE APIs
 - System health metrics
 
 ### ✅ Data Quality
+
 - Validation pass rates
 - Anomaly detection
 - Data lineage tracking
@@ -205,6 +216,7 @@ NSE/BSE APIs
 - Audit logging
 
 ### ✅ Integration
+
 - ClickHouse warehouse loading
 - Kafka event streaming
 - Parquet columnar storage
@@ -280,6 +292,7 @@ mlflow runs list -e default
 ## 📊 Key Metrics Being Tracked
 
 Per Flow Run:
+
 ```
 ✓ scrape_duration_seconds      Target: <2s
 ✓ parse_duration_seconds       Target: <1s
@@ -296,13 +309,15 @@ Per Flow Run:
 
 ## 🔍 Troubleshooting Guide Included
 
-### In PREFECT_COMPLETE_GUIDE.md:
+### In PREFECT_COMPLETE_GUIDE.md
+
 - Prefect Server won't start → Solutions
 - Flows don't execute → Debugging steps
 - MLflow errors → Recovery procedures
 - Docker issues → Docker Compose fixes
 
-### Quick Fixes:
+### Quick Fixes
+
 ```bash
 # Clear Prefect state
 rm -rf ~/.prefect
@@ -410,8 +425,8 @@ CLI DASHBOARD SHOWS:
 
 | Component | Status | Access |
 |-----------|--------|--------|
-| Prefect Server | ✅ Ready | http://localhost:4200 |
-| MLflow Server | ✅ Ready | http://localhost:5000 |
+| Prefect Server | ✅ Ready | <http://localhost:4200> |
+| MLflow Server | ✅ Ready | <http://localhost:5000> |
 | 6 Production Flows | ✅ Ready | Via Prefect UI |
 | Automatic Setup | ✅ Ready | `run_stack.py` |
 | CLI Visualization | ✅ Ready | `prefect_dashboard.py` |
@@ -420,7 +435,7 @@ CLI DASHBOARD SHOWS:
 
 ---
 
-## 🚀 You're All Set!
+## 🚀 You're All Set
 
 **Start with:** `poetry run python run_stack.py`
 
