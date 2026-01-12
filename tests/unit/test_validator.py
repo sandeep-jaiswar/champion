@@ -1,6 +1,7 @@
 """Tests for ParquetValidator."""
 
 import json
+import time
 from pathlib import Path
 
 import polars as pl
@@ -361,3 +362,61 @@ def test_validate_dataframe_batch_boundary_handling(validator):
     assert result.total_rows == num_rows
     assert result.critical_failures == 1
     assert result.error_details[0]["row_index"] == 9
+
+
+def test_validate_dataframe_1m_rows_benchmark(validator, caplog):
+    """Benchmark: Validate 1M row dataset with streaming for memory efficiency.
+
+    This test verifies the acceptance criteria:
+    - Streaming validation works correctly for large datasets (1M rows)
+    - Validation completes successfully without memory errors
+    - All rows are validated correctly
+    - Batch processing maintains correctness across boundaries
+
+    The streaming approach (iter_slices) ensures memory usage stays low
+    by processing data in batches rather than materializing the entire dataset.
+    """
+    # Create 1M row dataset
+    num_rows = 1_000_000
+    df = pl.DataFrame(
+        {
+            "event_id": [f"uuid-{i}" for i in range(num_rows)],
+            "price": [100.0 + (i % 10000) for i in range(num_rows)],
+            "volume": [1000 + (i % 50000) for i in range(num_rows)],
+        }
+    )
+
+    # Track validation time
+    start_time = time.time()
+
+    # Use streaming validation with batch_size
+    result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10000)
+
+    elapsed_time = time.time() - start_time
+
+    # Assertions - verify correctness
+    assert result.total_rows == num_rows
+    assert result.valid_rows == num_rows
+    assert result.critical_failures == 0
+
+    # Performance sanity check: should process at least 10k rows/sec
+    # This ensures the streaming approach doesn't significantly impact speed
+    throughput = num_rows / elapsed_time
+
+    # Log benchmark results (visible with pytest -s or --log-cli-level=INFO)
+    benchmark_msg = (
+        f"\n1M Row Validation Benchmark:\n"
+        f"  - Rows validated: {num_rows:,}\n"
+        f"  - Time elapsed: {elapsed_time:.2f}s\n"
+        f"  - Throughput: {throughput:,.0f} rows/sec\n"
+        f"  - Batch size: 10,000 rows\n"
+        f"  - Memory optimization: Streaming with iter_slices()"
+    )
+
+    # Use pytest's caplog for proper test output
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(benchmark_msg)
+
+    assert throughput > 10_000, f"Throughput {throughput:.0f} rows/sec is too slow"
