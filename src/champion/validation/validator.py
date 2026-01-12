@@ -57,6 +57,7 @@ class ParquetValidator:
         df: pl.DataFrame,
         schema_name: str,
         strict: bool = True,
+        batch_size: int = 10000,
     ) -> ValidationResult:
         """Validate a Polars DataFrame against a JSON schema.
 
@@ -64,6 +65,7 @@ class ParquetValidator:
             df: DataFrame to validate
             schema_name: Name of the schema to validate against
             strict: If True, fail on any validation error. If False, collect all errors.
+            batch_size: Number of rows to process in each batch (default: 10000)
 
         Returns:
             ValidationResult with validation statistics and error details
@@ -85,33 +87,38 @@ class ParquetValidator:
             schema_name=schema_name,
             total_rows=total_rows,
             columns=df.columns,
+            batch_size=batch_size,
         )
 
-        # Convert DataFrame to list of dicts for validation
-        records = df.to_dicts()
+        # Use streaming validation with iter_slices for memory efficiency
+        for batch_idx, batch in enumerate(df.iter_slices(batch_size)):
+            # Convert only current batch to dicts
+            records = batch.to_dicts()
+            for local_idx, record in enumerate(records):
+                row_idx = batch_idx * batch_size + local_idx
+                errors = list(validator.iter_errors(record))
+                if errors:
+                    for error in errors:
+                        error_detail = {
+                            "row_index": row_idx,
+                            "error_type": "critical",
+                            "field": ".".join(str(p) for p in error.path) or "root",
+                            "message": error.message,
+                            "validator": error.validator,
+                            "record": record,
+                        }
+                        error_details.append(error_detail)
 
-        for idx, record in enumerate(records):
-            errors = list(validator.iter_errors(record))
-            if errors:
-                for error in errors:
-                    error_detail = {
-                        "row_index": idx,
-                        "error_type": "critical",
-                        "field": ".".join(str(p) for p in error.path) or "root",
-                        "message": error.message,
-                        "validator": error.validator,
-                        "record": record,
-                    }
-                    error_details.append(error_detail)
-
-                    logger.warning(
-                        "validation_error",
-                        row_index=idx,
-                        field=error_detail["field"],
-                        message=error.message,
-                    )
+                        logger.warning(
+                            "validation_error",
+                            row_index=row_idx,
+                            field=error_detail["field"],
+                            message=error.message,
+                        )
 
         # Perform additional business logic validations
+        # Note: Business logic uses Polars operations which are memory-efficient
+        # as they don't materialize data until needed (e.g., only violations)
         business_errors = self._validate_business_logic(df, schema_name)
         error_details.extend(business_errors)
 
