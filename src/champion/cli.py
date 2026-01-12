@@ -111,9 +111,9 @@ def etl_bulk_deals(
 ):
     """Run bulk/block deals ETL flow (optionally for a date range)."""
     if start_date and end_date:
-        # Validate date formats
-        validate_date_format(start_date)
-        validate_date_format(end_date)
+        # Validate date formats and convert to proper format
+        start_dt = validate_date_format(start_date)
+        end_dt = validate_date_format(end_date)
         # The flow file includes a date-range variant; call if available
         try:
             from champion.orchestration.flows.bulk_block_deals_flow import (
@@ -121,8 +121,8 @@ def etl_bulk_deals(
             )
 
             bulk_block_deals_date_range_etl_flow(
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_dt.isoformat(),
+                end_date=end_dt.isoformat(),
             )
             return
         except Exception:
