@@ -110,6 +110,14 @@ def etl_bulk_deals(
     end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD"),
 ):
     """Run bulk/block deals ETL flow (optionally for a date range)."""
+    # Check that both dates are provided together
+    if (start_date and not end_date) or (end_date and not start_date):
+        typer.secho(
+            "Both start_date and end_date must be provided together",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
     if start_date and end_date:
         # Validate date formats and convert to proper format
         start_dt = validate_date_format(start_date)
@@ -128,12 +136,6 @@ def etl_bulk_deals(
         except Exception:
             # Fallback to single flow
             pass
-    elif start_date or end_date:
-        typer.secho(
-            "Both start_date and end_date must be provided together",
-            fg=typer.colors.RED,
-        )
-        raise typer.Exit(1)
     try:
         from champion.orchestration.flows.bulk_block_deals_flow import (
             bulk_block_deals_etl_flow,
