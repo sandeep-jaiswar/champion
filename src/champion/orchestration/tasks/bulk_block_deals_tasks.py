@@ -6,9 +6,12 @@ import csv
 from typing import Any, Dict, List
 
 import polars as pl
+import structlog
 
 from champion.config import config
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
+
+logger = structlog.get_logger()
 
 
 def scrape_bulk_block_deals(
@@ -51,7 +54,11 @@ def parse_bulk_block_deals(
             return val
         try:
             return int(float(str(val).replace(",", "").strip()))
-        except Exception:
+        except (ValueError, TypeError) as e:
+            logger.debug("int_conversion_failed", value=val, error=str(e))
+            return 0
+        except Exception as e:
+            logger.warning("unexpected_int_conversion_error", value=val, error=str(e))
             return 0
 
     def _to_float(val: Any) -> float:
@@ -61,7 +68,11 @@ def parse_bulk_block_deals(
             return float(val)
         try:
             return float(str(val).replace(",", "").strip())
-        except Exception:
+        except (ValueError, TypeError) as e:
+            logger.debug("float_conversion_failed", value=val, error=str(e))
+            return 0.0
+        except Exception as e:
+            logger.warning("unexpected_float_conversion_error", value=val, error=str(e))
             return 0.0
 
     events: List[Dict[str, Any]] = []
@@ -191,5 +202,12 @@ def load_bulk_block_deals_clickhouse(
     try:
         df = pl.read_parquet(str(parquet_file))
         return len(df)
-    except Exception:
+    except (FileNotFoundError, IOError, OSError) as e:
+        logger.error("parquet_read_failed", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=True)
+        return 0
+    except ValueError as e:
+        logger.error("parquet_invalid_format", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=False)
+        return 0
+    except Exception as e:
+        logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_file), deal_type=deal_type, retryable=False)
         return 0

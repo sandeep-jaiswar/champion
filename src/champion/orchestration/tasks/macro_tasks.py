@@ -138,5 +138,12 @@ def load_macro_clickhouse(parquet_path: str | Path) -> int:
     try:
         df = pl.read_parquet(str(parquet_path))
         return len(df)
-    except Exception:
+    except (FileNotFoundError, IOError, OSError) as e:
+        logger.error("parquet_read_failed", error=str(e), path=str(parquet_path), retryable=True)
+        return 0
+    except ValueError as e:
+        logger.error("parquet_invalid_format", error=str(e), path=str(parquet_path), retryable=False)
+        return 0
+    except Exception as e:
+        logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_path), retryable=False)
         return 0

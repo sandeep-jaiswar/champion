@@ -62,6 +62,12 @@ def parse_bse_polars(csv_path: str, trade_date: date) -> pl.DataFrame | None:
             return None
         logger.info("bse_bhavcopy_parsed", rows=len(df), columns=len(df.columns))
         return df
+    except (FileNotFoundError, IOError, OSError) as e:
+        logger.error("bse_file_read_failed", error=str(e), path=csv_path, retryable=True)
+        return None
+    except ValueError as e:
+        logger.error("bse_parsing_validation_failed", error=str(e), path=csv_path, retryable=False)
+        return None
     except Exception as e:
-        logger.error("bse_parsing_failed", error=str(e), path=csv_path)
+        logger.critical("fatal_bse_parsing_error", error=str(e), path=csv_path, retryable=False)
         return None
