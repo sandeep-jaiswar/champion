@@ -506,7 +506,7 @@ def load_clickhouse(
                 # Use parameterized query to prevent SQL injection
                 # Note: ClickHouse ALTER TABLE DELETE doesn't support placeholders in the same way
                 # as SELECT, so we validate inputs before constructing the query
-                
+
                 # Validate table name (alphanumeric and underscores only)
                 if not table.replace("_", "").isalnum():
                     logger.error(
@@ -514,7 +514,7 @@ def load_clickhouse(
                         table=table,
                     )
                     continue
-                
+
                 # Validate trade_date format (should be a string in YYYY-MM-DD format)
                 trade_date_str = str(trade_date).strip()
                 if not trade_date_str or "'" in trade_date_str or ";" in trade_date_str:
@@ -523,7 +523,7 @@ def load_clickhouse(
                         trade_date=trade_date_str,
                     )
                     continue
-                
+
                 # Construct query with validated inputs
                 delete_query = f"ALTER TABLE {table} DELETE WHERE TradDt = '{trade_date_str}'"
                 try:
