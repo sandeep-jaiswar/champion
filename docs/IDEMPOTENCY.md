@@ -7,11 +7,13 @@ All Prefect tasks in the Champion data platform are designed to be **idempotent*
 ## Problem Statement
 
 Before implementing idempotency:
+
 - If a task succeeded but the flow crashed before completion, retrying would cause duplicate records
 - No transaction boundaries existed for multi-step operations
 - ClickHouse loader had no deduplication mechanism
 
 **Example Scenario:**
+
 1. Task writes 10k rows to Parquet ✅
 2. Task completes but flow crashes before finishing
 3. Flow retries, writes same 10k rows again ❌ **DUPLICATES**
@@ -42,11 +44,13 @@ Each successful write operation creates a marker file with the following structu
 ### Marker File Naming
 
 Marker files are stored alongside the output files with the naming pattern:
+
 ```
 .idempotent.{date_key}.json
 ```
 
 Examples:
+
 - `.idempotent.2024-01-15.json` - For daily data
 - `.idempotent.20240101-20240131.json` - For date ranges
 - `.idempotent.2024-01-15-BULK.json` - For deal types
@@ -60,6 +64,7 @@ Examples:
 **Task:** `write_parquet`
 
 **Behavior:**
+
 1. Calculate expected output file path from trade_date
 2. Check for idempotency marker
 3. If marker exists and is valid, return existing file path (skip write)
@@ -67,6 +72,7 @@ Examples:
 5. Create idempotency marker with file hash
 
 **Usage:**
+
 ```python
 @task(name="write-parquet", retries=2)
 def write_parquet(df: pl.DataFrame, trade_date: date, base_path: str | None = None) -> str:
@@ -106,6 +112,7 @@ def write_parquet(df: pl.DataFrame, trade_date: date, base_path: str | None = No
 **Task:** `load_clickhouse`
 
 **Behavior:**
+
 1. Read Parquet file
 2. Extract unique trade dates from data
 3. **Validate inputs** to prevent SQL injection
@@ -116,6 +123,7 @@ def write_parquet(df: pl.DataFrame, trade_date: date, base_path: str | None = No
 **Security Note:** The DELETE operation validates table names and trade dates before constructing queries to prevent SQL injection attacks.
 
 **Configuration:**
+
 ```python
 @task(name="load-clickhouse", retries=3)
 def load_clickhouse(
@@ -198,6 +206,7 @@ Comprehensive tests for idempotency are in `tests/unit/test_idempotency.py`:
 - ✅ Multiple markers in same directory
 
 **Run tests:**
+
 ```bash
 poetry run pytest tests/unit/test_idempotency.py -v
 ```
@@ -309,12 +318,14 @@ logger.warning("idempotency_marker_hash_mismatch", expected_hash=..., current_ha
 ### Marker File Missing But Data Exists
 
 If a marker file is deleted but data exists, the task will overwrite the data. This is safe because:
+
 1. For Parquet writes, the file is overwritten atomically
 2. For ClickHouse, the DELETE ensures old data is removed
 
 ### Hash Validation Failure
 
 If hash validation fails (file was modified), the marker is considered invalid:
+
 - Task will re-execute
 - New marker will be created with updated hash
 - Check logs for `idempotency_marker_hash_mismatch` warnings
