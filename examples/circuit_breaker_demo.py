@@ -2,7 +2,8 @@
 """Demo script to show circuit breaker functionality."""
 
 import time
-from champion.utils.circuit_breaker import CircuitBreaker, CircuitBreakerOpen, CircuitState
+
+from champion.utils.circuit_breaker import CircuitBreaker, CircuitBreakerOpen
 
 
 def demo_circuit_breaker():
@@ -50,7 +51,7 @@ def demo_circuit_breaker():
     print(f"Test 3: Waiting {breaker.recovery_timeout}s for recovery timeout...")
     print("-" * 60)
     time.sleep(breaker.recovery_timeout + 0.5)
-    print(f"  ✓ Recovery timeout passed")
+    print("  ✓ Recovery timeout passed")
     print()
 
     # Test 4: Circuit should transition to HALF_OPEN and succeed

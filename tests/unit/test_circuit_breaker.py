@@ -57,7 +57,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Trigger failures up to threshold
-        for i in range(3):
+        for _ in range(3):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -72,7 +72,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Open the circuit
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -93,7 +93,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Open the circuit
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -120,7 +120,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Open the circuit
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -144,7 +144,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Open the circuit
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -173,7 +173,7 @@ class TestCircuitBreaker:
             raise RuntimeError("Test error")
 
         # Open the circuit
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 breaker.call(failing_func)
 
@@ -257,7 +257,7 @@ class TestCircuitBreakerIntegration:
         ]
 
         # First three calls should fail and open the circuit
-        for i in range(3):
+        for _ in range(3):
             with pytest.raises(RuntimeError):
                 breaker.call(mock_scraper.scrape, "2024-01-01")
 
@@ -297,7 +297,7 @@ class TestCircuitBreakerIntegration:
             return "BSE success"
 
         # Fail NSE breaker
-        for i in range(2):
+        for _ in range(2):
             with pytest.raises(RuntimeError):
                 nse_breaker.call(nse_failing_func)
 

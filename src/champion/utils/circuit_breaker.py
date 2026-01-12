@@ -12,8 +12,9 @@ Example:
 """
 
 import time
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from champion.utils.logger import get_logger
 from champion.utils.metrics import (
@@ -102,7 +103,10 @@ class CircuitBreaker:
         """
         # Check if we should attempt recovery
         if self.state == CircuitState.OPEN:
-            if self.last_failure_time and time.time() - self.last_failure_time > self.recovery_timeout:
+            if (
+                self.last_failure_time
+                and time.time() - self.last_failure_time > self.recovery_timeout
+            ):
                 self.logger.info(
                     "circuit_breaker_attempting_recovery",
                     state="HALF_OPEN",
@@ -121,7 +125,9 @@ class CircuitBreaker:
                     state="OPEN",
                     failure_count=self.failure_count,
                 )
-                raise CircuitBreakerOpen(f"Circuit breaker '{self.name}' is open - source unavailable")
+                raise CircuitBreakerOpen(
+                    f"Circuit breaker '{self.name}' is open - source unavailable"
+                )
 
         # Attempt the call
         try:
@@ -152,9 +158,6 @@ class CircuitBreaker:
 
         # Update state metric
         circuit_breaker_state.labels(source=self.name).set(0)  # 0 = CLOSED
-        from champion.utils.metrics import circuit_breaker_state
-
-        circuit_breaker_state.labels(source=self.name).set(0)  # 0 = CLOSED
 
     def _on_failure(self, error: Exception) -> None:
         """Handle failed call - increment failures and potentially open circuit.
@@ -162,8 +165,6 @@ class CircuitBreaker:
         Args:
             error: Exception that occurred
         """
-        from champion.utils.metrics import circuit_breaker_failures
-
         self.failure_count += 1
         self.last_failure_time = time.time()
 
@@ -179,8 +180,6 @@ class CircuitBreaker:
         )
 
         if self.failure_count >= self.failure_threshold:
-            from champion.utils.metrics import circuit_breaker_state, circuit_breaker_state_transitions
-
             old_state = self.state
             self.logger.critical(
                 "circuit_breaker_opened",
