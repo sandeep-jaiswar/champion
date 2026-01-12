@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import date, datetime
 
 import typer
 
@@ -30,8 +30,6 @@ def validate_date_format(date_str: str, allow_future: bool = False) -> date:
     Raises:
         typer.Exit: If date format is invalid or date is in future when not allowed
     """
-    from datetime import datetime
-    
     parsed_date = None
     
     # Try ISO format (YYYY-MM-DD)
@@ -179,7 +177,7 @@ def etl_bulk_deals(
                 end_date=end_dt.isoformat(),
             )
             return
-        except (ImportError, ModuleNotFoundError, AttributeError):
+        except (ImportError, ModuleNotFoundError):
             # Fallback to single flow if date-range flow is not available
             pass
     try:
@@ -309,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except typer.Exit as e:
         # typer.Exit is expected for normal exit with custom codes
-        return e.exit_code if hasattr(e, "exit_code") else 1
+        return e.exit_code
     except KeyboardInterrupt:
         typer.secho("\nOperation cancelled by user", fg=typer.colors.YELLOW)
         return 130  # Standard exit code for SIGINT
