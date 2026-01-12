@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
 from datetime import date
-from typing import Optional
 
 import typer
 
@@ -18,10 +16,10 @@ app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 @app.command("etl-index")
 def etl_index(
     index_name: str = typer.Option("NIFTY50", help="Index to process"),
-    effective_date: Optional[str] = typer.Option(None, help="YYYY-MM-DD effective date"),
+    effective_date: str | None = typer.Option(None, help="YYYY-MM-DD effective date"),
 ):
     """Run the Index Constituent ETL flow."""
-    eff = (date.fromisoformat(effective_date) if effective_date else date.today())
+    eff = date.fromisoformat(effective_date) if effective_date else date.today()
     try:
         from champion.orchestration.flows.flows import index_constituent_etl_flow
 
@@ -37,20 +35,28 @@ def etl_index(
 @app.command("etl-macro")
 def etl_macro(
     days: int = typer.Option(90, help="Number of days back to include"),
-    fail_on_empty: bool = typer.Option(False, help="Fail if no macro data retrieved from any source"),
-    source_order: Optional[str] = typer.Option(None, help="Comma-separated list of macro sources to try in order (e.g., MoSPI,RBI,DEA,NITI Aayog)"),
+    fail_on_empty: bool = typer.Option(
+        False, help="Fail if no macro data retrieved from any source"
+    ),
+    source_order: str | None = typer.Option(
+        None,
+        help="Comma-separated list of macro sources to try in order (e.g., MoSPI,RBI,DEA,NITI Aayog)",
+    ),
 ):
     """Run macro indicators ETL flow for a recent window."""
     # Ensure MLflow uses file backend by default if not set
     os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
     try:
         from datetime import datetime, timedelta
+
         from champion.orchestration.flows.macro_flow import macro_indicators_flow
 
         end = datetime.now()
         start = end - timedelta(days=days)
         sources = [s.strip() for s in source_order.split(",")] if source_order else None
-        macro_indicators_flow(start_date=start, end_date=end, source_order=sources, fail_on_empty=fail_on_empty)
+        macro_indicators_flow(
+            start_date=start, end_date=end, source_order=sources, fail_on_empty=fail_on_empty
+        )
     except Exception as e:
         typer.secho(
             f"Macro ETL failed to start: {e}. Did tasks migrate to champion.*?",
@@ -78,8 +84,8 @@ def etl_trading_calendar():
 
 @app.command("etl-bulk-deals")
 def etl_bulk_deals(
-    start_date: Optional[str] = typer.Option(None, help="Start date YYYY-MM-DD"),
-    end_date: Optional[str] = typer.Option(None, help="End date YYYY-MM-DD"),
+    start_date: str | None = typer.Option(None, help="Start date YYYY-MM-DD"),
+    end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD"),
 ):
     """Run bulk/block deals ETL flow (optionally for a date range)."""
     if start_date and end_date:
@@ -110,10 +116,13 @@ def etl_bulk_deals(
         )
         raise
 
+
 @app.command("etl-ohlc")
 def etl_ohlc(
-    trade_date: Optional[str] = typer.Option(None, help="Trade date YYYY-MM-DD (default: previous business day)"),
-    output_base_path: Optional[str] = typer.Option(None, help="Base output path (default: data/lake)"),
+    trade_date: str | None = typer.Option(
+        None, help="Trade date YYYY-MM-DD (default: previous business day)"
+    ),
+    output_base_path: str | None = typer.Option(None, help="Base output path (default: data/lake)"),
     load_to_clickhouse: bool = typer.Option(True, help="Load results into ClickHouse"),
 ):
     """Run NSE OHLC (bhavcopy) ETL flow."""
@@ -156,7 +165,7 @@ def etl_corporate_actions():
 
 @app.command("etl-combined-equity")
 def etl_combined_equity(
-    trade_date: Optional[str] = typer.Option(None, help="Trade date YYYY-MM-DD (default: today)"),
+    trade_date: str | None = typer.Option(None, help="Trade date YYYY-MM-DD (default: today)"),
 ):
     """Run combined equity ETL flow (NSE + BSE bhavcopy)."""
     try:
@@ -180,10 +189,10 @@ def show_config():
     """Print current configuration values."""
     typer.echo(f"Data dir: {config.storage.data_dir}")
     typer.echo(f"Kafka bootstrap: {config.kafka.bootstrap_servers}")
-    typer.echo(f"ClickHouse: configured via flows/loaders")
+    typer.echo("ClickHouse: configured via flows/loaders")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     try:
         app()
         return 0

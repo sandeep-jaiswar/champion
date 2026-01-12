@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
+
 """
 PREFECT VISUALIZATION - COMPLETE SETUP SUMMARY
 
@@ -7,7 +8,9 @@ Champion data pipeline using Prefect, MLflow, and Prometheus.
 """
 
 # ============================================================================
+
 # 🎯 COMPLETE PREFECT VISUALIZATION SUMMARY
+
 # ============================================================================
 
 """
@@ -53,7 +56,9 @@ WHAT IS AVAILABLE:
 """
 
 # ============================================================================
+
 # 🚀 QUICK START
+
 # ============================================================================
 
 """
@@ -65,11 +70,10 @@ poetry run python run_stack.py
 
 This starts:
   • Docker Compose (Kafka, ClickHouse)
-  • Prefect Server → http://localhost:4200
-  • MLflow Server → http://localhost:5000
+  • Prefect Server → <http://localhost:4200>
+  • MLflow Server → <http://localhost:5000>
   • Prefect Agent
   • All flows deployed
-
 
 OPTION 2: Manual Setup (Step-by-step)
 ──────────────────────────────────────
@@ -91,18 +95,20 @@ Terminal 5 - View dashboard:
   poetry run python prefect_dashboard.py
 
 Browser:
-  • Prefect: http://localhost:4200
-  • MLflow: http://localhost:5000
+  • Prefect: <http://localhost:4200>
+  • MLflow: <http://localhost:5000>
 """
 
 # ============================================================================
+
 # 📊 DASHBOARDS & ENDPOINTS
+
 # ============================================================================
 
 """
 PREFECT DASHBOARD (Real-time Flow Monitoring)
 ──────────────────────────────────────────────
-URL: http://localhost:4200
+URL: <http://localhost:4200>
 
 Shows:
   ✓ All 6 flows status
@@ -121,10 +127,9 @@ Features:
   • Trigger manual runs
   • Set schedules
 
-
 MLFLOW DASHBOARD (Metrics & Experiments)
 ────────────────────────────────────────
-URL: http://localhost:5000
+URL: <http://localhost:5000>
 
 Shows:
   ✓ Task durations per run
@@ -143,7 +148,6 @@ Metrics Tracked per Flow:
   • rows_processed
   • file_size_mb
 
-
 CLI DASHBOARD (Terminal Visualization)
 ──────────────────────────────────────
 Command: poetry run python prefect_dashboard.py
@@ -157,10 +161,9 @@ Shows:
   ✓ Technology stack
   ✓ Deployment instructions
 
-
 PROMETHEUS METRICS (System Health)
 ──────────────────────────────────
-URL: http://localhost:9090 (if enabled)
+URL: <http://localhost:9090> (if enabled)
 
 Metrics:
   • API availability
@@ -172,59 +175,59 @@ Metrics:
 """
 
 # ============================================================================
+
 # 🔀 6 PRODUCTION FLOWS
+
 # ============================================================================
 
 """
+
 1. NSE BHAVCOPY ETL
    Schedule: Weekdays 6:00 PM IST
    Records: 3,283 securities/day
    Flow: Scrape → Parse (Polars) → Normalize → Write → Load
    Status: ✅ Production Ready
-   Dashboard: http://localhost:4200 → Flows → nse-bhavcopy-etl
-
+   Dashboard: <http://localhost:4200> → Flows → nse-bhavcopy-etl
 
 2. BULK & BLOCK DEALS ETL
    Schedule: Weekdays 3:00 PM IST
    Records: 100-300 deals/day
    Flow: Scrape (Brotli) → Parse (Polars) → Normalize → Write → Load
    Status: ✅ Production Ready (Fixed + Optimized)
-   Dashboard: http://localhost:4200 → Flows → bulk-block-deals-etl
-
+   Dashboard: <http://localhost:4200> → Flows → bulk-block-deals-etl
 
 3. TRADING CALENDAR ETL
    Schedule: Quarterly
    Records: 365 trading days/year
    Flow: Scrape → Parse → Write → Load
    Status: ✅ Production Ready
-   Dashboard: http://localhost:4200 → Flows → trading-calendar-etl
-
+   Dashboard: <http://localhost:4200> → Flows → trading-calendar-etl
 
 4. INDEX CONSTITUENTS ETL
    Schedule: Daily 7:00 PM IST
    Records: 51 NIFTY50 + 15 BANKNIFTY
    Flow: Scrape → Parse → Write → Load
    Status: ✅ Production Ready
-   Dashboard: http://localhost:4200 → Flows → index-constituents-etl
-
+   Dashboard: <http://localhost:4200> → Flows → index-constituents-etl
 
 5. OPTION CHAIN ETL
    Schedule: Every 30 min (market hours)
    Records: 100-1000 options/run
    Flow: Scrape → Parse (Polars) → Write → Load
    Status: ✅ Production Ready
-   Dashboard: http://localhost:4200 → Flows → option-chain-etl
-
+   Dashboard: <http://localhost:4200> → Flows → option-chain-etl
 
 6. COMBINED MARKET DATA ETL
    Schedule: Weekdays 8:00 PM IST
    Orchestrates: All above flows
    Status: ✅ Production Ready
-   Dashboard: http://localhost:4200 → Flows → combined-market-data-etl
+   Dashboard: <http://localhost:4200> → Flows → combined-market-data-etl
 """
 
 # ============================================================================
+
 # 🎮 INTERACTIVE COMMANDS
+
 # ============================================================================
 
 """
@@ -251,7 +254,6 @@ Monitor Runs:
   prefect flow-run logs -f <run-id>   # Stream logs
   prefect flow-run inspect <run-id>   # Full details
 
-
 MLFLOW CLI - Metrics Tracking
 ──────────────────────────────
 
@@ -266,7 +268,6 @@ View Metrics:
 
 Search Runs:
   mlflow runs search -e default --max-results 10
-
 
 AGENT MANAGEMENT
 ────────────────
@@ -286,13 +287,16 @@ Restart Agent:
 """
 
 # ============================================================================
+
 # 📈 PERFORMANCE DASHBOARDS
+
 # ============================================================================
 
 """
 DASHBOARD 1: Task Duration Trend
 ────────────────────────────────
-In MLflow (http://localhost:5000):
+In MLflow (<http://localhost:5000>):
+
   1. Select experiment: "Default"
   2. Click "Metrics" tab
   3. Select: scrape_duration_seconds
@@ -306,10 +310,10 @@ Performance Targets:
   • load_duration_seconds: < 5s
   • Total flow: < 10s
 
-
 DASHBOARD 2: Data Volume Trend
 ──────────────────────────────
-In MLflow (http://localhost:5000):
+In MLflow (<http://localhost:5000>):
+
   1. Select metric: rows_processed
   2. View bar chart by date
   3. Compare against expected
@@ -321,10 +325,10 @@ Volume Expectations:
   • Index Constituents: 51-66 rows/day
   • Option Chain: 100-1000 rows/run
 
-
 DASHBOARD 3: Error Rate & Retries
 ──────────────────────────────────
-In Prefect UI (http://localhost:4200):
+In Prefect UI (<http://localhost:4200>):
+
   1. Go to Flows
   2. Select a flow
   3. View "Runs" tab
@@ -335,10 +339,10 @@ Target:
   • Retry success: 100%
   • Failed runs: 0%
 
-
 DASHBOARD 4: Execution Timeline
 ────────────────────────────────
-In Prefect UI (http://localhost:4200):
+In Prefect UI (<http://localhost:4200>):
+
   1. Click on a run
   2. View task graph
   3. Hover over tasks to see durations
@@ -355,7 +359,9 @@ Example Timeline:
 """
 
 # ============================================================================
+
 # 📋 KEY FILES
+
 # ============================================================================
 
 """
@@ -374,7 +380,6 @@ PREFECT FLOWS:
   ingestion/nse-scraper/src/orchestration/combined_flows.py
     → Combined multi-flow orchestration
 
-
 VISUALIZATION:
   ingestion/nse-scraper/prefect_dashboard.py
     → Terminal-based dashboard
@@ -385,7 +390,6 @@ VISUALIZATION:
     → Automated stack setup
     → Starts all services
     → Configures deployments
-
 
 DOCUMENTATION:
   ingestion/nse-scraper/PREFECT_VISUALIZATION.md
@@ -399,11 +403,13 @@ DOCUMENTATION:
 """
 
 # ============================================================================
+
 # 🔗 API ENDPOINTS
+
 # ============================================================================
 
 """
-PREFECT API (http://localhost:4200/api)
+PREFECT API (<http://localhost:4200/api>)
 ────────────────────────────────────────
 
 GET  /flows              → List all flows
@@ -412,8 +418,7 @@ GET  /flow_runs          → List flow runs
 GET  /flow_runs/<id>     → Get run details
 POST /deployments/<id>/create_flow_run → Trigger flow
 
-
-MLFLOW API (http://localhost:5000/api)
+MLFLOW API (<http://localhost:5000/api>)
 ──────────────────────────────────────
 
 GET  /experiments        → List experiments
@@ -421,8 +426,7 @@ GET  /experiments/<id>/runs → Runs in experiment
 GET  /runs/<id>          → Run details
 GET  /runs/<id>/metrics  → Run metrics
 
-
-CLICKHOUSE API (http://localhost:8123)
+CLICKHOUSE API (<http://localhost:8123>)
 ───────────────────────────────────────
 
 Query data lake:
@@ -433,36 +437,39 @@ Query warehouse:
 """
 
 # ============================================================================
+
 # 🚨 TROUBLESHOOTING
+
 # ============================================================================
 
 """
 IF PREFECT SERVER WON'T START:
 ──────────────────────────────
+
 1. Check port 4200: lsof -i :4200
 2. Kill existing: kill -9 <PID>
 3. Clear data: rm -rf ~/.prefect
 4. Restart: prefect server start
 
-
 IF FLOWS DON'T EXECUTE:
 ───────────────────────
+
 1. Check agent: prefect agent status
 2. Check queue: prefect work-queue ls
 3. Restart: pkill -f "prefect agent" && prefect agent start -q default
 4. View logs: prefect flow-run logs -f <run-id>
 
-
 IF MLFLOW WON'T START:
 ──────────────────────
+
 1. Check port 5000: lsof -i :5000
 2. Kill existing: kill -9 <PID>
 3. Clear db: rm -rf data/mlflow/
 4. Restart: poetry run mlflow ui --port 5000
 
-
 IF DOCKER SERVICES DOWN:
 ────────────────────────
+
 1. Check docker: docker --version
 2. Restart: docker-compose -f docker-compose.yml restart
 3. Logs: docker-compose logs -f
@@ -470,12 +477,14 @@ IF DOCKER SERVICES DOWN:
 """
 
 # ============================================================================
+
 # ✅ VERIFICATION CHECKLIST
+
 # ============================================================================
 
 """
-✓ Prefect Server running: http://localhost:4200
-✓ MLflow Server running: http://localhost:5000
+✓ Prefect Server running: <http://localhost:4200>
+✓ MLflow Server running: <http://localhost:5000>
 ✓ All 6 flows deployed
 ✓ Prefect Agent active
 ✓ Docker services running
@@ -487,20 +496,23 @@ Status: 🟢 PRODUCTION READY
 """
 
 # ============================================================================
+
 # 📞 NEXT STEPS
+
 # ============================================================================
 
 """
+
 1. START STACK
    $ cd ingestion/nse-scraper
    $ poetry run python run_stack.py
 
 2. ACCESS PREFECT UI
-   $ Open http://localhost:4200 in browser
+   $ Open <http://localhost:4200> in browser
    → View flows, deployments, runs
 
 3. ACCESS MLFLOW UI
-   $ Open http://localhost:5000 in browser
+   $ Open <http://localhost:5000> in browser
    → View metrics and experiments
 
 4. RUN DASHBOARD
@@ -514,7 +526,7 @@ Status: 🟢 PRODUCTION READY
 6. MONITOR METRICS
    $ prefect flow-run logs -f <run-id>
    → Stream live logs
-   
+
    $ Open MLflow → View metrics
    → See performance trends
 """

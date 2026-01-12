@@ -3,6 +3,7 @@
 ## Current State Analysis
 
 ### Code Distribution
+
 ```
 ingestion/nse-scraper/          ← MAIN SCRAPER LOGIC (production code)
   - Data collection, Kafka integration, Prefect flows
@@ -34,6 +35,7 @@ examples/                       ← EXAMPLES
 ```
 
 ### Issues with Current Structure
+
 1. **Fragmented Codebase**
    - Main scraper logic in `ingestion/nse-scraper/` (production code shouldn't be in "ingestion" folder)
    - Core libraries in `src/` but missing key components
@@ -180,6 +182,7 @@ examples/                              ← EXAMPLES (unchanged)
 ### Package Dependencies (pyproject.toml)
 
 Will have ONE root `pyproject.toml` with:
+
 - All dependencies consolidated
 - `packages = [{include = "champion", from = "src"}]`
 - CLI entry points for main flows
@@ -191,12 +194,14 @@ Will have ONE root `pyproject.toml` with:
 ## Migration Steps
 
 ### Step 1: Create New Package Structure
+
 - [ ] Create `src/champion/` with `__init__.py`
 - [ ] Create all domain subdirectories
 - [ ] Create `tests/` directory structure
 - [ ] Create `scripts/` directory structure
 
 ### Step 2: Move and Reorganize Code
+
 - [ ] Move `src/storage/` → `src/champion/storage/`
 - [ ] Move `src/features/` → `src/champion/features/`
 - [ ] Move `src/corporate_actions/` → `src/champion/corporate_actions/`
@@ -208,6 +213,7 @@ Will have ONE root `pyproject.toml` with:
 - [ ] Create `src/champion/orchestration/` with flows from `ingestion/nse-scraper/`
 
 ### Step 3: Move Tests
+
 - [ ] Consolidate all tests to `tests/` root
 - [ ] Move `src/*/tests/` → `tests/unit/`
 - [ ] Move `warehouse/loader/tests/` → `tests/unit/`
@@ -215,23 +221,27 @@ Will have ONE root `pyproject.toml` with:
 - [ ] Update test imports
 
 ### Step 4: Move Scripts
+
 - [ ] Move `run_*.py` scripts → `scripts/data/`
 - [ ] Move `test_index_constituent.py` → `tests/unit/`
 - [ ] Create entry points in pyproject.toml
 
 ### Step 5: Create Root pyproject.toml
+
 - [ ] Consolidate all dependencies
 - [ ] Set package root to `src/champion`
 - [ ] Configure pytest, black, ruff, mypy at root level
 - [ ] Define CLI entry points
 
 ### Step 6: Fix All Imports
+
 - [ ] Find all imports from old locations
 - [ ] Update to new `champion.*` imports
 - [ ] Test import resolution
 - [ ] Verify no circular imports
 
 ### Step 7: Remove Old Structures
+
 - [ ] Remove `src/storage/pyproject.toml`
 - [ ] Remove `src/ml/__init__.py` (if no special handling)
 - [ ] Delete `validation/pyproject.toml`
@@ -239,6 +249,7 @@ Will have ONE root `pyproject.toml` with:
 - [ ] Delete `warehouse/loader/` (move to `champion/warehouse/`)
 
 ### Step 8: Testing & Verification
+
 - [ ] Run full test suite
 - [ ] Verify all imports work
 - [ ] Test CLI entry points
@@ -250,6 +261,7 @@ Will have ONE root `pyproject.toml` with:
 ## Import Refactoring Examples
 
 ### Before
+
 ```python
 from champion.storage.parquet_io import read_parquet
 from champion.features.indicators import calculate_ma
@@ -260,6 +272,7 @@ from champion.orchestration import KafkaProducer
 ```
 
 ### After
+
 ```python
 from champion.storage import read_parquet
 from champion.features import calculate_ma

@@ -1,10 +1,9 @@
 """Tests for price adjuster."""
 
-import pytest
 from datetime import date
-from pathlib import Path
-import polars as pl
 
+import polars as pl
+import pytest
 from champion.corporate_actions.price_adjuster import (
     apply_ca_adjustments,
     apply_ca_adjustments_simple,
@@ -108,9 +107,7 @@ class TestPriceAdjuster:
         # Feb 10 prices should be divided by 1.5 (before bonus)
         feb_10 = result.filter(pl.col("TradDt") == date(2024, 2, 10))
         assert feb_10["OpnPric"][0] == pytest.approx(2400.0)  # 3600 / 1.5
-        assert feb_10["ClsPric"][0] == pytest.approx(
-            2433.33, rel=0.01
-        )  # 3650 / 1.5
+        assert feb_10["ClsPric"][0] == pytest.approx(2433.33, rel=0.01)  # 3650 / 1.5
 
         # Feb 25 prices should remain (after bonus)
         feb_25 = result.filter(pl.col("TradDt") == date(2024, 2, 25))

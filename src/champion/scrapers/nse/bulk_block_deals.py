@@ -9,7 +9,6 @@ Block Deals: Transactions executed through a separate trading window with minimu
              of 5 lakh shares or Rs 5 crore, whichever is less.
 """
 
-import json
 from datetime import date
 from io import StringIO
 from pathlib import Path
@@ -36,7 +35,7 @@ class BulkBlockDealsScraper(BaseScraper):
     # Working API endpoint that returns CSV data
     BULK_DEALS_API = "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals"
     BLOCK_DEALS_API = "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals"
-    
+
     # Origin URL for proper headers
     ORIGIN_URL = "https://nsewebsite-staging.nseindia.com"
 
@@ -206,7 +205,7 @@ class BulkBlockDealsScraper(BaseScraper):
                     try_parse_dates=False,
                 )
                 # Clean column names: remove spaces
-                df = df.rename(mapping=lambda col: col.replace(' ', ''))
+                df = df.rename(mapping=lambda col: col.replace(" ", ""))
 
             # Save to file if not dry run
             if not dry_run and len(df) > 0:
@@ -275,7 +274,7 @@ class BulkBlockDealsScraper(BaseScraper):
                     try_parse_dates=False,
                 )
                 # Clean column names: remove spaces
-                df = df.rename(mapping=lambda col: col.replace(' ', ''))
+                df = df.rename(mapping=lambda col: col.replace(" ", ""))
 
             # Save to file if not dry run
             if not dry_run and len(df) > 0:

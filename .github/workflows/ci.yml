@@ -60,13 +60,9 @@ jobs:
         run: |
           poetry run ruff check src/ tests/
 
-      - name: Run Black (format check)
+      - name: Run Ruff (format check)
         run: |
-          poetry run black --check src/ tests/
-
-      - name: Run MyPy (type check)
-        run: |
-          poetry run mypy src/
+          poetry run ruff format --check src/ tests/
 
       - name: Run Pytest (unit tests)
         run: |

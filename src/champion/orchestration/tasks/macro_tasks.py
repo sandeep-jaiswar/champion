@@ -6,19 +6,22 @@ from pathlib import Path
 import polars as pl
 import structlog
 
-from champion.scrapers.nse.rbi_macro import RBIMacroScraper
 from champion.scrapers.nse.mospi_macro import MOSPIMacroScraper
-
+from champion.scrapers.nse.rbi_macro import RBIMacroScraper
 
 logger = structlog.get_logger()
 
 
-def scrape_rbi_macro(start_date: datetime, end_date: datetime, indicators: list[str] | None = None) -> Path:
+def scrape_rbi_macro(
+    start_date: datetime, end_date: datetime, indicators: list[str] | None = None
+) -> Path:
     scraper = RBIMacroScraper()
     return scraper.scrape(start_date=start_date, end_date=end_date, indicators=indicators)
 
 
-def scrape_mospi_macro(start_date: datetime, end_date: datetime, indicators: list[str] | None = None) -> Path:
+def scrape_mospi_macro(
+    start_date: datetime, end_date: datetime, indicators: list[str] | None = None
+) -> Path:
     scraper = MOSPIMacroScraper()
     return scraper.scrape(start_date=start_date, end_date=end_date, indicators=indicators)
 
@@ -78,6 +81,7 @@ def try_sources_in_order(
 def parse_macro_indicators(json_path: str | Path) -> pl.DataFrame:
     """Parse macro JSON produced by scrapers into a uniform DataFrame."""
     import json
+
     p = Path(json_path)
     with open(p) as f:
         data = json.load(f)
@@ -95,25 +99,29 @@ def parse_macro_indicators(json_path: str | Path) -> pl.DataFrame:
         unit = ind.get("unit")
         series = ind.get("series", [])
         for s in series:
-            rows.append({
-                "indicator_code": code,
-                "indicator_name": name,
-                "category": category,
-                "unit": unit,
-                "date": s.get("date"),
-                "value": s.get("value"),
-                "source": data.get("source"),
-            })
+            rows.append(
+                {
+                    "indicator_code": code,
+                    "indicator_name": name,
+                    "category": category,
+                    "unit": unit,
+                    "date": s.get("date"),
+                    "value": s.get("value"),
+                    "source": data.get("source"),
+                }
+            )
 
     if not rows:
         return pl.DataFrame()
 
     df = pl.DataFrame(rows)
     # Cast where possible
-    return df.with_columns([
-        pl.col("date").str.strptime(pl.Date, strict=False),
-        pl.col("value").cast(pl.Float64, strict=False),
-    ])
+    return df.with_columns(
+        [
+            pl.col("date").str.strptime(pl.Date, strict=False),
+            pl.col("value").cast(pl.Float64, strict=False),
+        ]
+    )
 
 
 def merge_macro_dataframes(dfs: list[pl.DataFrame]) -> pl.DataFrame:
@@ -126,7 +134,11 @@ def merge_macro_dataframes(dfs: list[pl.DataFrame]) -> pl.DataFrame:
 
 def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: datetime) -> str:
     """Write merged macro DataFrame to Parquet; return path."""
-    out_dir = Path("data/lake/macro") / f"start={start_date.strftime('%Y%m%d')}" / f"end={end_date.strftime('%Y%m%d')}"
+    out_dir = (
+        Path("data/lake/macro")
+        / f"start={start_date.strftime('%Y%m%d')}"
+        / f"end={end_date.strftime('%Y%m%d')}"
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "macro.parquet"
     df.write_parquet(out_file, compression="snappy")
@@ -138,5 +150,16 @@ def load_macro_clickhouse(parquet_path: str | Path) -> int:
     try:
         df = pl.read_parquet(str(parquet_path))
         return len(df)
-    except Exception:
+    except (FileNotFoundError, OSError) as e:
+        logger.error("parquet_read_failed", error=str(e), path=str(parquet_path), retryable=True)
+        return 0
+    except ValueError as e:
+        logger.error(
+            "parquet_invalid_format", error=str(e), path=str(parquet_path), retryable=False
+        )
+        return 0
+    except Exception as e:
+        logger.critical(
+            "fatal_parquet_read_error", error=str(e), path=str(parquet_path), retryable=False
+        )
         return 0

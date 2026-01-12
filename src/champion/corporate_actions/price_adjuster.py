@@ -6,7 +6,6 @@ to ensure price continuity across corporate action events.
 
 from datetime import date
 from pathlib import Path
-from typing import Optional
 
 import polars as pl
 
@@ -14,7 +13,7 @@ import polars as pl
 def apply_ca_adjustments(
     ohlc_df: pl.DataFrame,
     ca_factors: pl.DataFrame,
-    price_columns: Optional[list[str]] = None,
+    price_columns: list[str] | None = None,
 ) -> pl.DataFrame:
     """Apply corporate action adjustments to OHLC prices.
 
@@ -96,14 +95,11 @@ def apply_ca_adjustments(
 
     # Group by symbol and trade_date, take the product of all adjustments
     # (in case there are multiple CA events in the future)
-    adjustment_agg = (
-        result.group_by([symbol_col, trade_date_col])
-        .agg(
-            [
-                pl.col("ca_adjustment").product().alias("adjustment_factor"),
-                pl.col("ex_date").max().alias("adjustment_date"),
-            ]
-        )
+    adjustment_agg = result.group_by([symbol_col, trade_date_col]).agg(
+        [
+            pl.col("ca_adjustment").product().alias("adjustment_factor"),
+            pl.col("ex_date").max().alias("adjustment_date"),
+        ]
     )
 
     # Join back to original OHLC
@@ -125,9 +121,7 @@ def apply_ca_adjustments(
     for col in price_columns:
         if col in adjusted.columns:
             adjusted = adjusted.with_columns(
-                [
-                    (pl.col(col) / pl.col("adjustment_factor")).alias(col)
-                ]
+                [(pl.col(col) / pl.col("adjustment_factor")).alias(col)]
             )
 
     return adjusted
@@ -208,9 +202,7 @@ def apply_ca_adjustments_simple(
 
     # Apply adjustments to price columns
     for col in price_cols:
-        result = result.with_columns(
-            [(pl.col(col) / pl.col("adjustment_factor")).alias(col)]
-        )
+        result = result.with_columns([(pl.col(col) / pl.col("adjustment_factor")).alias(col)])
 
     return result
 

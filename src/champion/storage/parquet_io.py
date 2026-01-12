@@ -1,8 +1,6 @@
 """Parquet I/O utilities for data lake operations."""
 
-import shutil
 from pathlib import Path
-from typing import List, Optional, Union
 
 import polars as pl
 import pyarrow as pa
@@ -15,8 +13,8 @@ logger = structlog.get_logger()
 def write_df(
     df: pl.DataFrame,
     dataset: str,
-    base_path: Union[str, Path],
-    partitions: Optional[List[str]] = None,
+    base_path: str | Path,
+    partitions: list[str] | None = None,
     max_rows_per_file: int = 1_000_000,
     compression: str = "snappy",
 ) -> Path:
@@ -80,7 +78,7 @@ def write_df(
 
 
 def coalesce_small_files(
-    dataset_path: Union[str, Path],
+    dataset_path: str | Path,
     target_file_size_mb: int = 128,
     min_file_size_mb: int = 10,
     dry_run: bool = False,
@@ -149,7 +147,7 @@ def coalesce_small_files(
     from collections import defaultdict
 
     files_by_partition = defaultdict(list)
-    for file_path, size in small_files:
+    for file_path, _ in small_files:
         partition_dir = file_path.parent
         files_by_partition[partition_dir].append(file_path)
 
@@ -200,7 +198,7 @@ def coalesce_small_files(
 
 
 def generate_dataset_metadata(
-    dataset_path: Union[str, Path],
+    dataset_path: str | Path,
     force_regenerate: bool = False,
 ) -> tuple[Path, Path]:
     """

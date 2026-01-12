@@ -1,7 +1,6 @@
 """Prefect flow integration for data validation."""
 
 from pathlib import Path
-from typing import Optional
 
 import structlog
 from prefect import flow, task
@@ -17,7 +16,7 @@ def validate_parquet_file(
     file_path: str,
     schema_name: str,
     schema_dir: str,
-    quarantine_dir: Optional[str] = None,
+    quarantine_dir: str | None = None,
 ) -> ValidationResult:
     """Validate a Parquet file against a JSON schema.
 
@@ -122,7 +121,7 @@ async def send_validation_alert(
     result: ValidationResult,
     file_path: str,
     schema_name: str,
-    slack_webhook_block: Optional[str] = None,
+    slack_webhook_block: str | None = None,
 ) -> None:
     """Send alert about validation failures.
 
@@ -176,7 +175,7 @@ async def validate_parquet_dataset(
     quarantine_dir: str = "./data/lake/quarantine",
     fail_on_errors: bool = True,
     max_failure_rate: float = 0.05,
-    slack_webhook_block: Optional[str] = None,
+    slack_webhook_block: str | None = None,
 ) -> ValidationResult:
     """Prefect flow for validating Parquet datasets.
 
@@ -249,7 +248,7 @@ async def validate_parquet_batch(
     quarantine_dir: str = "./data/lake/quarantine",
     fail_on_errors: bool = True,
     max_failure_rate: float = 0.05,
-    slack_webhook_block: Optional[str] = None,
+    slack_webhook_block: str | None = None,
 ) -> list[ValidationResult]:
     """Validate multiple Parquet files in batch.
 

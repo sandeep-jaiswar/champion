@@ -12,7 +12,9 @@
 ## 📚 Documentation Files
 
 ### Quick Start & Setup
+
 **[PREFECT_VISUALIZATION.md](PREFECT_VISUALIZATION.md)**  
+
 - Quick start (one command)
 - Manual step-by-step setup
 - Dashboard access URLs
@@ -21,7 +23,9 @@
 - Monitoring setup
 
 ### Comprehensive Reference
+
 **[PREFECT_COMPLETE_GUIDE.md](PREFECT_COMPLETE_GUIDE.md)**  
+
 - Complete architecture diagrams
 - All 6 flows detailed
 - Prefect UI walkthrough
@@ -32,7 +36,9 @@
 - Troubleshooting guide
 
 ### Setup & CLI Reference
+
 **[PREFECT_SETUP_SUMMARY.md](PREFECT_SETUP_SUMMARY.md)**  
+
 - Complete setup summary
 - All CLI commands
 - Monitoring setup
@@ -40,7 +46,9 @@
 - Troubleshooting reference
 
 ### Implementation Summary
+
 **[PREFECT_IMPLEMENTATION_COMPLETE.md](PREFECT_IMPLEMENTATION_COMPLETE.md)**  
+
 - What was created (8 files, 3,293 lines)
 - Three ways to start
 - Complete feature set
@@ -48,7 +56,9 @@
 - Verification checklist
 
 ### Quick Reference Card
+
 **[PREFECT_QUICK_REFERENCE.txt](PREFECT_QUICK_REFERENCE.txt)**  
+
 - Print-friendly reference card
 - All essential commands
 - Common troubleshooting
@@ -60,10 +70,13 @@
 ## 💻 Executable Scripts
 
 ### Automated Stack Setup
+
 **[run_stack.py](run_stack.py)** (19 KB)  
+
 ```bash
 poetry run python run_stack.py
 ```
+
 - Starts Docker Compose
 - Starts Prefect Server
 - Starts MLflow Server
@@ -74,10 +87,13 @@ poetry run python run_stack.py
 **Best for:** Quick setup with zero configuration
 
 ### Visualization Dashboard
+
 **[prefect_dashboard.py](prefect_dashboard.py)** (18 KB)  
+
 ```bash
 poetry run python prefect_dashboard.py
 ```
+
 - Shows pipeline architecture
 - Lists all 6 flows with schedules
 - Displays data lineage
@@ -128,8 +144,10 @@ All flows are configured and ready:
 ## 📊 Three Dashboards
 
 ### 1. Prefect UI
-**URL:** http://localhost:4200  
+
+**URL:** <http://localhost:4200>  
 **Shows:**
+
 - Real-time flow monitoring
 - Task execution timeline
 - Live logs streaming
@@ -138,8 +156,10 @@ All flows are configured and ready:
 - Trigger manual runs
 
 ### 2. MLflow UI
-**URL:** http://localhost:5000  
+
+**URL:** <http://localhost:5000>  
 **Shows:**
+
 - Performance metrics per task
 - Historical trends
 - Parameter comparison
@@ -147,8 +167,10 @@ All flows are configured and ready:
 - Run history
 
 ### 3. CLI Dashboard
+
 **Command:** `poetry run python prefect_dashboard.py`  
 **Shows:**
+
 - Terminal visualization
 - Pipeline architecture
 - Data lineage
@@ -160,23 +182,27 @@ All flows are configured and ready:
 ## 🎮 Quick Commands
 
 ### Start Everything
+
 ```bash
 cd ingestion/nse-scraper
 poetry run python run_stack.py
 ```
 
 ### Access Dashboards
+
 ```
 Browser 1: http://localhost:4200 (Prefect)
 Browser 2: http://localhost:5000 (MLflow)
 ```
 
 ### Trigger a Flow
+
 ```bash
 prefect deployment run 'nse-bhavcopy-etl/nse-bhavcopy-daily'
 ```
 
 ### Monitor Execution
+
 ```bash
 prefect flow-run logs -f <run-id>
 prefect flow-run ls -l 10
@@ -187,18 +213,21 @@ prefect flow-run ls -l 10
 ## 📈 What's Tracked
 
 **Per Task:**
+
 - Duration (seconds)
 - Rows processed
 - File sizes
 - Memory usage
 
 **Per Flow:**
+
 - Success/failure rate
 - Total execution time
 - Data quality score
 - Validation pass rate
 
 **System:**
+
 - API availability
 - Error rates
 - Throughput
@@ -240,22 +269,25 @@ Grafana             http://localhost:3000 (if enabled)
 
 1. **Read First:** [PREFECT_START_HERE.md](PREFECT_START_HERE.md)
 
-2. **Setup:** 
+2. **Setup:**
+
    ```bash
    cd ingestion/nse-scraper
    poetry run python run_stack.py
    ```
 
 3. **Access Dashboards:**
-   - http://localhost:4200 (Prefect)
-   - http://localhost:5000 (MLflow)
+   - <http://localhost:4200> (Prefect)
+   - <http://localhost:5000> (MLflow)
 
 4. **Visualize:**
+
    ```bash
    poetry run python prefect_dashboard.py
    ```
 
 5. **Trigger Flows:**
+
    ```bash
    prefect deployment run 'nse-bhavcopy-etl/nse-bhavcopy-daily'
    ```

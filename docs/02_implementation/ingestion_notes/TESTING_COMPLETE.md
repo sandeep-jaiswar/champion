@@ -44,11 +44,13 @@ The NSE data scraper is **fully functional and production-ready** for core marke
 ## 🛠️ Technical Improvements
 
 ### 1. **Brotli Compression Support**
+
 - Added `brotli` package to handle compressed NSE API responses
 - NSE returns responses with `Content-Encoding: br`
 - httpx automatically decompresses using brotli
 
 ### 2. **Polars Integration**
+
 - Replaced Pandas with Polars for better performance
 - 50-100x faster CSV parsing
 - Memory-efficient Arrow backend
@@ -57,6 +59,7 @@ The NSE data scraper is **fully functional and production-ready** for core marke
   - Option Chain scraper (returns pl.DataFrame)
 
 ### 3. **API Updates**
+
 - **Bulk & Block Deals:** Updated to working endpoint
   - Old: `/api/historical/bulk-deals`
   - New: `/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&csv=true`
@@ -102,11 +105,13 @@ NSE/BSE APIs
 ## 💻 Infrastructure
 
 ✅ **Docker Compose:**
+
 - Kafka 7.5.4 (Message broker)
 - Schema Registry (Data governance)
 - Zookeeper (Coordination)
 
 ✅ **Python Stack:**
+
 - Python 3.12
 - Poetry (No virtualenv in workspace)
 - Polars (Data processing)
@@ -114,6 +119,7 @@ NSE/BSE APIs
 - Prefect (Orchestration)
 
 ✅ **Performance:**
+
 - Bhavcopy download: <2s
 - Symbol Master: <1s
 - Bulk Deals: ~1s per day
@@ -148,16 +154,19 @@ NSE/BSE APIs
 ## 🚀 Next Steps
 
 ### Immediate (For Production)
+
 1. ✅ Deploy core NSE scrapers (Bhavcopy, Symbol Master, Bulk/Block)
 2. ✅ Schedule daily Prefect jobs
 3. ✅ Monitor Kafka topics and ClickHouse ingestion
 
 ### Phase 2 (Secondary Data)
+
 1. Fix BSE Bhavcopy URL structure
 2. Add MCA Financials company code mapping
 3. Set up BSE Shareholding authentication
 
 ### Phase 3 (Optional)
+
 1. RBI Macro integration
 2. MOSPI economic data
 3. Additional data sources
@@ -177,6 +186,7 @@ NSE/BSE APIs
 ## 📞 Support
 
 For issues or questions, refer to:
+
 - [README.md](README.md) - Setup and architecture
 - [BULK_BLOCK_DEALS_QUICKSTART.md](BULK_BLOCK_DEALS_QUICKSTART.md) - Quick start guide
 - `src/scrapers/` - Individual scraper implementations
