@@ -22,52 +22,44 @@ from champion.orchestration.tasks.trading_calendar_tasks import (
 class TestExceptionHandling:
     """Test suite for exception handling in orchestration tasks."""
 
-    def test_load_bulk_block_deals_clickhouse_file_not_found(self, caplog):
+    def test_load_bulk_block_deals_clickhouse_file_not_found(self, capsys):
         """Test that FileNotFoundError is handled with retryable flag."""
         result = load_bulk_block_deals_clickhouse("/nonexistent/file.parquet", "BULK")
 
         assert result == 0
         # Check that the error was logged with retryable flag
-        assert any(
-            "parquet_read_failed" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "parquet_read_failed" in captured.err or "parquet_read_failed" in captured.out
 
-    def test_load_index_constituents_clickhouse_file_not_found(self, caplog):
+    def test_load_index_constituents_clickhouse_file_not_found(self, capsys):
         """Test that FileNotFoundError is handled with retryable flag."""
         result = load_index_constituents_clickhouse("/nonexistent/file.parquet", "NIFTY50")
 
         assert result == 0
         # Check that the error was logged
-        assert any(
-            "parquet_read_failed" in record.message or "error" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "parquet_read_failed" in captured.err or "parquet_read_failed" in captured.out
 
-    def test_load_macro_clickhouse_file_not_found(self, caplog):
+    def test_load_macro_clickhouse_file_not_found(self, capsys):
         """Test that FileNotFoundError is handled with retryable flag."""
         result = load_macro_clickhouse("/nonexistent/file.parquet")
 
         assert result == 0
         # Check that the error was logged with retryable flag
-        assert any(
-            "parquet_read_failed" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "parquet_read_failed" in captured.err or "parquet_read_failed" in captured.out
 
-    def test_load_trading_calendar_clickhouse_file_not_found(self, caplog):
+    def test_load_trading_calendar_clickhouse_file_not_found(self, capsys):
         """Test that FileNotFoundError is handled with retryable flag."""
         result = load_trading_calendar_clickhouse("/nonexistent/file.parquet")
 
         assert result == 0
         # Check that the error was logged with retryable flag
-        assert any(
-            "parquet_read_failed" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "parquet_read_failed" in captured.err or "parquet_read_failed" in captured.out
 
     @patch("champion.orchestration.tasks.bse_tasks.PolarsBseParser")
-    def test_parse_bse_polars_file_not_found(self, mock_parser_class, caplog):
+    def test_parse_bse_polars_file_not_found(self, mock_parser_class, capsys):
         """Test that FileNotFoundError is handled with retryable flag."""
         from datetime import date
 
@@ -79,13 +71,11 @@ class TestExceptionHandling:
 
         assert result is None
         # Check that the error was logged with retryable flag
-        assert any(
-            "bse_file_read_failed" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "bse_file_read_failed" in captured.err or "bse_file_read_failed" in captured.out
 
     @patch("champion.orchestration.tasks.bse_tasks.PolarsBseParser")
-    def test_parse_bse_polars_validation_error(self, mock_parser_class, caplog):
+    def test_parse_bse_polars_validation_error(self, mock_parser_class, capsys):
         """Test that ValueError is handled with non-retryable flag."""
         from datetime import date
 
@@ -97,13 +87,11 @@ class TestExceptionHandling:
 
         assert result is None
         # Check that the error was logged with non-retryable flag
-        assert any(
-            "bse_parsing_validation_failed" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "bse_parsing_validation_failed" in captured.err or "bse_parsing_validation_failed" in captured.out
 
     @patch("polars.read_parquet")
-    def test_load_bulk_block_deals_value_error(self, mock_read_parquet, caplog):
+    def test_load_bulk_block_deals_value_error(self, mock_read_parquet, capsys):
         """Test that ValueError is handled with non-retryable flag."""
         mock_read_parquet.side_effect = ValueError("Invalid parquet format")
 
@@ -111,10 +99,8 @@ class TestExceptionHandling:
 
         assert result == 0
         # Check that critical error was logged with non-retryable flag
-        assert any(
-            "parquet_invalid_format" in record.message or "retryable" in str(record)
-            for record in caplog.records
-        )
+        captured = capsys.readouterr()
+        assert "parquet_invalid_format" in captured.err or "parquet_invalid_format" in captured.out
 
     @patch("polars.read_parquet")
     def test_load_macro_clickhouse_success(self, mock_read_parquet):
