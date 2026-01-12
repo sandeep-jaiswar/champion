@@ -15,13 +15,13 @@ app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
 def validate_date_format(date_str: str) -> date:
     """Validate ISO date format (YYYY-MM-DD).
-    
+
     Args:
         date_str: Date string to validate
-        
+
     Returns:
         date: Parsed date object
-        
+
     Raises:
         typer.Exit: If date format is invalid
     """
@@ -32,7 +32,7 @@ def validate_date_format(date_str: str) -> date:
             f"Invalid date format: {date_str}. Use YYYY-MM-DD",
             fg=typer.colors.RED,
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @app.command("etl-index")
