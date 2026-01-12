@@ -18,7 +18,13 @@ logger = get_logger(__name__)
 
 
 class ShareholdingPatternParser(Parser):
-    """Parser for BSE shareholding pattern data."""
+    """Parser for BSE shareholding pattern data.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self) -> None:
         """Initialize parser."""

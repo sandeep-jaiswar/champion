@@ -36,7 +36,13 @@ SYMBOL_MASTER_SCHEMA = {
 
 
 class SymbolMasterParser(Parser):
-    """High-performance parser for NSE EQUITY_L symbol master file using Polars."""
+    """High-performance parser for NSE EQUITY_L symbol master file using Polars.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self) -> None:
         """Initialize the parser."""
@@ -69,6 +75,9 @@ class SymbolMasterParser(Parser):
                 null_values=["-", "", "null", "NULL", "N/A", "NA"],
                 ignore_errors=False,
             )
+
+            # Validate schema version - check for column mismatches
+            self._validate_schema(df, SYMBOL_MASTER_SCHEMA)
 
             # Filter out rows with empty symbols or invalid data
             df = df.filter(
@@ -118,6 +127,39 @@ class SymbolMasterParser(Parser):
                 "Failed to parse symbol master file", path=str(file_path), error=str(e)
             )
             raise
+
+    def _validate_schema(self, df: pl.DataFrame, expected_schema: dict[str, Any]) -> None:
+        """Validate that DataFrame columns match expected schema.
+
+        Args:
+            df: DataFrame to validate
+            expected_schema: Expected schema dictionary (column_name -> polars type)
+
+        Raises:
+            ValueError: If schema mismatch is detected
+        """
+        actual_cols = set(df.columns)
+        expected_cols = set(expected_schema.keys())
+
+        if actual_cols != expected_cols:
+            missing = expected_cols - actual_cols
+            extra = actual_cols - expected_cols
+
+            error_msg = f"Schema mismatch (version {self.SCHEMA_VERSION}): "
+            if missing:
+                error_msg += f"missing columns={sorted(missing)}"
+            if extra:
+                if missing:
+                    error_msg += ", "
+                error_msg += f"extra columns={sorted(extra)}"
+
+            self.logger.error(
+                "Schema validation failed",
+                schema_version=self.SCHEMA_VERSION,
+                missing=sorted(missing) if missing else [],
+                extra=sorted(extra) if extra else [],
+            )
+            raise ValueError(error_msg)
 
     def _row_to_event(
         self, row: dict[str, Any], exchange: str, event_time: int, ingest_time: int
