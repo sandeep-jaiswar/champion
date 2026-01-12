@@ -1,6 +1,8 @@
 """Tests for ParquetValidator."""
 
 import json
+import logging
+import time
 from pathlib import Path
 
 import polars as pl
@@ -363,7 +365,7 @@ def test_validate_dataframe_batch_boundary_handling(validator):
     assert result.error_details[0]["row_index"] == 9
 
 
-def test_validate_dataframe_1m_rows_benchmark(validator):
+def test_validate_dataframe_1m_rows_benchmark(validator, caplog):
     """Benchmark: Validate 1M row dataset with streaming for memory efficiency.
 
     This test verifies the acceptance criteria:
@@ -375,8 +377,6 @@ def test_validate_dataframe_1m_rows_benchmark(validator):
     The streaming approach (iter_slices) ensures memory usage stays low
     by processing data in batches rather than materializing the entire dataset.
     """
-    import time
-
     # Create 1M row dataset
     num_rows = 1_000_000
     df = pl.DataFrame(
@@ -400,15 +400,23 @@ def test_validate_dataframe_1m_rows_benchmark(validator):
     assert result.valid_rows == num_rows
     assert result.critical_failures == 0
 
-    # Log performance metrics
-    print(f"\n1M Row Validation Benchmark:")
-    print(f"  - Rows validated: {num_rows:,}")
-    print(f"  - Time elapsed: {elapsed_time:.2f}s")
-    print(f"  - Throughput: {num_rows / elapsed_time:,.0f} rows/sec")
-    print(f"  - Batch size: 10,000 rows")
-    print(f"  - Memory optimization: Streaming with iter_slices()")
-
     # Performance sanity check: should process at least 10k rows/sec
     # This ensures the streaming approach doesn't significantly impact speed
     throughput = num_rows / elapsed_time
+    
+    # Log benchmark results (visible with pytest -s or --log-cli-level=INFO)
+    benchmark_msg = (
+        f"\n1M Row Validation Benchmark:\n"
+        f"  - Rows validated: {num_rows:,}\n"
+        f"  - Time elapsed: {elapsed_time:.2f}s\n"
+        f"  - Throughput: {throughput:,.0f} rows/sec\n"
+        f"  - Batch size: 10,000 rows\n"
+        f"  - Memory optimization: Streaming with iter_slices()"
+    )
+    
+    # Use pytest's caplog for proper test output
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(benchmark_msg)
+    
     assert throughput > 10_000, f"Throughput {throughput:.0f} rows/sec is too slow"
