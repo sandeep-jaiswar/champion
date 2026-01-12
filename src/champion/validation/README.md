@@ -198,6 +198,7 @@ if result.critical_failures > 0:
 ```
 
 **Performance Characteristics:**
+
 - Throughput: ~54,000 rows/second
 - Memory usage: Only one batch in memory at a time
 - Tested with datasets up to 10M+ rows

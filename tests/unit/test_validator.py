@@ -324,7 +324,7 @@ def test_validate_dataframe_streaming_with_errors_across_batches(validator):
     # Create dataset with errors in different batches
     num_rows = 25000
     error_indices = {5000, 15000}  # Errors at specific positions across batches
-    
+
     df = pl.DataFrame(
         {
             "event_id": [f"uuid-{i}" for i in range(num_rows)],
