@@ -1,14 +1,12 @@
 """Tests for validation integration in ETL pipeline."""
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
-
 from champion.storage.parquet_io import write_df_safe
-from champion.validation.validator import ParquetValidator, ValidationResult
+from champion.validation.validator import ValidationResult
 
 
 @pytest.fixture

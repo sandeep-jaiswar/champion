@@ -107,6 +107,7 @@ Beyond JSON schema validation, the validator applies domain-specific business ru
 ### OHLC Consistency Check
 
 For any schema with "ohlc" in the name:
+
 - Validates that `high >= low` for all rows
 - Violations are flagged as critical failures
 
@@ -141,6 +142,7 @@ logger.info(
 ### Quarantine Directory
 
 Failed records are written to `data/lake/quarantine/` with:
+
 - Original data
 - Validation errors
 - Schema name used
@@ -206,6 +208,7 @@ result = asyncio.run(validate_parquet_dataset(
 Validation integration tests are in `tests/unit/test_validation_integration.py`.
 
 Run tests:
+
 ```bash
 PYTHONPATH=src python -m pytest tests/unit/test_validator.py tests/unit/test_validation_integration.py -v
 ```
@@ -215,6 +218,7 @@ PYTHONPATH=src python -m pytest tests/unit/test_validator.py tests/unit/test_val
 ### Validation Failures
 
 When validation fails:
+
 1. Error details are logged with structured logging
 2. Failed records are quarantined (if quarantine_dir is set)
 3. MLflow metrics are logged (validation_pass_rate=0.0)
@@ -223,6 +227,7 @@ When validation fails:
 ### Schema Not Found
 
 If a schema doesn't exist:
+
 - Warning is logged
 - Write operation continues (for backward compatibility)
 - This should be fixed by adding the appropriate schema
@@ -239,6 +244,7 @@ If a schema doesn't exist:
 ### Converting Avro Schemas
 
 Some schemas are in Avro format. Convert to JSON Schema:
+
 - Required fields → `"required": [...]`
 - Field types → `"type": "string|number|integer|boolean"`
 - Nullable fields → `"type": ["string", "null"]`
@@ -260,4 +266,3 @@ Some schemas are in Avro format. Convert to JSON Schema:
 - Create validation dashboard in MLflow
 - Add automatic schema generation from DataFrames
 - Implement row-level validation results in output
-

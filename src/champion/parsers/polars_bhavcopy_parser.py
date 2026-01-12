@@ -275,7 +275,7 @@ class PolarsBhavcopyParser:
                         error_details=result.error_details[:5],
                     )
                     raise ValueError(error_msg)
-                
+
                 logger.info(
                     "Validation passed",
                     total_rows=result.total_rows,

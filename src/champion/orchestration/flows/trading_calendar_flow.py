@@ -54,13 +54,13 @@ def trading_calendar_etl_flow(
         # Step 3: Write to Parquet with validation
         try:
             parquet_path = write_trading_calendar_parquet(df, year)
-            
+
             # Log validation success metrics
             mlflow.log_metric("validation_pass_rate", 1.0)
             mlflow.log_metric("validation_failures", 0)
             mlflow.log_metric("rows_validated", len(df))
-            
-        except ValueError as validation_error:
+
+        except ValueError:
             # Log validation failure metrics
             mlflow.log_metric("validation_pass_rate", 0.0)
             mlflow.log_metric("validation_failures", 1)

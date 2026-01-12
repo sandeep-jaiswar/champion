@@ -88,7 +88,10 @@ class TestExceptionHandling:
         assert result is None
         # Check that the error was logged with non-retryable flag
         captured = capsys.readouterr()
-        assert "bse_parsing_validation_failed" in captured.err or "bse_parsing_validation_failed" in captured.out
+        assert (
+            "bse_parsing_validation_failed" in captured.err
+            or "bse_parsing_validation_failed" in captured.out
+        )
 
     @patch("polars.read_parquet")
     def test_load_bulk_block_deals_value_error(self, mock_read_parquet, capsys):

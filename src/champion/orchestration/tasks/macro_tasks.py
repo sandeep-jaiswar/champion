@@ -137,14 +137,14 @@ def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: dateti
     """Write merged macro DataFrame to Parquet with validation; return path."""
     base_path = Path("data/lake")
     dataset = f"macro/start={start_date.strftime('%Y%m%d')}/end={end_date.strftime('%Y%m%d')}"
-    
+
     logger.info(
         "writing_macro_parquet_with_validation",
         rows=len(df),
         start_date=start_date.isoformat(),
         end_date=end_date.isoformat(),
     )
-    
+
     try:
         # Use write_df_safe with validation
         output_path = write_df_safe(
@@ -157,11 +157,11 @@ def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: dateti
             fail_on_validation_errors=True,
             quarantine_dir="data/lake/quarantine",
         )
-        
+
         # Return path to the parquet file
         out_file = output_path / "data.parquet"
         return str(out_file)
-        
+
     except ValueError as e:
         logger.error(
             "macro_validation_failed",

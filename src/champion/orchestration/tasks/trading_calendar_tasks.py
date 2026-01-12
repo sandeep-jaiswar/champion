@@ -28,13 +28,13 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
     """Write calendar DataFrame to Parquet with validation and return file path."""
     base_path = Path("data/lake")
     dataset = f"trading_calendar/year={year}"
-    
+
     logger.info(
         "writing_trading_calendar_with_validation",
         rows=len(df),
         year=year,
     )
-    
+
     try:
         # Use write_df_safe with validation
         output_path = write_df_safe(
@@ -47,11 +47,11 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
             fail_on_validation_errors=True,
             quarantine_dir="data/lake/quarantine",
         )
-        
+
         # Return path to the parquet file
         out_file = output_path / "data.parquet"
         return str(out_file)
-        
+
     except ValueError as e:
         logger.error(
             "trading_calendar_validation_failed",

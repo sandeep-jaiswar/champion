@@ -86,12 +86,12 @@ def macro_indicators_flow(
             logger.info("step_2_write_parquet_with_validation")
             try:
                 parquet_path = write_macro_parquet(df, start_date, end_date)
-                
+
                 # Log validation success metrics
                 mlflow.log_metric("validation_pass_rate", 1.0)
                 mlflow.log_metric("validation_failures", 0)
                 mlflow.log_metric("rows_validated", df.height)
-                
+
             except ValueError as validation_error:
                 # Log validation failure metrics
                 mlflow.log_metric("validation_pass_rate", 0.0)
