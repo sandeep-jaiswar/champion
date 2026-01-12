@@ -18,7 +18,7 @@ jobs:
       contents: read
     defaults:
       run:
-        working-directory: ./ingestion/nse-scraper
+        working-directory: .
 
     steps:
       - name: Checkout code
@@ -47,8 +47,8 @@ jobs:
       - name: Cache Poetry dependencies
         uses: actions/cache@v4
         with:
-          path: ./ingestion/nse-scraper/.venv
-          key: poetry-${{ runner.os }}-py3.11-${{ hashFiles('ingestion/nse-scraper/poetry.lock') }}
+          path: ./.venv
+          key: poetry-${{ runner.os }}-py3.11-${{ hashFiles('poetry.lock') }}
           restore-keys: |
             poetry-${{ runner.os }}-py3.11-
 
@@ -76,7 +76,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          file: ./ingestion/nse-scraper/coverage.xml
+          file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
@@ -89,7 +89,7 @@ jobs:
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'docker')
     defaults:
       run:
-        working-directory: ./ingestion/nse-scraper
+        working-directory: .
 
     steps:
       - name: Checkout code
@@ -108,9 +108,9 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./ingestion/nse-scraper
-          file: ./ingestion/nse-scraper/Dockerfile
+          context: .
+          file: ./Dockerfile
           push: false
-          tags: nse-scraper:${{ github.sha }}
+          tags: champion:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

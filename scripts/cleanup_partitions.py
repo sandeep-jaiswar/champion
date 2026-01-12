@@ -27,7 +27,7 @@ import structlog
 # Add parent directory to path to import storage module
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.storage.retention import cleanup_old_partitions, get_dataset_statistics
+from champion.storage.retention import cleanup_old_partitions, get_dataset_statistics
 
 logger = structlog.get_logger()
 

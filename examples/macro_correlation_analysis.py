@@ -11,8 +11,6 @@ import glob
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "ingestion" / "nse-scraper"))
-
 import polars as pl
 from rich.console import Console
 from rich.table import Table
@@ -115,9 +113,9 @@ def analyze_fx_reserves_trend(parquet_macro: str):
     fx_with_change = fx_data.with_columns(
         [
             (pl.col("value") - pl.col("value").shift(1)).alias("weekly_change"),
-            (
-                (pl.col("value") - pl.col("value").shift(1)) / pl.col("value").shift(1) * 100
-            ).alias("weekly_change_pct"),
+            ((pl.col("value") - pl.col("value").shift(1)) / pl.col("value").shift(1) * 100).alias(
+                "weekly_change_pct"
+            ),
         ]
     )
 
@@ -133,12 +131,16 @@ def analyze_fx_reserves_trend(parquet_macro: str):
         table.add_row(
             row["indicator_date"].strftime("%Y-%m-%d"),
             f"${row['value']:,.0f}M",
-            f"[{change_color}]{row['weekly_change']:+,.0f}M[/{change_color}]"
-            if row["weekly_change"]
-            else "-",
-            f"[{change_color}]{row['weekly_change_pct']:+.2f}%[/{change_color}]"
-            if row["weekly_change_pct"]
-            else "-",
+            (
+                f"[{change_color}]{row['weekly_change']:+,.0f}M[/{change_color}]"
+                if row["weekly_change"]
+                else "-"
+            ),
+            (
+                f"[{change_color}]{row['weekly_change_pct']:+.2f}%[/{change_color}]"
+                if row["weekly_change_pct"]
+                else "-"
+            ),
         )
 
     console.print(table)
@@ -209,9 +211,7 @@ def main():
         return
 
     if not ohlc_files:
-        console.print(
-            "[yellow]No OHLC data found. Some analyses will be limited.[/yellow]\n"
-        )
+        console.print("[yellow]No OHLC data found. Some analyses will be limited.[/yellow]\n")
 
     # Use latest macro file
     latest_macro = sorted(macro_files)[-1]
