@@ -16,6 +16,11 @@ from enum import Enum
 from typing import Any, Callable, TypeVar
 
 from champion.utils.logger import get_logger
+from champion.utils.metrics import (
+    circuit_breaker_failures,
+    circuit_breaker_state,
+    circuit_breaker_state_transitions,
+)
 
 logger = get_logger(__name__)
 
@@ -98,8 +103,6 @@ class CircuitBreaker:
         # Check if we should attempt recovery
         if self.state == CircuitState.OPEN:
             if self.last_failure_time and time.time() - self.last_failure_time > self.recovery_timeout:
-                from champion.utils.metrics import circuit_breaker_state, circuit_breaker_state_transitions
-
                 self.logger.info(
                     "circuit_breaker_attempting_recovery",
                     state="HALF_OPEN",
@@ -139,8 +142,6 @@ class CircuitBreaker:
                 new_state="CLOSED",
             )
             # Update metrics for state transition
-            from champion.utils.metrics import circuit_breaker_state_transitions
-
             circuit_breaker_state_transitions.labels(
                 source=self.name, from_state=old_state.value, to_state="closed"
             ).inc()
@@ -150,6 +151,7 @@ class CircuitBreaker:
         self.last_failure_time = None
 
         # Update state metric
+        circuit_breaker_state.labels(source=self.name).set(0)  # 0 = CLOSED
         from champion.utils.metrics import circuit_breaker_state
 
         circuit_breaker_state.labels(source=self.name).set(0)  # 0 = CLOSED
