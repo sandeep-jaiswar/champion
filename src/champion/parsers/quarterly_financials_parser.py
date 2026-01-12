@@ -12,12 +12,13 @@ from typing import Any
 import polars as pl
 from bs4 import BeautifulSoup
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class QuarterlyFinancialsParser:
+class QuarterlyFinancialsParser(Parser):
     """Parser for quarterly financial statements."""
 
     def __init__(self) -> None:

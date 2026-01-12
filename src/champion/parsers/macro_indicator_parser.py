@@ -10,6 +10,7 @@ from pathlib import Path
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 MAX_DATE_GAP_DAYS = 30  # Maximum acceptable gap between data points (in days)
 
 
-class MacroIndicatorParser:
+class MacroIndicatorParser(Parser):
     """Parser for macro indicator JSON files.
 
     Attributes:

@@ -19,13 +19,14 @@ from typing import Any
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 
 logger = get_logger(__name__)
 
 
-class BulkBlockDealsParser:
+class BulkBlockDealsParser(Parser):
     """High-performance parser for NSE bulk and block deals data using Polars.
 
     Attributes:

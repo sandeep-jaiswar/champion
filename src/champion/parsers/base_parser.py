@@ -1,0 +1,100 @@
+"""Base parser class for all data parsers.
+
+This module provides an abstract base class that establishes a common interface
+for all parsers in the champion platform. It ensures consistency and provides
+shared functionality like metadata handling.
+"""
+
+from abc import ABC, abstractmethod
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import polars as pl
+
+
+class Parser(ABC):
+    """Base class for all data parsers.
+
+    This abstract base class defines the common interface and shared functionality
+    for all parsers in the system. Subclasses must implement the parse() method
+    according to their specific needs.
+
+    Attributes:
+        SCHEMA_VERSION: Version identifier for the parser's output schema.
+                       Used for tracking compatibility and schema evolution.
+    """
+
+    SCHEMA_VERSION: str = "v1.0"
+
+    @abstractmethod
+    def parse(self, file_path: Path, *args: Any, **kwargs: Any) -> Any:
+        """Parse file and return parsed data.
+
+        This method must be implemented by all subclasses. The return type
+        and additional parameters can vary based on the specific parser's needs.
+        Common return types include:
+        - pl.DataFrame: For parsers that return structured tabular data
+        - list[dict[str, Any]]: For parsers that return event structures
+
+        Args:
+            file_path: Path to the file to parse
+            *args: Additional positional arguments specific to the parser
+            **kwargs: Additional keyword arguments specific to the parser
+
+        Returns:
+            Parsed data in the format appropriate for the parser.
+            Common return types:
+            - pl.DataFrame: Structured tabular data
+            - list[dict[str, Any]]: List of event dictionaries
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            Exception: If parsing fails for any reason
+        """
+        pass
+
+    def validate_schema(self, df: pl.DataFrame) -> None:
+        """Validate DataFrame schema matches expected format.
+
+        This method can be optionally implemented by subclasses to validate
+        that the parsed data conforms to the expected schema.
+
+        Args:
+            df: DataFrame to validate
+
+        Raises:
+            NotImplementedError: If the subclass doesn't implement validation
+            ValueError: If validation fails
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement schema validation"
+        )
+
+    def add_metadata(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Add standard metadata columns to DataFrame.
+
+        This method adds common metadata columns that can be useful for
+        tracking data lineage and versioning. Subclasses can override this
+        method to add additional metadata or customize the behavior.
+
+        Args:
+            df: DataFrame to add metadata to
+
+        Returns:
+            DataFrame with added metadata columns:
+            - _schema_version: Version of the parser schema
+            - _parsed_at: Timestamp when the data was parsed
+
+        Example:
+            >>> parser = MyParser()
+            >>> df = parser.add_metadata(df)
+            >>> assert "_schema_version" in df.columns
+            >>> assert "_parsed_at" in df.columns
+        """
+        return df.with_columns(
+            [
+                pl.lit(self.SCHEMA_VERSION).alias("_schema_version"),
+                pl.lit(datetime.now()).alias("_parsed_at"),
+            ]
+        )

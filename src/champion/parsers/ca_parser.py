@@ -13,6 +13,7 @@ from uuid import uuid4
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -34,7 +35,7 @@ CA_SCHEMA = {
 }
 
 
-class CorporateActionsParser:
+class CorporateActionsParser(Parser):
     """Parser for NSE Corporate Actions CSV files.
 
     Attributes:

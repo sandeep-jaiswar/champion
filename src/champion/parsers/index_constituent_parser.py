@@ -15,6 +15,7 @@ from typing import Any
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 
@@ -24,7 +25,7 @@ logger = get_logger(__name__)
 MISSING_DATA_VALUES = ["-", "", "null", "NULL", "N/A", "NA"]
 
 
-class IndexConstituentParser:
+class IndexConstituentParser(Parser):
     """High-performance parser for NSE index constituent data using Polars.
 
     Attributes:
