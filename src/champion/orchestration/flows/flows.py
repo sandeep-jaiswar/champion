@@ -503,19 +503,41 @@ def load_clickhouse(
             trade_dates = df.select("TradDt").unique().to_series().to_list()
 
             for trade_date in trade_dates:
-                delete_query = f"ALTER TABLE {table} DELETE WHERE TradDt = '{trade_date}'"
+                # Use parameterized query to prevent SQL injection
+                # Note: ClickHouse ALTER TABLE DELETE doesn't support placeholders in the same way
+                # as SELECT, so we validate inputs before constructing the query
+                
+                # Validate table name (alphanumeric and underscores only)
+                if not table.replace("_", "").isalnum():
+                    logger.error(
+                        "invalid_table_name",
+                        table=table,
+                    )
+                    continue
+                
+                # Validate trade_date format (should be a string in YYYY-MM-DD format)
+                trade_date_str = str(trade_date).strip()
+                if not trade_date_str or "'" in trade_date_str or ";" in trade_date_str:
+                    logger.warning(
+                        "invalid_trade_date_format",
+                        trade_date=trade_date_str,
+                    )
+                    continue
+                
+                # Construct query with validated inputs
+                delete_query = f"ALTER TABLE {table} DELETE WHERE TradDt = '{trade_date_str}'"
                 try:
                     client.command(delete_query)
                     logger.info(
                         "deleted_existing_data_for_date",
                         table=table,
-                        trade_date=trade_date,
+                        trade_date=trade_date_str,
                     )
                 except Exception as e:
                     logger.warning(
                         "failed_to_delete_existing_data",
                         table=table,
-                        trade_date=trade_date,
+                        trade_date=trade_date_str,
                         error=str(e),
                     )
                     # Continue with insert even if delete fails
