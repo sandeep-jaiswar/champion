@@ -1,6 +1,6 @@
 """Tests for CLI date validation."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 import typer
@@ -64,4 +64,39 @@ class TestValidateDateFormat:
         """Test that Feb 29 in non-leap year is rejected."""
         with pytest.raises(typer.Exit) as exc_info:
             validate_date_format("2023-02-29")
+        assert exc_info.value.exit_code == 1
+
+    def test_future_date_rejected_by_default(self):
+        """Test that future dates are rejected by default."""
+        future_date = (date.today() + timedelta(days=30)).isoformat()
+        with pytest.raises(typer.Exit) as exc_info:
+            validate_date_format(future_date)
+        assert exc_info.value.exit_code == 1
+
+    def test_future_date_allowed_when_specified(self):
+        """Test that future dates are allowed when allow_future=True."""
+        future_date = (date.today() + timedelta(days=30)).isoformat()
+        result = validate_date_format(future_date, allow_future=True)
+        assert result == date.today() + timedelta(days=30)
+
+    def test_today_is_valid(self):
+        """Test that today's date is valid."""
+        result = validate_date_format(date.today().isoformat())
+        assert result == date.today()
+
+    def test_past_date_is_valid(self):
+        """Test that past dates are valid."""
+        past_date = (date.today() - timedelta(days=30)).isoformat()
+        result = validate_date_format(past_date)
+        assert result == date.today() - timedelta(days=30)
+
+    def test_compact_format_yyyymmdd(self):
+        """Test that YYYYMMDD format is accepted."""
+        result = validate_date_format("20231215")
+        assert result == date(2023, 12, 15)
+
+    def test_compact_format_invalid(self):
+        """Test that invalid compact format is rejected."""
+        with pytest.raises(typer.Exit) as exc_info:
+            validate_date_format("2023121")  # Only 7 digits
         assert exc_info.value.exit_code == 1

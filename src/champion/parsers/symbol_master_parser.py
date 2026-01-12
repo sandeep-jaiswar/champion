@@ -115,14 +115,20 @@ class SymbolMasterParser(Parser):
                     if event:
                         events.append(event)
                         rows_parsed.labels(scraper="symbol_master", status="success").inc()
-                except Exception as e:
+                except (KeyError, ValueError, TypeError) as e:
+                    # KeyError: missing expected field in row
+                    # ValueError: invalid value format
+                    # TypeError: unexpected data type
                     self.logger.error("Failed to parse row", row=row, error=str(e))
                     rows_parsed.labels(scraper="symbol_master", status="failed").inc()
 
             self.logger.info("Parsed symbol master file", path=str(file_path), events=len(events))
             return events
 
-        except Exception as e:
+        except (FileNotFoundError, pl.ComputeError, ValueError) as e:
+            # FileNotFoundError: CSV file missing
+            # pl.ComputeError: Polars parsing/computation error
+            # ValueError: Schema validation failed
             self.logger.error(
                 "Failed to parse symbol master file", path=str(file_path), error=str(e)
             )
@@ -253,7 +259,10 @@ class SymbolMasterParser(Parser):
                 if isinstance(value, date):
                     epoch = date(1970, 1, 1)
                     return (value - epoch).days
-            except Exception:
+            except (TypeError, AttributeError, OverflowError):
+                # TypeError: invalid type for date operations
+                # AttributeError: value doesn't have expected date attributes
+                # OverflowError: date calculation overflow
                 pass
             return None
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date
+from datetime import date, datetime
 
 import typer
 
@@ -13,26 +13,52 @@ os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
 app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
 
-def validate_date_format(date_str: str) -> date:
-    """Validate ISO date format (YYYY-MM-DD or YYYYMMDD).
+def validate_date_format(date_str: str, allow_future: bool = False) -> date:
+    """Validate date format and return date object.
+
+    Supports multiple formats:
+    - YYYY-MM-DD (ISO format)
+    - YYYYMMDD (compact format)
 
     Args:
-        date_str: Date string to validate in ISO 8601 format
+        date_str: Date string to validate
+        allow_future: If False, reject dates in the future (default: False)
 
     Returns:
         date: Parsed date object
 
     Raises:
-        typer.Exit: If date format is invalid
+        typer.Exit: If date format is invalid or date is in future when not allowed
     """
+    parsed_date = None
+
+    # Try ISO format (YYYY-MM-DD)
     try:
-        return date.fromisoformat(date_str)
+        parsed_date = date.fromisoformat(date_str)
     except ValueError:
+        # Try compact format (YYYYMMDD)
+        try:
+            if len(date_str) == 8 and date_str.isdigit():
+                parsed_date = datetime.strptime(date_str, "%Y%m%d").date()
+        except ValueError:
+            pass
+
+    if parsed_date is None:
         typer.secho(
-            f"Invalid date format: {date_str}. Use YYYY-MM-DD",
+            f"Invalid date format: {date_str}. Use YYYY-MM-DD or YYYYMMDD",
             fg=typer.colors.RED,
         )
         raise typer.Exit(1) from None
+
+    # Check if date is not in the future (unless allowed)
+    if not allow_future and parsed_date > date.today():
+        typer.secho(
+            f"Date {parsed_date} is in the future. Trading dates must be today or earlier.",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
+    return parsed_date
 
 
 @app.command("etl-index")
@@ -46,9 +72,15 @@ def etl_index(
         from champion.orchestration.flows.flows import index_constituent_etl_flow
 
         index_constituent_etl_flow(indices=[index_name], effective_date=eff)
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Index ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Index ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -79,9 +111,15 @@ def etl_macro(
         macro_indicators_flow(
             start_date=start, end_date=end, source_order=sources, fail_on_empty=fail_on_empty
         )
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Macro ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Macro ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -96,9 +134,15 @@ def etl_trading_calendar():
         )
 
         trading_calendar_etl_flow()
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Trading calendar ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Trading calendar ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -133,8 +177,8 @@ def etl_bulk_deals(
                 end_date=end_dt.isoformat(),
             )
             return
-        except Exception:
-            # Fallback to single flow
+        except (ImportError, ModuleNotFoundError):
+            # Fallback to single flow if date-range flow is not available
             pass
     try:
         from champion.orchestration.flows.bulk_block_deals_flow import (
@@ -142,9 +186,15 @@ def etl_bulk_deals(
         )
 
         bulk_block_deals_etl_flow()
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Bulk/Block deals ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Bulk/Block deals ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -171,9 +221,15 @@ def etl_ohlc(
             load_to_clickhouse=load_to_clickhouse,
             start_metrics_server_flag=False,
         )
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"OHLC ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"OHLC ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -188,9 +244,15 @@ def etl_corporate_actions():
         )
 
         corporate_actions_etl_flow()
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Corporate actions ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Corporate actions ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -209,9 +271,15 @@ def etl_combined_equity(
         else:
             td = date.today()
         combined_equity_etl_flow(trade_date=td)
-    except Exception as e:
+    except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"Combined equity ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"Combined equity ETL execution failed: {e}",
             fg=typer.colors.RED,
         )
         raise
@@ -226,11 +294,25 @@ def show_config():
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point.
+
+    Args:
+        argv: Command line arguments (optional)
+
+    Returns:
+        Exit code (0 for success, 1 for error)
+    """
     try:
         app()
         return 0
+    except typer.Exit as e:
+        # typer.Exit is expected for normal exit with custom codes
+        return e.exit_code
+    except KeyboardInterrupt:
+        typer.secho("\nOperation cancelled by user", fg=typer.colors.YELLOW)
+        return 130  # Standard exit code for SIGINT
     except Exception as e:
-        typer.secho(f"Error: {e}", fg=typer.colors.RED)
+        typer.secho(f"Unexpected error: {e}", fg=typer.colors.RED)
         return 1
 
 
