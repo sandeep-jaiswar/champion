@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Macro Indicators Parquet Schema",
+  "description": "Time series data for macroeconomic indicators from RBI, MOSPI, and other sources",
+  "type": "object",
+  "required": [
+    "indicator_date",
+    "indicator_code",
+    "indicator_name",
+    "indicator_category",
+    "value",
+    "unit",
+    "frequency",
+    "source",
+    "ingestion_timestamp"
+  ],
+  "properties": {
+    "indicator_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the indicator observation (ISO 8601 format YYYY-MM-DD)"
+    },
+    "indicator_code": {
+      "type": "string",
+      "description": "Unique code identifying the indicator (e.g., REPO_RATE, CPI_COMBINED, WPI_ALL, FX_RESERVES)"
+    },
+    "indicator_name": {
+      "type": "string",
+      "description": "Human-readable name of the indicator"
+    },
+    "indicator_category": {
+      "type": "string",
+      "description": "Category of indicator (POLICY_RATE, INFLATION, FX_RESERVE, GDP, EMPLOYMENT)"
+    },
+    "value": {
+      "type": "number",
+      "description": "Numeric value of the indicator"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measurement (%, INR Crore, USD Million, Index Points, etc.)"
+    },
+    "frequency": {
+      "type": "string",
+      "description": "Frequency of data (DAILY, WEEKLY, MONTHLY, QUARTERLY, ANNUAL)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source (RBI, MOSPI, CMIE, etc.)"
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "description": "URL of the data source"
+    },
+    "metadata": {
+      "type": ["string", "null"],
+      "description": "Additional metadata in JSON format"
+    },
+    "ingestion_timestamp": {
+      "type": "string",
+      "description": "Timestamp when data was ingested (ISO 8601 format)"
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Block Deals Parquet Schema",
+  "description": "Schema for NSE bulk and block deals data. Bulk deals are transactions where total quantity exceeds 0.5% of listed shares. Block deals are transactions with minimum 5 lakh shares or Rs 5 crore value.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_time",
+    "ingest_time",
+    "source",
+    "schema_version",
+    "entity_id",
+    "trade_date",
+    "symbol",
+    "client_name",
+    "deal_type",
+    "quantity",
+    "price"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event (UUID)"
+    },
+    "event_time": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Timestamp when event was created (milliseconds since epoch)"
+    },
+    "ingest_time": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Timestamp when data was ingested (milliseconds since epoch)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Data source identifier (e.g., 'nse.bulk_block_deals')"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for compatibility tracking"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "Entity identifier"
+    },
+    "trade_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the trade"
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Security symbol"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Name of the client"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": ["BULK", "BLOCK"],
+      "description": "Type of deal (BULK or BLOCK)"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Quantity of shares traded"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price per share"
+    },
+    "year": {
+      "type": "integer",
+      "description": "Year for partitioning"
+    },
+    "month": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12,
+      "description": "Month for partitioning"
+    },
+    "day": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31,
+      "description": "Day for partitioning"
+    }
+  }
+}

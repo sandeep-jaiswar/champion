@@ -9,6 +9,7 @@ import polars as pl
 import structlog
 
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
+from champion.storage.parquet_io import write_df_safe
 
 logger = structlog.get_logger()
 
@@ -159,23 +160,18 @@ def write_bulk_block_deals_parquet(
     deal_type: str,
     output_base_path: str | Path = "data/lake",
 ) -> str:
-    """Write events to partitioned Parquet and return file path."""
+    """Write events to partitioned Parquet with validation and return file path."""
     if not events:
         return ""
 
     d = deal_date if isinstance(deal_date, date) else date.fromisoformat(deal_date)
 
-    base = Path(output_base_path)
-    out_dir = (
-        base
-        / "bulk_block_deals"
-        / f"deal_type={deal_type.upper()}"
-        / f"year={d.year}"
-        / f"month={d.month:02d}"
-        / f"day={d.day:02d}"
+    logger.info(
+        "writing_bulk_block_deals_with_validation",
+        event_count=len(events),
+        deal_date=str(d),
+        deal_type=deal_type,
     )
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"{deal_type.lower()}_deals_{d.strftime('%Y%m%d')}.parquet"
 
     df = pl.DataFrame(events).with_columns(
         [
@@ -190,11 +186,37 @@ def write_bulk_block_deals_parquet(
         ]
     )
 
-    partition_cols = [c for c in ("year", "month", "day", "deal_type") if c in df.columns]
-    to_write = df.drop(partition_cols) if partition_cols else df
+    base_path = Path(output_base_path)
+    dataset = (
+        f"bulk_block_deals/deal_type={deal_type.upper()}"
+        f"/year={d.year}/month={d.month:02d}/day={d.day:02d}"
+    )
 
-    to_write.write_parquet(out_file, compression="snappy")
-    return str(out_file)
+    try:
+        # Use write_df_safe with validation
+        output_path = write_df_safe(
+            df=df,
+            dataset=dataset,
+            base_path=base_path,
+            schema_name="bulk_block_deals_jsonschema",
+            schema_dir="schemas/parquet",
+            compression="snappy",
+            fail_on_validation_errors=True,
+            quarantine_dir=base_path / "quarantine",
+        )
+
+        # Return path to the parquet file
+        out_file = output_path / "data.parquet"
+        return str(out_file)
+
+    except ValueError as e:
+        logger.error(
+            "bulk_block_deals_validation_failed",
+            error=str(e),
+            deal_date=str(d),
+            deal_type=deal_type,
+        )
+        raise
 
 
 def load_bulk_block_deals_clickhouse(
