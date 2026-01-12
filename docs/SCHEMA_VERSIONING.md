@@ -7,6 +7,7 @@ This document describes the schema versioning implementation added to all parser
 ## Problem Statement
 
 When NSE or other data sources change their CSV column names or structure:
+
 - Parsers using old column names silently fail
 - No warnings appear in logs
 - Warehouse receives incomplete data
@@ -38,6 +39,7 @@ class PolarsBhavcopyParser(Parser):
 ```
 
 **All Parsers with SCHEMA_VERSION:**
+
 - `base_parser.py` (base class)
 - `polars_bhavcopy_parser.py`
 - `bhavcopy_parser.py`
@@ -94,6 +96,7 @@ def _validate_schema(
 ```
 
 **Parsers with Schema Validation:**
+
 - `PolarsBhavcopyParser` - validates against `BHAVCOPY_SCHEMA`
 - `PolarsBseParser` - validates against `BSE_BHAVCOPY_SCHEMA`
 - `SymbolMasterParser` - validates against `SYMBOL_MASTER_SCHEMA`
@@ -163,22 +166,24 @@ event = {
 When a schema mismatch is detected:
 
 1. **ValueError is raised** with descriptive message:
-   ```
-   Schema mismatch (version v1.0): missing columns=['ClsPric', 'OpnPric'], extra columns=['CLOSE_PRICE', 'OPEN_PRICE']
-   ```
 
-2. **Structured log entry** is created:
-   ```json
-   {
-     "level": "error",
-     "event": "Schema validation failed",
-     "schema_version": "v1.0",
+```
+Schema mismatch (version v1.0): missing columns=['ClsPric', 'OpnPric'], extra columns=['CLOSE_PRICE', 'OPEN_PRICE']
+```
+
+1. **Structured log entry** is created:
+
+```json
+{
+  "level": "error",
+  "event": "Schema validation failed",
+  "schema_version": "v1.0",
      "missing": ["ClsPric", "OpnPric"],
      "extra": ["CLOSE_PRICE", "OPEN_PRICE"]
    }
    ```
 
-3. **Parsing fails fast** - no incomplete data reaches the warehouse
+1. **Parsing fails fast** - no incomplete data reaches the warehouse
 
 ## Testing
 
@@ -200,27 +205,30 @@ Comprehensive test suite in `tests/unit/test_schema_validation.py`:
 If NSE changes their data format (e.g., renames columns):
 
 1. **Update schema definition**:
-   ```python
-   BHAVCOPY_SCHEMA = {
-       "TICKER_SYMBOL": pl.Utf8,  # Was "TckrSymb"
-       "CLOSE_PRICE": pl.Float64,  # Was "ClsPric"
-       # ... rest of schema
-   }
-   ```
 
-2. **Increment SCHEMA_VERSION**:
-   ```python
-   SCHEMA_VERSION = "v2.0"  # Was "v1.0"
-   ```
+```python
+BHAVCOPY_SCHEMA = {
+    "TICKER_SYMBOL": pl.Utf8,  # Was "TckrSymb"
+    "CLOSE_PRICE": pl.Float64,  # Was "ClsPric"
+    # ... rest of schema
+}
+```
 
-3. **Update column references** in parsing logic:
-   ```python
-   df = df.filter(pl.col("TICKER_SYMBOL") != "")  # Was "TckrSymb"
-   ```
+1. **Increment SCHEMA_VERSION**:
 
-4. **Test with new data format**
+```python
+SCHEMA_VERSION = "v2.0"  # Was "v1.0"
+```
 
-5. **Deploy updated parser**
+1. **Update column references** in parsing logic:
+
+```python
+df = df.filter(pl.col("TICKER_SYMBOL") != "")  # Was "TckrSymb"
+```
+
+1. **Test with new data format**
+
+1. **Deploy updated parser**
 
 ### For Backward Compatibility
 

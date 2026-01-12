@@ -125,9 +125,7 @@ class PolarsBseParser(Parser):
             rows_parsed.labels(scraper="polars_bse", status="failed").inc()
             raise
 
-    def _validate_schema(
-        self, df: pl.DataFrame, expected_schema: dict[str, Any]
-    ) -> None:
+    def _validate_schema(self, df: pl.DataFrame, expected_schema: dict[str, Any]) -> None:
         """Validate that DataFrame columns match expected schema.
 
         Args:
