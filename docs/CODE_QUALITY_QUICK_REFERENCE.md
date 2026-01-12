@@ -168,10 +168,14 @@ validate_date_format("2025-01-15", allow_future=True)
 
 ## Performance Characteristics
 
-### Validator Performance
+### Validator Performance (Estimated)
+
+Based on implementation design with batch processing:
 - **10K rows**: ~1-2 seconds
 - **100K rows**: ~10-15 seconds
 - **1M rows**: ~90-120 seconds
+
+*Note: Actual performance varies based on hardware, schema complexity, and data characteristics.*
 
 **Optimization**: Adjust batch_size for your workload
 ```python
@@ -271,9 +275,18 @@ result = validator.validate_dataframe(
 **Solution**:
 1. Check source availability (NSE/BSE)
 2. Review recent errors in logs
-3. If source is healthy, manually reset:
+3. If source is healthy, manually reset the circuit breaker:
    ```python
-   breaker.reset()
+   from champion.utils.circuit_breaker_registry import circuit_breaker_registry
+   
+   # Get the breaker instance by name
+   breaker = circuit_breaker_registry.get("nse_scraper")
+   if breaker:
+       breaker.reset()
+       logger.info("circuit_breaker_manually_reset", source="nse_scraper")
+   
+   # Or if you have direct access to the breaker instance:
+   # breaker.reset()
    ```
 
 ### Validation Failures

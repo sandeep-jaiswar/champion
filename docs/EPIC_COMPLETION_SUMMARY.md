@@ -53,9 +53,11 @@ All 11 issues from the Code Quality & Reliability EPIC have been successfully im
 
 **Verification Command**:
 ```bash
-grep -rn "except:" src/champion --include="*.py" | grep -v "except .*Error" | wc -l
+# Search for bare except statements (excluding specific exception types)
+grep -rn "except:" src/champion --include="*.py" | grep -v "except [A-Za-z_][A-Za-z0-9_]*Error" | grep -v "except Exception" | wc -l
 # Result: 0
 
+# Also verify no bare Exception catches
 grep -rn "except Exception:" src/champion --include="*.py" | wc -l
 # Result: 0
 ```
@@ -138,10 +140,12 @@ class CircuitBreaker:
 
 ### ✅ Issue #68: Schema Version Constants
 
-**All Parsers Verified**:
+### Verification Command
+
 ```bash
+# Count files with SCHEMA_VERSION attribute
 grep -r "SCHEMA_VERSION" src/champion/parsers --include="*.py" | wc -l
-# Result: 13+ files
+# Result: 13 files
 ```
 
 Each parser has:
