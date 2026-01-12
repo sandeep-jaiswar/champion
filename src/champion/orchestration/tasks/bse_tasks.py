@@ -31,9 +31,12 @@ def scrape_bse_bhavcopy(trade_date: date) -> str:
     Returns:
         Path to downloaded CSV file
     """
+    from champion.utils.circuit_breaker_registry import bse_breaker
+
     scraper = BseBhavcopyScraper()
     logger.info("scraping_bse_bhavcopy", trade_date=trade_date)
-    csv_path = scraper.scrape(date=trade_date)
+    # Wrap scraper call with circuit breaker
+    csv_path = bse_breaker.call(scraper.scrape, date=trade_date)
     logger.info("bse_bhavcopy_scraped", trade_date=trade_date, path=csv_path)
     return str(csv_path)
 

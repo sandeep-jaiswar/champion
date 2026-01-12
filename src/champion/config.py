@@ -1,5 +1,6 @@
 from .orchestration.config import (
     BSEConfig,
+    CircuitBreakerConfig,
     Config,
     KafkaConfig,
     MonitoringConfig,
@@ -21,5 +22,6 @@ __all__ = [
     "StorageConfig",
     "ObservabilityConfig",
     "MonitoringConfig",
+    "CircuitBreakerConfig",
     "config",
 ]

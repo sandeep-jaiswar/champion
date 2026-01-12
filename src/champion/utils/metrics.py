@@ -70,6 +70,25 @@ flow_duration = Histogram(
     ["flow_name", "status"],
 )
 
+# Circuit breaker metrics
+circuit_breaker_state = Gauge(
+    "circuit_breaker_state",
+    "Current state of circuit breaker (0=CLOSED, 1=HALF_OPEN, 2=OPEN)",
+    ["source"],
+)
+
+circuit_breaker_failures = Counter(
+    "circuit_breaker_failures_total",
+    "Total number of failures tracked by circuit breaker",
+    ["source"],
+)
+
+circuit_breaker_state_transitions = Counter(
+    "circuit_breaker_state_transitions_total",
+    "Total number of circuit breaker state transitions",
+    ["source", "from_state", "to_state"],
+)
+
 
 def start_metrics_server(port: int = 9090) -> None:
     """Start Prometheus metrics HTTP server.
