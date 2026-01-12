@@ -4,7 +4,6 @@ from datetime import date
 
 import pytest
 import typer
-
 from champion.cli import validate_date_format
 
 
