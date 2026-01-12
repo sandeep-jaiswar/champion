@@ -236,6 +236,25 @@ class ParquetValidator:
 
         return result
 
+    def quarantine_failures(
+        self,
+        df: pl.DataFrame,
+        result: ValidationResult,
+        quarantine_dir: Path,
+        schema_name: str,
+    ) -> None:
+        """Write failed records to quarantine directory.
+
+        Public method to quarantine validation failures.
+
+        Args:
+            df: Original DataFrame
+            result: Validation result with error details
+            quarantine_dir: Directory to write quarantined records
+            schema_name: Schema name for organizing quarantine files
+        """
+        self._quarantine_failures(df, result, quarantine_dir, schema_name)
+
     def _quarantine_failures(
         self,
         df: pl.DataFrame,
@@ -244,6 +263,8 @@ class ParquetValidator:
         schema_name: str,
     ) -> None:
         """Write failed records to quarantine directory.
+
+        Private implementation of quarantine functionality.
 
         Args:
             df: Original DataFrame

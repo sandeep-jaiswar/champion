@@ -107,8 +107,8 @@ def bulk_block_deals_etl_flow(
                     results["parquet_files"].append(parquet_file)  # type: ignore
 
                     # Log validation success for this deal type
-                    mlflow.log_metric(f"validation_pass_{deal_type_upper.lower()}", 1.0)
-                    mlflow.log_metric(f"rows_validated_{deal_type_upper.lower()}", len(events))
+                    mlflow.log_metric(f"validation_pass_{deal_type.lower()}", 1.0)
+                    mlflow.log_metric(f"rows_validated_{deal_type.lower()}", len(events))
 
                     # Step 4: Load to ClickHouse (optional)
                     if load_to_clickhouse and parquet_file:
@@ -125,15 +125,14 @@ def bulk_block_deals_etl_flow(
                         deal_type=deal_type_upper,
                         error=str(validation_error),
                     )
-                    mlflow.log_metric(f"validation_pass_{deal_type_upper.lower()}", 0.0)
-                    mlflow.log_metric(f"validation_failures_{deal_type_upper.lower()}", 1)
+                    mlflow.log_metric(f"validation_pass_{deal_type.lower()}", 0.0)
+                    mlflow.log_metric(f"validation_failures_{deal_type.lower()}", 1)
                     validation_succeeded = False
                     raise
 
         # Log overall validation metrics
         mlflow.log_metric("validation_pass_rate", 1.0 if validation_succeeded else 0.0)
-        if validation_succeeded:
-            mlflow.log_metric("validation_failures", 0)
+        mlflow.log_metric("validation_failures", 0 if validation_succeeded else 1)
         mlflow.log_param("status", "SUCCESS" if validation_succeeded else "FAILED")
 
         logger.info(

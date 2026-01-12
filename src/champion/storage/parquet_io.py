@@ -152,7 +152,7 @@ def write_df_safe(
         if quarantine_dir:
             quarantine_path = Path(quarantine_dir)
             quarantine_path.mkdir(parents=True, exist_ok=True)
-            validator._quarantine_failures(df, result, quarantine_path, schema_name)
+            validator.quarantine_failures(df, result, quarantine_path, schema_name)
 
         if fail_on_validation_errors:
             error_msg = (

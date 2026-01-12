@@ -254,10 +254,10 @@ Some schemas are in Avro format. Convert to JSON Schema:
 
 ## Future Enhancements
 
-- [ ] Add schema versioning and evolution
-- [ ] Implement validation SLAs and alerting thresholds
-- [ ] Add data profiling and statistics collection
-- [ ] Create validation dashboard in MLflow
-- [ ] Add automatic schema generation from DataFrames
-- [ ] Implement row-level validation results in output
+- Add schema versioning and evolution
+- Implement validation SLAs and alerting thresholds
+- Add data profiling and statistics collection
+- Create validation dashboard in MLflow
+- Add automatic schema generation from DataFrames
+- Implement row-level validation results in output
 
