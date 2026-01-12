@@ -94,7 +94,6 @@ class ParquetValidator:
         for batch_idx, batch in enumerate(df.iter_slices(batch_size)):
             # Convert only current batch to dicts
             records = batch.to_dicts()
-            
             for local_idx, record in enumerate(records):
                 row_idx = batch_idx * batch_size + local_idx
                 errors = list(validator.iter_errors(record))
@@ -118,6 +117,8 @@ class ParquetValidator:
                         )
 
         # Perform additional business logic validations
+        # Note: Business logic uses Polars operations which are memory-efficient
+        # as they don't materialize data until needed (e.g., only violations)
         business_errors = self._validate_business_logic(df, schema_name)
         error_details.extend(business_errors)
 

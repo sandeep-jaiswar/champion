@@ -323,22 +323,24 @@ def test_validate_dataframe_streaming_with_errors_across_batches(validator):
     """Test that errors are correctly tracked across multiple batches."""
     # Create dataset with errors in different batches
     num_rows = 25000
+    error_indices = {5000, 15000}  # Errors at specific positions across batches
+    
     df = pl.DataFrame(
         {
             "event_id": [f"uuid-{i}" for i in range(num_rows)],
-            # Add negative prices at specific positions across batches
-            "price": [100.0 if i % 10000 != 5000 else -50.0 for i in range(num_rows)],
+            # Add negative prices at specific positions
+            "price": [100.0 if i not in error_indices else -50.0 for i in range(num_rows)],
             "volume": [1000 for _ in range(num_rows)],
         }
     )
 
     result = validator.validate_dataframe(df, schema_name="test_schema", batch_size=10000)
 
-    # Should find errors at indices: 5000, 15000
+    # Verify errors at expected indices
     assert result.total_rows == num_rows
-    assert result.critical_failures == 2
-    assert 5000 in [e["row_index"] for e in result.error_details]
-    assert 15000 in [e["row_index"] for e in result.error_details]
+    assert result.critical_failures == len(error_indices)
+    found_error_indices = {e["row_index"] for e in result.error_details}
+    assert found_error_indices == error_indices
 
 
 def test_validate_dataframe_batch_boundary_handling(validator):
