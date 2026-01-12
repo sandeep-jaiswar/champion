@@ -35,7 +35,13 @@ CA_SCHEMA = {
 
 
 class CorporateActionsParser:
-    """Parser for NSE Corporate Actions CSV files."""
+    """Parser for NSE Corporate Actions CSV files.
+    
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self):
         """Initialize parser."""

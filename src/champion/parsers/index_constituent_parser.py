@@ -25,7 +25,13 @@ MISSING_DATA_VALUES = ["-", "", "null", "NULL", "N/A", "NA"]
 
 
 class IndexConstituentParser:
-    """High-performance parser for NSE index constituent data using Polars."""
+    """High-performance parser for NSE index constituent data using Polars.
+    
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self) -> None:
         """Initialize the parser."""
