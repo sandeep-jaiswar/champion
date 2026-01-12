@@ -112,10 +112,13 @@ def scrape_bhavcopy(trade_date: date) -> str:
                 )
         else:
             # Use scraper to download (ZIP extract via scraper implementation)
+            from champion.utils.circuit_breaker_registry import nse_breaker
+
             scraper = BhavcopyScraper()
             # Prefer scraper.scrape if available, else fallback to direct download
             try:
-                csv_path = scraper.scrape(target_date=trade_date, dry_run=False)
+                # Wrap scraper call with circuit breaker
+                csv_path = nse_breaker.call(scraper.scrape, target_date=trade_date, dry_run=False)
                 local_path = csv_path
             except (ConnectionError, TimeoutError) as e:
                 # Network-related errors are retryable, fallback to direct download

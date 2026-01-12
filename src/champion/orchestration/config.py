@@ -136,6 +136,20 @@ class MonitoringConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="")
 
 
+class CircuitBreakerConfig(BaseSettings):
+    """Circuit breaker configuration for data sources."""
+
+    # NSE configuration
+    nse_failure_threshold: int = Field(default=5, ge=1, le=20)
+    nse_recovery_timeout: int = Field(default=300, ge=60, le=3600)
+
+    # BSE configuration
+    bse_failure_threshold: int = Field(default=5, ge=1, le=20)
+    bse_recovery_timeout: int = Field(default=300, ge=60, le=3600)
+
+    model_config = SettingsConfigDict(env_prefix="CIRCUIT_BREAKER_")
+
+
 class Config(BaseSettings):
     """Main application configuration."""
 
@@ -147,6 +161,7 @@ class Config(BaseSettings):
     storage: StorageConfig = Field(default_factory=StorageConfig)
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    circuit_breaker: CircuitBreakerConfig = Field(default_factory=CircuitBreakerConfig)
 
     model_config = SettingsConfigDict(
         env_file=".env",
