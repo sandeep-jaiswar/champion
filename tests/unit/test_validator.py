@@ -1,7 +1,6 @@
 """Tests for ParquetValidator."""
 
 import json
-import logging
 import time
 from pathlib import Path
 
@@ -403,7 +402,7 @@ def test_validate_dataframe_1m_rows_benchmark(validator, caplog):
     # Performance sanity check: should process at least 10k rows/sec
     # This ensures the streaming approach doesn't significantly impact speed
     throughput = num_rows / elapsed_time
-    
+
     # Log benchmark results (visible with pytest -s or --log-cli-level=INFO)
     benchmark_msg = (
         f"\n1M Row Validation Benchmark:\n"
@@ -413,10 +412,11 @@ def test_validate_dataframe_1m_rows_benchmark(validator, caplog):
         f"  - Batch size: 10,000 rows\n"
         f"  - Memory optimization: Streaming with iter_slices()"
     )
-    
+
     # Use pytest's caplog for proper test output
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info(benchmark_msg)
-    
+
     assert throughput > 10_000, f"Throughput {throughput:.0f} rows/sec is too slow"

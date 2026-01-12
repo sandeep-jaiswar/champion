@@ -8,7 +8,7 @@ shared functionality like metadata handling.
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 import polars as pl
 
@@ -30,7 +30,7 @@ class Parser(ABC):
     @abstractmethod
     def parse(
         self, file_path: Path, *args: Any, **kwargs: Any
-    ) -> Union[pl.DataFrame, list[dict[str, Any]]]:
+    ) -> pl.DataFrame | list[dict[str, Any]]:
         """Parse file and return parsed data.
 
         This method must be implemented by all subclasses. The return type
@@ -65,13 +65,9 @@ class Parser(ABC):
             NotImplementedError: If the subclass doesn't implement validation
             ValueError: If validation fails
         """
-        raise NotImplementedError(
-            f"{self.__class__.__name__} does not implement schema validation"
-        )
+        raise NotImplementedError(f"{self.__class__.__name__} does not implement schema validation")
 
-    def add_metadata(
-        self, df: pl.DataFrame, parsed_at: datetime | None = None
-    ) -> pl.DataFrame:
+    def add_metadata(self, df: pl.DataFrame, parsed_at: datetime | None = None) -> pl.DataFrame:
         """Add standard metadata columns to DataFrame.
 
         This method adds common metadata columns that can be useful for
