@@ -27,6 +27,11 @@ from champion.config import config
 from champion.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
 from champion.scrapers.nse.bhavcopy import BhavcopyScraper
 from champion.utils import metrics
+from champion.utils.idempotency import (
+    check_idempotency_marker,
+    create_idempotency_marker,
+    is_task_completed,
+)
 
 logger = structlog.get_logger()
 
@@ -310,6 +315,10 @@ def write_parquet(
 ) -> str:
     """Write DataFrame to Parquet with partitioned layout.
 
+    This task is idempotent: it checks for an existing marker file before writing.
+    If the task has already completed successfully for the given date, it returns
+    the path to the existing file without rewriting.
+
     Args:
         df: DataFrame to write
         trade_date: Trading date for partitioning
@@ -333,11 +342,48 @@ def write_parquet(
         else:
             resolved_base_path = Path(base_path)
 
+        # Calculate expected output file path
+        year = trade_date.year
+        month = trade_date.month
+        day = trade_date.day
+        partition_path = (
+            resolved_base_path
+            / "normalized"
+            / "equity_ohlc"
+            / f"year={year}"
+            / f"month={month:02d}"
+            / f"day={day:02d}"
+        )
+        expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+
+        # Check idempotency marker
+        if is_task_completed(expected_output_file, trade_date.isoformat()):
+            marker_data = check_idempotency_marker(expected_output_file, trade_date.isoformat())
+            logger.info(
+                "parquet_write_already_completed_skipping",
+                output_file=str(expected_output_file),
+                trade_date=str(trade_date),
+                rows=marker_data.get("rows", 0) if marker_data else 0,
+            )
+            mlflow.log_param("idempotent_skip", True)
+            return str(expected_output_file)
+
         output_file = parser.write_parquet(
             df=df,
             trade_date=trade_date,
             base_path=resolved_base_path,
             validate=True,  # Enable validation
+        )
+
+        # Create idempotency marker
+        create_idempotency_marker(
+            output_file=output_file,
+            trade_date=trade_date.isoformat(),
+            rows=len(df),
+            metadata={
+                "source": "nse_bhavcopy",
+                "table": "normalized_equity_ohlc",
+            },
         )
 
         duration = time.time() - start_time
@@ -358,6 +404,7 @@ def write_parquet(
         mlflow.log_metric("validation_pass_rate", 1.0)
         mlflow.log_metric("validation_failures", 0)
         mlflow.log_metric("rows_validated", len(df))
+        mlflow.log_param("idempotent_skip", False)
 
         # Track Prometheus metrics
         metrics.parquet_write_success.labels(table="normalized_equity_ohlc").inc()
@@ -397,8 +444,13 @@ def load_clickhouse(
     user: str | None = None,
     password: str | None = None,
     database: str | None = None,
+    deduplicate: bool = True,
 ) -> dict:
-    """Load Parquet file into ClickHouse table.
+    """Load Parquet file into ClickHouse table with deduplication.
+
+    This task is idempotent: it uses deduplication to ensure that
+    duplicate records are not inserted. For tables with a trade_date
+    column, existing data for the same date is deleted before insertion.
 
     Args:
         parquet_file: Path to Parquet file
@@ -408,6 +460,7 @@ def load_clickhouse(
         user: ClickHouse user (defaults to champion_user)
         password: ClickHouse password (defaults to champion_pass)
         database: ClickHouse database (defaults to champion_market)
+        deduplicate: Whether to deduplicate before inserting (default: True)
 
     Returns:
         Dictionary with load statistics
@@ -444,6 +497,29 @@ def load_clickhouse(
             database=ch_database,
         )
 
+        # Deduplicate by deleting existing data for the same date
+        if deduplicate and "TradDt" in df.columns:
+            # Extract unique trade dates from the DataFrame
+            trade_dates = df.select("TradDt").unique().to_series().to_list()
+
+            for trade_date in trade_dates:
+                delete_query = f"ALTER TABLE {table} DELETE WHERE TradDt = '{trade_date}'"
+                try:
+                    client.command(delete_query)
+                    logger.info(
+                        "deleted_existing_data_for_date",
+                        table=table,
+                        trade_date=trade_date,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "failed_to_delete_existing_data",
+                        table=table,
+                        trade_date=trade_date,
+                        error=str(e),
+                    )
+                    # Continue with insert even if delete fails
+
         # Convert to pandas for clickhouse-connect compatibility
         pdf = df.to_pandas()
 
@@ -462,6 +538,7 @@ def load_clickhouse(
             "table": table,
             "rows_loaded": rows,
             "duration_seconds": duration,
+            "deduplicated": deduplicate,
         }
 
         logger.info(
@@ -469,12 +546,14 @@ def load_clickhouse(
             table=table,
             rows=rows,
             duration_seconds=duration,
+            deduplicated=deduplicate,
         )
 
         # Log metrics to MLflow
         mlflow.log_metric("load_duration_seconds", duration)
         mlflow.log_metric("rows_loaded", rows)
         mlflow.log_param("clickhouse_table", table)
+        mlflow.log_param("deduplicated", deduplicate)
 
         # Track Prometheus metrics
         metrics.clickhouse_load_success.labels(table=table).inc()

@@ -9,6 +9,11 @@ import structlog
 
 from champion.parsers.index_constituent_parser import IndexConstituentParser
 from champion.scrapers.nse.index_constituent import IndexConstituentScraper
+from champion.utils.idempotency import (
+    check_idempotency_marker,
+    create_idempotency_marker,
+    is_task_completed,
+)
 
 logger = structlog.get_logger()
 
@@ -47,7 +52,21 @@ def write_index_constituents_parquet(
     effective_date: str | date,
     output_base_path: str | Path = "data/lake",
 ) -> str:
-    """Write events to a partitioned Parquet path and return file path."""
+    """Write events to a partitioned Parquet path and return file path.
+
+    This function is idempotent: it checks for an existing marker file before writing.
+    If the task has already completed successfully for the given index and date,
+    it returns the path to the existing file without rewriting.
+
+    Args:
+        events: List of event dictionaries to write
+        index_name: Name of the index
+        effective_date: Effective date of constituents
+        output_base_path: Base path for data lake
+
+    Returns:
+        Path to written Parquet file
+    """
     if not events:
         return ""
 
@@ -68,6 +87,19 @@ def write_index_constituents_parquet(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"{index_name.lower()}_{eff_date.strftime('%Y%m%d')}.parquet"
 
+    # Check idempotency marker using date and index name as key
+    date_key = f"{eff_date.isoformat()}-{index_name}"
+    if is_task_completed(out_file, date_key):
+        marker_data = check_idempotency_marker(out_file, date_key)
+        logger.info(
+            "index_constituents_already_written_skipping",
+            output_file=str(out_file),
+            index_name=index_name,
+            effective_date=eff_date.isoformat(),
+            rows=marker_data.get("rows", 0) if marker_data else 0,
+        )
+        return str(out_file)
+
     df = pl.DataFrame(events)
     # Cast common types
     to_write = df.with_columns(
@@ -80,6 +112,19 @@ def write_index_constituents_parquet(
         [c for c in ("index", "year", "month", "day") if c in to_write.columns]
     )
     to_write.write_parquet(out_file, compression="snappy")
+
+    # Create idempotency marker
+    create_idempotency_marker(
+        output_file=out_file,
+        trade_date=date_key,
+        rows=len(df),
+        metadata={
+            "index_name": index_name,
+            "effective_date": eff_date.isoformat(),
+            "table": "index_constituents",
+        },
+    )
+
     return str(out_file)
 
 

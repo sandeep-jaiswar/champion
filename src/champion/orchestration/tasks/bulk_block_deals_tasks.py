@@ -10,6 +10,11 @@ import structlog
 
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
 from champion.storage.parquet_io import write_df_safe
+from champion.utils.idempotency import (
+    check_idempotency_marker,
+    create_idempotency_marker,
+    is_task_completed,
+)
 
 logger = structlog.get_logger()
 
@@ -160,11 +165,52 @@ def write_bulk_block_deals_parquet(
     deal_type: str,
     output_base_path: str | Path = "data/lake",
 ) -> str:
-    """Write events to partitioned Parquet with validation and return file path."""
+    """Write events to partitioned Parquet with validation and return file path.
+
+    This function is idempotent: it checks for an existing marker file before writing.
+    If the task has already completed successfully for the given date and deal type,
+    it returns the path to the existing file without rewriting.
+
+    Args:
+        events: List of event dictionaries to write
+        deal_date: Date of the deals
+        deal_type: Type of deals (BULK or BLOCK)
+        output_base_path: Base path for data lake
+
+    Returns:
+        Path to written Parquet file
+
+    Raises:
+        ValueError: If validation fails
+        OSError: If file write fails
+    """
     if not events:
         return ""
 
     d = deal_date if isinstance(deal_date, date) else date.fromisoformat(deal_date)
+
+    base_path = Path(output_base_path)
+    dataset = (
+        f"bulk_block_deals/deal_type={deal_type.upper()}"
+        f"/year={d.year}/month={d.month:02d}/day={d.day:02d}"
+    )
+
+    # Construct expected output path
+    output_path = base_path / dataset
+    out_file = output_path / "data.parquet"
+
+    # Check idempotency marker using date and deal type as key
+    date_key = f"{d.isoformat()}-{deal_type.upper()}"
+    if is_task_completed(out_file, date_key):
+        marker_data = check_idempotency_marker(out_file, date_key)
+        logger.info(
+            "bulk_block_deals_already_written_skipping",
+            output_file=str(out_file),
+            deal_date=str(d),
+            deal_type=deal_type,
+            rows=marker_data.get("rows", 0) if marker_data else 0,
+        )
+        return str(out_file)
 
     logger.info(
         "writing_bulk_block_deals_with_validation",
@@ -186,12 +232,6 @@ def write_bulk_block_deals_parquet(
         ]
     )
 
-    base_path = Path(output_base_path)
-    dataset = (
-        f"bulk_block_deals/deal_type={deal_type.upper()}"
-        f"/year={d.year}/month={d.month:02d}/day={d.day:02d}"
-    )
-
     try:
         # Use write_df_safe with validation
         output_path = write_df_safe(
@@ -207,6 +247,19 @@ def write_bulk_block_deals_parquet(
 
         # Return path to the parquet file
         out_file = output_path / "data.parquet"
+
+        # Create idempotency marker
+        create_idempotency_marker(
+            output_file=out_file,
+            trade_date=date_key,
+            rows=len(df),
+            metadata={
+                "deal_date": d.isoformat(),
+                "deal_type": deal_type.upper(),
+                "table": "bulk_block_deals",
+            },
+        )
+
         return str(out_file)
 
     except (FileNotFoundError, OSError) as e:

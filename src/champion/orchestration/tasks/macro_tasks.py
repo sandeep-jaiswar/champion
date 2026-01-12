@@ -9,6 +9,11 @@ import structlog
 from champion.scrapers.nse.mospi_macro import MOSPIMacroScraper
 from champion.scrapers.nse.rbi_macro import RBIMacroScraper
 from champion.storage.parquet_io import write_df_safe
+from champion.utils.idempotency import (
+    check_idempotency_marker,
+    create_idempotency_marker,
+    is_task_completed,
+)
 
 logger = structlog.get_logger()
 
@@ -134,9 +139,43 @@ def merge_macro_dataframes(dfs: list[pl.DataFrame]) -> pl.DataFrame:
 
 
 def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: datetime) -> str:
-    """Write merged macro DataFrame to Parquet with validation; return path."""
+    """Write merged macro DataFrame to Parquet with validation; return path.
+
+    This function is idempotent: it checks for an existing marker file before writing.
+    If the task has already completed successfully for the given date range, it returns
+    the path to the existing file without rewriting.
+
+    Args:
+        df: DataFrame to write
+        start_date: Start date for data
+        end_date: End date for data
+
+    Returns:
+        Path to written Parquet file
+
+    Raises:
+        ValueError: If validation fails
+        OSError: If file write fails
+    """
     base_path = Path("data/lake")
     dataset = f"macro/start={start_date.strftime('%Y%m%d')}/end={end_date.strftime('%Y%m%d')}"
+
+    # Construct expected output path
+    output_path = base_path / dataset
+    out_file = output_path / "data.parquet"
+
+    # Check idempotency marker using date range as key
+    date_key = f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}"
+    if is_task_completed(out_file, date_key):
+        marker_data = check_idempotency_marker(out_file, date_key)
+        logger.info(
+            "macro_parquet_already_written_skipping",
+            output_file=str(out_file),
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+            rows=marker_data.get("rows", 0) if marker_data else 0,
+        )
+        return str(out_file)
 
     logger.info(
         "writing_macro_parquet_with_validation",
@@ -160,6 +199,19 @@ def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: dateti
 
         # Return path to the parquet file
         out_file = output_path / "data.parquet"
+
+        # Create idempotency marker
+        create_idempotency_marker(
+            output_file=out_file,
+            trade_date=date_key,
+            rows=len(df),
+            metadata={
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "table": "macro_indicators",
+            },
+        )
+
         return str(out_file)
 
     except (FileNotFoundError, OSError) as e:
