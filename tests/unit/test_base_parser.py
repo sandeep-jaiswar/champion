@@ -83,6 +83,32 @@ class TestBaseParser:
         # Check that parsed_at is a datetime
         assert result.schema["_parsed_at"] == pl.Datetime
 
+    def test_add_metadata_with_custom_timestamp(self):
+        """Test that add_metadata accepts a custom timestamp."""
+        parser = ConcreteParser()
+        df = pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+        custom_time = datetime(2024, 1, 15, 12, 30, 45)
+
+        result = parser.add_metadata(df, parsed_at=custom_time)
+
+        # Check that custom timestamp is used
+        assert result["_parsed_at"][0] == custom_time
+
+    def test_add_metadata_batch_processing(self):
+        """Test that same timestamp can be used for batch processing."""
+        parser = ConcreteParser()
+        df1 = pl.DataFrame({"col1": [1, 2, 3]})
+        df2 = pl.DataFrame({"col1": [4, 5, 6]})
+
+        # Use same timestamp for both
+        timestamp = datetime(2024, 1, 15, 12, 30, 45)
+        result1 = parser.add_metadata(df1, parsed_at=timestamp)
+        result2 = parser.add_metadata(df2, parsed_at=timestamp)
+
+        # Both should have the same timestamp
+        assert result1["_parsed_at"][0] == result2["_parsed_at"][0]
+        assert result1["_parsed_at"][0] == timestamp
+
     def test_add_metadata_preserves_original_data(self):
         """Test that add_metadata doesn't modify original data."""
         parser = ConcreteParser()

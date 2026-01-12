@@ -71,7 +71,9 @@ class Parser(ABC):
             f"{self.__class__.__name__} does not implement schema validation"
         )
 
-    def add_metadata(self, df: pl.DataFrame) -> pl.DataFrame:
+    def add_metadata(
+        self, df: pl.DataFrame, parsed_at: datetime | None = None
+    ) -> pl.DataFrame:
         """Add standard metadata columns to DataFrame.
 
         This method adds common metadata columns that can be useful for
@@ -80,6 +82,10 @@ class Parser(ABC):
 
         Args:
             df: DataFrame to add metadata to
+            parsed_at: Optional timestamp for when the data was parsed.
+                      If None, uses current timestamp. For batch processing,
+                      consider passing the same timestamp to multiple calls
+                      for consistency.
 
         Returns:
             DataFrame with added metadata columns:
@@ -88,13 +94,17 @@ class Parser(ABC):
 
         Example:
             >>> parser = MyParser()
-            >>> df = parser.add_metadata(df)
-            >>> assert "_schema_version" in df.columns
-            >>> assert "_parsed_at" in df.columns
+            >>> timestamp = datetime.now()
+            >>> # Use same timestamp for multiple files in a batch
+            >>> df1 = parser.add_metadata(df1, parsed_at=timestamp)
+            >>> df2 = parser.add_metadata(df2, parsed_at=timestamp)
         """
+        if parsed_at is None:
+            parsed_at = datetime.now()
+
         return df.with_columns(
             [
                 pl.lit(self.SCHEMA_VERSION).alias("_schema_version"),
-                pl.lit(datetime.now()).alias("_parsed_at"),
+                pl.lit(parsed_at).alias("_parsed_at"),
             ]
         )
