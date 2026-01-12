@@ -58,7 +58,7 @@ def parse_bulk_block_deals(
             logger.debug("int_conversion_failed", value=val, error=str(e))
             return 0
         except Exception as e:
-            logger.warning("unexpected_int_conversion_error", value=val, error=str(e))
+            logger.critical("unexpected_int_conversion_error", value=val, error=str(e))
             return 0
 
     def _to_float(val: Any) -> float:
@@ -72,7 +72,7 @@ def parse_bulk_block_deals(
             logger.debug("float_conversion_failed", value=val, error=str(e))
             return 0.0
         except Exception as e:
-            logger.warning("unexpected_float_conversion_error", value=val, error=str(e))
+            logger.critical("unexpected_float_conversion_error", value=val, error=str(e))
             return 0.0
 
     events: List[Dict[str, Any]] = []
