@@ -16,6 +16,7 @@ for idx, record in enumerate(records):
 ```
 
 **Issues:**
+
 - Entire DataFrame materialized in memory
 - Memory usage: 2GB+ for large datasets
 - Risk of OOM errors on large files
@@ -32,6 +33,7 @@ for batch_idx, batch in enumerate(df.iter_slices(batch_size)):
 ```
 
 **Benefits:**
+
 - Only one batch loaded in memory at a time
 - Memory usage: <100MB regardless of dataset size
 - Configurable batch size (default: 10,000 rows)
@@ -40,16 +42,19 @@ for batch_idx, batch in enumerate(df.iter_slices(batch_size)):
 ## Performance Characteristics
 
 ### Memory Usage
+
 - **Before**: 2GB+ for large datasets (entire DataFrame materialized)
 - **After**: <100MB for any dataset size (only one batch in memory)
 - **Reduction**: ~95% memory savings
 
 ### Validation Speed
+
 - **Throughput**: ~16,000 rows/second on standard hardware
 - **Impact**: Minimal speed impact (similar iteration)
 - **1M rows**: ~60 seconds end-to-end
 
 ### Scalability
+
 - Can handle datasets of any size within available disk space
 - Memory usage remains constant regardless of dataset size
 - Suitable for production use with large data volumes
