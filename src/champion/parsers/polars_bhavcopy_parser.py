@@ -17,6 +17,7 @@ import pyarrow.parquet as pq
 
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
+from champion.validation.validator import ParquetValidator
 
 logger = get_logger(__name__)
 
@@ -235,17 +236,61 @@ class PolarsBhavcopyParser:
         df: pl.DataFrame,
         trade_date: date,
         base_path: Path = Path("data/lake"),
+        validate: bool = True,
     ) -> Path:
-        """Write DataFrame to Parquet with partitioned layout.
+        """Write DataFrame to Parquet with validation and partitioned layout.
 
         Args:
             df: DataFrame to write
             trade_date: Trading date for partitioning
             base_path: Base path for data lake
+            validate: Whether to validate data before writing (default: True)
 
         Returns:
             Path to written Parquet file
+
+        Raises:
+            ValueError: If validation fails
         """
+        # Validate data before writing if enabled
+        if validate:
+            logger.info(
+                "Validating data before write",
+                rows=len(df),
+                trade_date=str(trade_date),
+            )
+
+            try:
+                validator = ParquetValidator(schema_dir=Path("schemas/parquet"))
+                result = validator.validate_dataframe(df, schema_name="normalized_equity_ohlc")
+
+                if result.critical_failures > 0:
+                    error_msg = (
+                        f"Validation failed: {result.critical_failures} critical errors "
+                        f"out of {result.total_rows} rows"
+                    )
+                    logger.error(
+                        "Validation failed before write",
+                        critical_failures=result.critical_failures,
+                        error_details=result.error_details[:5],
+                    )
+                    raise ValueError(error_msg)
+                
+                logger.info(
+                    "Validation passed",
+                    total_rows=result.total_rows,
+                    valid_rows=result.valid_rows,
+                )
+            except ValueError:
+                # Re-raise validation errors
+                raise
+            except Exception as e:
+                # Log but don't fail on validation errors (e.g., schema not found)
+                logger.warning(
+                    "Validation check failed, continuing with write",
+                    error=str(e),
+                )
+
         # Add partition columns
         year = trade_date.year
         month = trade_date.month

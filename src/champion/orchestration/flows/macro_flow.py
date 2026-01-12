@@ -82,9 +82,25 @@ def macro_indicators_flow(
 
             mlflow.log_param("chosen_source", chosen_source)
 
-            # Step 2: Write to Parquet
-            logger.info("step_2_write_parquet")
-            parquet_path = write_macro_parquet(df, start_date, end_date)
+            # Step 2: Write to Parquet with validation
+            logger.info("step_2_write_parquet_with_validation")
+            try:
+                parquet_path = write_macro_parquet(df, start_date, end_date)
+                
+                # Log validation success metrics
+                mlflow.log_metric("validation_pass_rate", 1.0)
+                mlflow.log_metric("validation_failures", 0)
+                mlflow.log_metric("rows_validated", df.height)
+                
+            except ValueError as validation_error:
+                # Log validation failure metrics
+                mlflow.log_metric("validation_pass_rate", 0.0)
+                mlflow.log_metric("validation_failures", 1)
+                logger.error(
+                    "validation_failed_in_flow",
+                    error=str(validation_error),
+                )
+                raise
 
             # Step 3: Load to ClickHouse (optional)
             if load_to_clickhouse:

@@ -8,6 +8,7 @@ import structlog
 
 from champion.scrapers.nse.mospi_macro import MOSPIMacroScraper
 from champion.scrapers.nse.rbi_macro import RBIMacroScraper
+from champion.storage.parquet_io import write_df_safe
 
 logger = structlog.get_logger()
 
@@ -133,16 +134,41 @@ def merge_macro_dataframes(dfs: list[pl.DataFrame]) -> pl.DataFrame:
 
 
 def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: datetime) -> str:
-    """Write merged macro DataFrame to Parquet; return path."""
-    out_dir = (
-        Path("data/lake/macro")
-        / f"start={start_date.strftime('%Y%m%d')}"
-        / f"end={end_date.strftime('%Y%m%d')}"
+    """Write merged macro DataFrame to Parquet with validation; return path."""
+    base_path = Path("data/lake")
+    dataset = f"macro/start={start_date.strftime('%Y%m%d')}/end={end_date.strftime('%Y%m%d')}"
+    
+    logger.info(
+        "writing_macro_parquet_with_validation",
+        rows=len(df),
+        start_date=start_date.isoformat(),
+        end_date=end_date.isoformat(),
     )
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / "macro.parquet"
-    df.write_parquet(out_file, compression="snappy")
-    return str(out_file)
+    
+    try:
+        # Use write_df_safe with validation
+        output_path = write_df_safe(
+            df=df,
+            dataset=dataset,
+            base_path=base_path,
+            schema_name="macro_indicators_jsonschema",
+            schema_dir="schemas/parquet",
+            compression="snappy",
+            fail_on_validation_errors=True,
+            quarantine_dir="data/lake/quarantine",
+        )
+        
+        # Return path to the parquet file
+        out_file = output_path / "data.parquet"
+        return str(out_file)
+        
+    except ValueError as e:
+        logger.error(
+            "macro_validation_failed",
+            error=str(e),
+            rows=len(df),
+        )
+        raise
 
 
 def load_macro_clickhouse(parquet_path: str | Path) -> int:

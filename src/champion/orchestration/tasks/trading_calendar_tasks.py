@@ -7,6 +7,7 @@ import structlog
 
 from champion.parsers.trading_calendar_parser import TradingCalendarParser
 from champion.scrapers.nse.trading_calendar import TradingCalendarScraper
+from champion.storage.parquet_io import write_df_safe
 
 logger = structlog.get_logger()
 
@@ -24,13 +25,40 @@ def parse_trading_calendar(json_path: str | Path, year: int) -> pl.DataFrame:
 
 
 def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
-    """Write calendar DataFrame to Parquet and return file path."""
-    out_dir = Path("data/lake/trading_calendar") / f"year={year}"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"calendar_{year}.parquet"
-    to_write = df.drop([c for c in ("year",) if c in df.columns])
-    to_write.write_parquet(out_file, compression="snappy")
-    return str(out_file)
+    """Write calendar DataFrame to Parquet with validation and return file path."""
+    base_path = Path("data/lake")
+    dataset = f"trading_calendar/year={year}"
+    
+    logger.info(
+        "writing_trading_calendar_with_validation",
+        rows=len(df),
+        year=year,
+    )
+    
+    try:
+        # Use write_df_safe with validation
+        output_path = write_df_safe(
+            df=df,
+            dataset=dataset,
+            base_path=base_path,
+            schema_name="trading_calendar",
+            schema_dir="schemas/parquet",
+            compression="snappy",
+            fail_on_validation_errors=True,
+            quarantine_dir="data/lake/quarantine",
+        )
+        
+        # Return path to the parquet file
+        out_file = output_path / "data.parquet"
+        return str(out_file)
+        
+    except ValueError as e:
+        logger.error(
+            "trading_calendar_validation_failed",
+            error=str(e),
+            year=year,
+        )
+        raise
 
 
 def load_trading_calendar_clickhouse(parquet_path: str | Path) -> int:

@@ -337,6 +337,7 @@ def write_parquet(
             df=df,
             trade_date=trade_date,
             base_path=resolved_base_path,
+            validate=True,  # Enable validation
         )
 
         duration = time.time() - start_time
@@ -354,6 +355,9 @@ def write_parquet(
         mlflow.log_metric("write_duration_seconds", duration)
         mlflow.log_metric("parquet_size_mb", file_size_mb)
         mlflow.log_metric("rows_written", len(df))
+        mlflow.log_metric("validation_pass_rate", 1.0)
+        mlflow.log_metric("validation_failures", 0)
+        mlflow.log_metric("rows_validated", len(df))
 
         # Track Prometheus metrics
         metrics.parquet_write_success.labels(table="normalized_equity_ohlc").inc()
@@ -367,6 +371,9 @@ def write_parquet(
         raise
     except ValueError as e:
         logger.error("parquet_write_validation_failed", error=str(e), retryable=False)
+        # Log validation failure metrics
+        mlflow.log_metric("validation_pass_rate", 0.0)
+        mlflow.log_metric("validation_failures", 1)
         # Track failure in Prometheus
         metrics.parquet_write_failed.labels(table="normalized_equity_ohlc").inc()
         raise

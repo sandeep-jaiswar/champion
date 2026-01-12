@@ -7,6 +7,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import structlog
 
+from champion.validation.validator import ParquetValidator
+
 logger = structlog.get_logger()
 
 
@@ -75,6 +77,117 @@ def write_df(
 
     logger.info("Successfully wrote Parquet dataset", path=str(dataset_path))
     return dataset_path
+
+
+def write_df_safe(
+    df: pl.DataFrame,
+    dataset: str,
+    base_path: str | Path,
+    schema_name: str,
+    schema_dir: str | Path = "schemas/parquet",
+    partitions: list[str] | None = None,
+    max_rows_per_file: int = 1_000_000,
+    compression: str = "snappy",
+    fail_on_validation_errors: bool = True,
+    quarantine_dir: str | Path | None = None,
+) -> Path:
+    """
+    Write a Polars DataFrame to Parquet with validation before writing.
+
+    This function validates the DataFrame against a JSON schema before writing
+    to ensure data quality. If validation fails and fail_on_validation_errors
+    is True, raises a ValueError.
+
+    Args:
+        df: Polars DataFrame to write
+        dataset: Dataset name (e.g., 'raw', 'normalized', 'features')
+        base_path: Base path for the data lake (e.g., 'data/lake')
+        schema_name: Name of the JSON schema to validate against
+        schema_dir: Directory containing JSON schema files
+        partitions: List of column names to partition by
+        max_rows_per_file: Maximum rows per file (for splitting large datasets)
+        compression: Compression codec ('snappy', 'gzip', 'zstd', 'none')
+        fail_on_validation_errors: If True, raise error on validation failures
+        quarantine_dir: Directory to write quarantined failed records (optional)
+
+    Returns:
+        Path to the written dataset directory
+
+    Raises:
+        ValueError: If validation fails and fail_on_validation_errors is True
+
+    Example:
+        >>> df = pl.DataFrame({
+        ...     'symbol': ['AAPL', 'GOOGL'],
+        ...     'price': [150.0, 2800.0],
+        ...     'date': ['2024-01-01', '2024-01-01']
+        ... })
+        >>> write_df_safe(df, 'raw', 'data/lake', 'raw_equity_ohlc', partitions=['date'])
+    """
+    logger.info(
+        "Starting validated write",
+        dataset=dataset,
+        schema_name=schema_name,
+        rows=len(df),
+    )
+
+    # Initialize validator
+    validator = ParquetValidator(schema_dir=Path(schema_dir))
+
+    # Validate DataFrame
+    result = validator.validate_dataframe(df, schema_name)
+
+    # Log validation results
+    logger.info(
+        "Validation complete",
+        schema_name=schema_name,
+        total_rows=result.total_rows,
+        valid_rows=result.valid_rows,
+        critical_failures=result.critical_failures,
+    )
+
+    # Handle validation failures
+    if result.critical_failures > 0:
+        # Quarantine failed records if requested
+        if quarantine_dir:
+            quarantine_path = Path(quarantine_dir)
+            quarantine_path.mkdir(parents=True, exist_ok=True)
+            validator.quarantine_failures(df, result, quarantine_path, schema_name)
+
+        if fail_on_validation_errors:
+            error_msg = (
+                f"Validation failed for {schema_name}: "
+                f"{result.critical_failures} critical errors out of {result.total_rows} rows"
+            )
+            logger.error(
+                "Validation failed - aborting write",
+                schema_name=schema_name,
+                error_details=result.error_details[:5],  # Log first 5 errors
+            )
+            raise ValueError(error_msg)
+
+        logger.warning(
+            "Validation failures detected but continuing with write",
+            critical_failures=result.critical_failures,
+        )
+
+    # Write DataFrame using standard write_df
+    output_path = write_df(
+        df=df,
+        dataset=dataset,
+        base_path=base_path,
+        partitions=partitions,
+        max_rows_per_file=max_rows_per_file,
+        compression=compression,
+    )
+
+    logger.info(
+        "Validated write complete",
+        dataset=dataset,
+        output_path=str(output_path),
+    )
+
+    return output_path
 
 
 def coalesce_small_files(
