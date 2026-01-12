@@ -5,10 +5,13 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import polars as pl
+import structlog
 
 from champion.config import config
 from champion.parsers.index_constituent_parser import IndexConstituentParser
 from champion.scrapers.nse.index_constituent import IndexConstituentScraper
+
+logger = structlog.get_logger()
 
 
 def scrape_index_constituents(
@@ -87,17 +90,11 @@ def load_index_constituents_clickhouse(
         df = pl.read_parquet(str(parquet_file))
         return len(df)
     except (FileNotFoundError, IOError, OSError) as e:
-        import structlog
-        logger = structlog.get_logger()
         logger.error("parquet_read_failed", error=str(e), path=str(parquet_file), index=index_name, retryable=True)
         return 0
     except ValueError as e:
-        import structlog
-        logger = structlog.get_logger()
         logger.error("parquet_invalid_format", error=str(e), path=str(parquet_file), index=index_name, retryable=False)
         return 0
     except Exception as e:
-        import structlog
-        logger = structlog.get_logger()
         logger.critical("fatal_parquet_read_error", error=str(e), path=str(parquet_file), index=index_name, retryable=False)
         return 0
