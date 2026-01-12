@@ -6,13 +6,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 
 logger = get_logger(__name__)
 
 
-class BhavcopyParser:
+class BhavcopyParser(Parser):
     """Parser for NSE CM Bhavcopy CSV files."""
 
     def parse(self, file_path: Path, trade_date: date) -> list[dict[str, Any]]:

@@ -15,6 +15,7 @@ from typing import Any
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 
@@ -34,7 +35,7 @@ SYMBOL_MASTER_SCHEMA = {
 }
 
 
-class SymbolMasterParser:
+class SymbolMasterParser(Parser):
     """High-performance parser for NSE EQUITY_L symbol master file using Polars."""
 
     def __init__(self) -> None:

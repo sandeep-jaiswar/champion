@@ -15,6 +15,7 @@ from typing import Any
 import polars as pl
 import pyarrow.parquet as pq
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 from champion.validation.validator import ParquetValidator
@@ -60,7 +61,7 @@ BHAVCOPY_SCHEMA = {
 }
 
 
-class PolarsBhavcopyParser:
+class PolarsBhavcopyParser(Parser):
     """High-performance parser for NSE CM Bhavcopy CSV files using Polars.
 
     Attributes:

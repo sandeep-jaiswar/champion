@@ -21,6 +21,7 @@ from typing import Any
 import polars as pl
 import pyarrow.parquet as pq
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 from champion.utils.metrics import rows_parsed
 
@@ -46,7 +47,7 @@ BSE_BHAVCOPY_SCHEMA = {
 }
 
 
-class PolarsBseParser:
+class PolarsBseParser(Parser):
     """High-performance parser for BSE Equity Bhavcopy CSV files using Polars."""
 
     def __init__(self) -> None:

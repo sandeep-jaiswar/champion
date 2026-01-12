@@ -20,6 +20,7 @@ from typing import Any
 
 import polars as pl
 
+from champion.parsers.base_parser import Parser
 from champion.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -31,7 +32,7 @@ SUNDAY = 6
 WEEKEND_DAYS = {SATURDAY, SUNDAY}
 
 
-class TradingCalendarParser:
+class TradingCalendarParser(Parser):
     """Parser for NSE Trading Calendar JSON files.
 
     Attributes:
