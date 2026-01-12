@@ -22,7 +22,13 @@ logger = get_logger(__name__)
 
 
 class SymbolEnrichment:
-    """Enriches symbol master with FinInstrmId and series information from bhavcopy."""
+    """Enriches symbol master with FinInstrmId and series information from bhavcopy.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self) -> None:
         """Initialize the enrichment processor."""

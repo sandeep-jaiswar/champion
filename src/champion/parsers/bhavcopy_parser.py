@@ -14,7 +14,13 @@ logger = get_logger(__name__)
 
 
 class BhavcopyParser(Parser):
-    """Parser for NSE CM Bhavcopy CSV files."""
+    """Parser for NSE CM Bhavcopy CSV files.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def parse(self, file_path: Path, trade_date: date) -> list[dict[str, Any]]:
         """Parse bhavcopy CSV file into event structures.
