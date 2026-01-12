@@ -61,7 +61,13 @@ BHAVCOPY_SCHEMA = {
 
 
 class PolarsBhavcopyParser:
-    """High-performance parser for NSE CM Bhavcopy CSV files using Polars."""
+    """High-performance parser for NSE CM Bhavcopy CSV files using Polars.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self) -> None:
         """Initialize the parser."""

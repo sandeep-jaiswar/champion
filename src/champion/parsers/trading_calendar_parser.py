@@ -32,7 +32,13 @@ WEEKEND_DAYS = {SATURDAY, SUNDAY}
 
 
 class TradingCalendarParser:
-    """Parser for NSE Trading Calendar JSON files."""
+    """Parser for NSE Trading Calendar JSON files.
+
+    Attributes:
+        SCHEMA_VERSION: Parser schema version for tracking compatibility.
+    """
+
+    SCHEMA_VERSION = "v1.0"
 
     def __init__(self):
         """Initialize parser."""
