@@ -13,13 +13,35 @@ os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
 app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
 
+def validate_date_format(date_str: str) -> date:
+    """Validate ISO date format (YYYY-MM-DD or YYYYMMDD).
+
+    Args:
+        date_str: Date string to validate in ISO 8601 format
+
+    Returns:
+        date: Parsed date object
+
+    Raises:
+        typer.Exit: If date format is invalid
+    """
+    try:
+        return date.fromisoformat(date_str)
+    except ValueError:
+        typer.secho(
+            f"Invalid date format: {date_str}. Use YYYY-MM-DD",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from None
+
+
 @app.command("etl-index")
 def etl_index(
     index_name: str = typer.Option("NIFTY50", help="Index to process"),
     effective_date: str | None = typer.Option(None, help="YYYY-MM-DD effective date"),
 ):
     """Run the Index Constituent ETL flow."""
-    eff = date.fromisoformat(effective_date) if effective_date else date.today()
+    eff = validate_date_format(effective_date) if effective_date else date.today()
     try:
         from champion.orchestration.flows.flows import index_constituent_etl_flow
 
@@ -88,7 +110,18 @@ def etl_bulk_deals(
     end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD"),
 ):
     """Run bulk/block deals ETL flow (optionally for a date range)."""
+    # Check that both dates are provided together
+    if (start_date and not end_date) or (end_date and not start_date):
+        typer.secho(
+            "Both start_date and end_date must be provided together",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1)
+
     if start_date and end_date:
+        # Validate date formats and convert to proper format
+        start_dt = validate_date_format(start_date)
+        end_dt = validate_date_format(end_date)
         # The flow file includes a date-range variant; call if available
         try:
             from champion.orchestration.flows.bulk_block_deals_flow import (
@@ -96,8 +129,8 @@ def etl_bulk_deals(
             )
 
             bulk_block_deals_date_range_etl_flow(
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_dt.isoformat(),
+                end_date=end_dt.isoformat(),
             )
             return
         except Exception:
@@ -131,7 +164,7 @@ def etl_ohlc(
     try:
         from champion.orchestration.flows.flows import nse_bhavcopy_etl_flow
 
-        td = date.fromisoformat(trade_date) if trade_date else None
+        td = validate_date_format(trade_date) if trade_date else None
         nse_bhavcopy_etl_flow(
             trade_date=td,
             output_base_path=output_base_path,
@@ -172,7 +205,7 @@ def etl_combined_equity(
         from champion.orchestration.flows.combined_flows import combined_equity_etl_flow
 
         if trade_date:
-            td = date.fromisoformat(trade_date)
+            td = validate_date_format(trade_date)
         else:
             td = date.today()
         combined_equity_etl_flow(trade_date=td)
