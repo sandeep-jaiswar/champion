@@ -8,6 +8,9 @@ import pytest
 
 from champion.parsers.base_parser import Parser
 
+# Test constants
+TEST_TIMESTAMP = datetime(2024, 1, 15, 12, 30, 45)
+
 
 class ConcreteParser(Parser):
     """Concrete implementation of Parser for testing."""
@@ -87,12 +90,11 @@ class TestBaseParser:
         """Test that add_metadata accepts a custom timestamp."""
         parser = ConcreteParser()
         df = pl.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
-        custom_time = datetime(2024, 1, 15, 12, 30, 45)
 
-        result = parser.add_metadata(df, parsed_at=custom_time)
+        result = parser.add_metadata(df, parsed_at=TEST_TIMESTAMP)
 
         # Check that custom timestamp is used
-        assert result["_parsed_at"][0] == custom_time
+        assert result["_parsed_at"][0] == TEST_TIMESTAMP
 
     def test_add_metadata_batch_processing(self):
         """Test that same timestamp can be used for batch processing."""
@@ -101,13 +103,12 @@ class TestBaseParser:
         df2 = pl.DataFrame({"col1": [4, 5, 6]})
 
         # Use same timestamp for both
-        timestamp = datetime(2024, 1, 15, 12, 30, 45)
-        result1 = parser.add_metadata(df1, parsed_at=timestamp)
-        result2 = parser.add_metadata(df2, parsed_at=timestamp)
+        result1 = parser.add_metadata(df1, parsed_at=TEST_TIMESTAMP)
+        result2 = parser.add_metadata(df2, parsed_at=TEST_TIMESTAMP)
 
         # Both should have the same timestamp
         assert result1["_parsed_at"][0] == result2["_parsed_at"][0]
-        assert result1["_parsed_at"][0] == timestamp
+        assert result1["_parsed_at"][0] == TEST_TIMESTAMP
 
     def test_add_metadata_preserves_original_data(self):
         """Test that add_metadata doesn't modify original data."""

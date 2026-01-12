@@ -8,7 +8,7 @@ shared functionality like metadata handling.
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import polars as pl
 
@@ -28,14 +28,13 @@ class Parser(ABC):
     SCHEMA_VERSION: str = "v1.0"
 
     @abstractmethod
-    def parse(self, file_path: Path, *args: Any, **kwargs: Any) -> Any:
+    def parse(
+        self, file_path: Path, *args: Any, **kwargs: Any
+    ) -> Union[pl.DataFrame, list[dict[str, Any]]]:
         """Parse file and return parsed data.
 
         This method must be implemented by all subclasses. The return type
-        and additional parameters can vary based on the specific parser's needs.
-        Common return types include:
-        - pl.DataFrame: For parsers that return structured tabular data
-        - list[dict[str, Any]]: For parsers that return event structures
+        can vary based on the specific parser's needs.
 
         Args:
             file_path: Path to the file to parse
@@ -43,8 +42,7 @@ class Parser(ABC):
             **kwargs: Additional keyword arguments specific to the parser
 
         Returns:
-            Parsed data in the format appropriate for the parser.
-            Common return types:
+            Parsed data in one of the following formats:
             - pl.DataFrame: Structured tabular data
             - list[dict[str, Any]]: List of event dictionaries
 
