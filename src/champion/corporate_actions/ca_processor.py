@@ -7,7 +7,6 @@ This module computes adjustment factors from corporate action events
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
-from typing import Dict, List, Optional
 
 import polars as pl
 
@@ -35,10 +34,10 @@ class CorporateAction:
     ex_date: date
     action_type: CorporateActionType
     adjustment_factor: float
-    split_ratio: Optional[tuple[int, int]] = None  # (old_shares, new_shares)
-    bonus_ratio: Optional[tuple[int, int]] = None  # (new_shares, existing_shares)
-    dividend_amount: Optional[float] = None
-    face_value: Optional[float] = None
+    split_ratio: tuple[int, int] | None = None  # (old_shares, new_shares)
+    bonus_ratio: tuple[int, int] | None = None  # (new_shares, existing_shares)
+    dividend_amount: float | None = None
+    face_value: float | None = None
 
 
 class CorporateActionsProcessor:
@@ -48,9 +47,7 @@ class CorporateActionsProcessor:
         """Initialize processor."""
         pass
 
-    def compute_split_adjustment(
-        self, old_shares: int, new_shares: int
-    ) -> float:
+    def compute_split_adjustment(self, old_shares: int, new_shares: int) -> float:
         """Compute adjustment factor for stock split.
 
         For a 1:5 split (1 old share becomes 5 new shares):
@@ -65,14 +62,10 @@ class CorporateActionsProcessor:
             Adjustment factor to divide prices by
         """
         if old_shares <= 0 or new_shares <= 0:
-            raise ValueError(
-                f"Invalid split ratio: {old_shares}:{new_shares}"
-            )
+            raise ValueError(f"Invalid split ratio: {old_shares}:{new_shares}")
         return new_shares / old_shares
 
-    def compute_bonus_adjustment(
-        self, new_shares: int, existing_shares: int
-    ) -> float:
+    def compute_bonus_adjustment(self, new_shares: int, existing_shares: int) -> float:
         """Compute adjustment factor for bonus issue.
 
         For a 1:2 bonus (1 bonus share for every 2 existing shares):
@@ -88,14 +81,10 @@ class CorporateActionsProcessor:
             Adjustment factor to divide prices by
         """
         if new_shares <= 0 or existing_shares <= 0:
-            raise ValueError(
-                f"Invalid bonus ratio: {new_shares}:{existing_shares}"
-            )
+            raise ValueError(f"Invalid bonus ratio: {new_shares}:{existing_shares}")
         return (existing_shares + new_shares) / existing_shares
 
-    def compute_dividend_adjustment(
-        self, dividend_amount: float, close_price: float
-    ) -> float:
+    def compute_dividend_adjustment(self, dividend_amount: float, close_price: float) -> float:
         """Compute adjustment factor for dividend.
 
         For a dividend payment:
@@ -118,7 +107,7 @@ class CorporateActionsProcessor:
         # Prices before ex-date = prices * (1 - dividend/price)
         return 1.0 - (dividend_amount / close_price)
 
-    def parse_ca_event(self, ca_data: Dict) -> CorporateAction:
+    def parse_ca_event(self, ca_data: dict) -> CorporateAction:
         """Parse corporate action event from dictionary.
 
         Args:
@@ -192,10 +181,7 @@ def compute_adjustment_factors(
     # Compute cumulative product of adjustment factors per symbol
     # This represents the total adjustment from most recent to oldest
     result = ca_sorted.with_columns(
-        pl.col("adjustment_factor")
-        .cum_prod()
-        .over("symbol")
-        .alias("cumulative_factor")
+        pl.col("adjustment_factor").cum_prod().over("symbol").alias("cumulative_factor")
     )
 
     return result
@@ -219,21 +205,11 @@ def load_corporate_actions(file_path: str) -> pl.DataFrame:
             [
                 pl.col("payload").struct.field("symbol").alias("symbol"),
                 pl.col("payload").struct.field("ex_date").alias("ex_date"),
-                pl.col("payload")
-                .struct.field("action_type")
-                .alias("action_type"),
-                pl.col("payload")
-                .struct.field("adjustment_factor")
-                .alias("adjustment_factor"),
-                pl.col("payload")
-                .struct.field("split_ratio")
-                .alias("split_ratio"),
-                pl.col("payload")
-                .struct.field("bonus_ratio")
-                .alias("bonus_ratio"),
-                pl.col("payload")
-                .struct.field("dividend_amount")
-                .alias("dividend_amount"),
+                pl.col("payload").struct.field("action_type").alias("action_type"),
+                pl.col("payload").struct.field("adjustment_factor").alias("adjustment_factor"),
+                pl.col("payload").struct.field("split_ratio").alias("split_ratio"),
+                pl.col("payload").struct.field("bonus_ratio").alias("bonus_ratio"),
+                pl.col("payload").struct.field("dividend_amount").alias("dividend_amount"),
             ]
         )
 

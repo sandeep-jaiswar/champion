@@ -8,12 +8,10 @@ This example demonstrates:
 """
 
 from datetime import date
-from pathlib import Path
 
 import polars as pl
 
 from champion.corporate_actions.ca_processor import (
-    CorporateActionsProcessor,
     compute_adjustment_factors,
 )
 from champion.corporate_actions.price_adjuster import apply_ca_adjustments
@@ -176,21 +174,13 @@ def main():
 
     # Show CA events
     print("Corporate Actions:")
-    print(
-        ca_df.select(
-            ["symbol", "ex_date", "action_type", "adjustment_factor"]
-        )
-    )
+    print(ca_df.select(["symbol", "ex_date", "action_type", "adjustment_factor"]))
     print()
 
     # Step 2: Compute cumulative adjustment factors
     print("Step 2: Compute cumulative adjustment factors")
     ca_factors = compute_adjustment_factors(ca_df)
-    print(
-        ca_factors.select(
-            ["symbol", "ex_date", "adjustment_factor", "cumulative_factor"]
-        )
-    )
+    print(ca_factors.select(["symbol", "ex_date", "adjustment_factor", "cumulative_factor"]))
     print()
 
     # Step 3: Apply adjustments to OHLC
@@ -236,19 +226,16 @@ def main():
         zip(
             reliance_sorted["TradDt"].to_list(),
             close_prices,
+            strict=False,
         )
     ):
         adj_factor = reliance_sorted["adjustment_factor"][i]
-        print(
-            f"  {dt}: ₹{close:7.2f} (adj factor: {adj_factor:.2f})"
-        )
+        print(f"  {dt}: ₹{close:7.2f} (adj factor: {adj_factor:.2f})")
 
     # Check if price changes are reasonable (< 20% day-over-day)
     print("\nDay-over-day price changes:")
     for i in range(1, len(close_prices)):
-        change_pct = (
-            (close_prices[i] - close_prices[i - 1]) / close_prices[i - 1]
-        ) * 100
+        change_pct = ((close_prices[i] - close_prices[i - 1]) / close_prices[i - 1]) * 100
         print(
             f"  {reliance_sorted['TradDt'][i-1]} → {reliance_sorted['TradDt'][i]}: {change_pct:+.2f}%"
         )
@@ -277,9 +264,7 @@ def main():
     print(f"  - Total CA events: {len(ca_df)}")
     print(f"  - Symbols affected: {ca_df['symbol'].n_unique()}")
     print(f"  - OHLC records adjusted: {len(adjusted_ohlc)}")
-    print(
-        f"  - Average adjustment factor: {adjusted_ohlc['adjustment_factor'].mean():.2f}"
-    )
+    print(f"  - Average adjustment factor: {adjusted_ohlc['adjustment_factor'].mean():.2f}")
     print()
     print("✅ End-to-end CA adjustment completed successfully!")
 

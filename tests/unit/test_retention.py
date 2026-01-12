@@ -6,7 +6,6 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from champion.storage.retention import (
     calculate_partition_age,
     cleanup_old_partitions,
@@ -259,8 +258,6 @@ def test_custom_partition_key(temp_lake_dir, sample_df):
     sample_df.write_parquet(partition_dir / "data.parquet")
 
     # Find with custom key
-    old_partitions = find_old_partitions(
-        dataset_path, retention_days=30, partition_key="year"
-    )
+    old_partitions = find_old_partitions(dataset_path, retention_days=30, partition_key="year")
 
     assert len(old_partitions) == 1

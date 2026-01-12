@@ -1,4 +1,5 @@
 # !/usr/bin/env python3
+
 """
 Comprehensive NSE Scraper Test Summary and Results Report.
 """

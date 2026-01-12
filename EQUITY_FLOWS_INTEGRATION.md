@@ -107,7 +107,7 @@ poetry run champion --help
 
 ✅ **Import Tests:** All modules import successfully
 
-```
+```text
 ✓ Corporate actions ETL flow
 ✓ Combined equity ETL flow  
 ✓ BSE tasks (scrape, parse)
@@ -135,7 +135,7 @@ Default: File-based (`file:./mlruns`)
 
 ### Storage Structure
 
-```
+```text
 data/lake/
 ├── intraday/
 │   ├── bhavcopy/              # NSE equity bhavcopy
@@ -148,7 +148,7 @@ data/lake/
 
 **Unified Package Structure:**
 
-```
+```text
 src/champion/
 ├── orchestration/
 │   ├── flows/

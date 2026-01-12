@@ -14,7 +14,7 @@
 
 **Output:**
 
-```
+```text
 Flow run 'bald-dugong' for flow 'corporate-actions-etl'
 ✓ Scrape task completed (stub - manual download required)
 ✓ Parse task completed (0 events)
@@ -103,7 +103,7 @@ poetry run champion etl-bulk-deals
 
 All commands registered and operational:
 
-```
+```bash
 poetry run champion --help
 ```
 
@@ -159,7 +159,7 @@ poetry run champion --help
 
 **Unified Package Structure:**
 
-```
+```text
 src/champion/
 ├── orchestration/
 │   ├── flows/

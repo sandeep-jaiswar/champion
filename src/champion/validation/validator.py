@@ -3,11 +3,11 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import polars as pl
 import structlog
-from jsonschema import Draft7Validator, ValidationError
+from jsonschema import Draft7Validator
 
 logger = structlog.get_logger()
 
@@ -20,7 +20,7 @@ class ValidationResult:
     valid_rows: int
     critical_failures: int
     warnings: int
-    error_details: List[Dict[str, Any]]
+    error_details: list[dict[str, Any]]
 
 
 class ParquetValidator:
@@ -33,7 +33,7 @@ class ParquetValidator:
             schema_dir: Directory containing JSON schema files
         """
         self.schema_dir = Path(schema_dir)
-        self.schemas: Dict[str, Dict] = {}
+        self.schemas: dict[str, dict] = {}
         self._load_schemas()
 
     def _load_schemas(self) -> None:
@@ -116,7 +116,7 @@ class ParquetValidator:
         error_details.extend(business_errors)
 
         critical_failures = len(error_details)
-        valid_rows = total_rows - len(set(e["row_index"] for e in error_details))
+        valid_rows = total_rows - len({e["row_index"] for e in error_details})
 
         result = ValidationResult(
             total_rows=total_rows,
@@ -136,9 +136,7 @@ class ParquetValidator:
 
         return result
 
-    def _validate_business_logic(
-        self, df: pl.DataFrame, schema_name: str
-    ) -> List[Dict[str, Any]]:
+    def _validate_business_logic(self, df: pl.DataFrame, schema_name: str) -> list[dict[str, Any]]:
         """Apply business logic validations specific to schema type.
 
         Args:
@@ -156,7 +154,7 @@ class ParquetValidator:
 
         return errors
 
-    def _validate_ohlc_consistency(self, df: pl.DataFrame) -> List[Dict[str, Any]]:
+    def _validate_ohlc_consistency(self, df: pl.DataFrame) -> list[dict[str, Any]]:
         """Validate OHLC price consistency (high >= low).
 
         Args:
@@ -179,21 +177,25 @@ class ParquetValidator:
             & (pl.col("high") < pl.col("low"))
         )
 
-        for idx, row in enumerate(violations.iter_rows(named=True)):
+        for _idx, row in enumerate(violations.iter_rows(named=True)):
             # Find original index in the full dataframe
-            original_idx = df.with_row_index("__idx__").filter(
-                (pl.col("high") == row["high"])
-                & (pl.col("low") == row["low"])
-            ).select("__idx__").to_series()[0]
+            original_idx = (
+                df.with_row_index("__idx__")
+                .filter((pl.col("high") == row["high"]) & (pl.col("low") == row["low"]))
+                .select("__idx__")
+                .to_series()[0]
+            )
 
-            errors.append({
-                "row_index": original_idx,
-                "error_type": "critical",
-                "field": "high,low",
-                "message": f"OHLC violation: high ({row['high']}) < low ({row['low']})",
-                "validator": "business_logic",
-                "record": dict(row),
-            })
+            errors.append(
+                {
+                    "row_index": original_idx,
+                    "error_type": "critical",
+                    "field": "high,low",
+                    "message": f"OHLC violation: high ({row['high']}) < low ({row['low']})",
+                    "validator": "business_logic",
+                    "record": dict(row),
+                }
+            )
 
             logger.warning(
                 "ohlc_violation",
@@ -208,7 +210,7 @@ class ParquetValidator:
         self,
         file_path: Path,
         schema_name: str,
-        quarantine_dir: Optional[Path] = None,
+        quarantine_dir: Path | None = None,
     ) -> ValidationResult:
         """Validate a Parquet file against a JSON schema.
 
@@ -253,7 +255,7 @@ class ParquetValidator:
         quarantine_dir.mkdir(parents=True, exist_ok=True)
 
         # Get indices of failed rows
-        failed_indices = list(set(e["row_index"] for e in result.error_details))
+        failed_indices = list({e["row_index"] for e in result.error_details})
 
         if not failed_indices:
             return
@@ -270,14 +272,15 @@ class ParquetValidator:
             error_map[idx].append(f"{error['field']}: {error['message']}")
 
         error_messages = [
-            "; ".join(error_map.get(orig_idx, ["Unknown error"]))
-            for orig_idx in failed_indices
+            "; ".join(error_map.get(orig_idx, ["Unknown error"])) for orig_idx in failed_indices
         ]
 
-        failed_df = failed_df.with_columns([
-            pl.lit(error_messages).alias("validation_errors"),
-            pl.lit(schema_name).alias("schema_name"),
-        ])
+        failed_df = failed_df.with_columns(
+            [
+                pl.lit(error_messages).alias("validation_errors"),
+                pl.lit(schema_name).alias("schema_name"),
+            ]
+        )
 
         # Write to quarantine
         quarantine_file = quarantine_dir / f"{schema_name}_failures.parquet"

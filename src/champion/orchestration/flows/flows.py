@@ -1027,7 +1027,8 @@ def index_constituent_etl_flow(
             mlflow.log_metric("total_indices_processed", len(results))
 
             total_constituents: int = sum(
-                int(r.get("constituents", 0)) for r in results.values()  # type: ignore
+                int(r.get("constituents", 0))
+                for r in results.values()  # type: ignore
             )
             mlflow.log_metric("total_constituents", total_constituents)
 

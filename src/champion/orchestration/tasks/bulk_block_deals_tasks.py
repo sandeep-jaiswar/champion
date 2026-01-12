@@ -63,7 +63,7 @@ def parse_bulk_block_deals(
     def _to_float(val: Any) -> float:
         if val is None or val == "":
             return 0.0
-        if isinstance(val, (int, float)):
+        if isinstance(val, int | float):
             return float(val)
         try:
             return float(str(val).replace(",", "").strip())

@@ -9,12 +9,8 @@ from prefect import flow
 
 from champion.orchestration.tasks.macro_tasks import (
     load_macro_clickhouse,
-    merge_macro_dataframes,
-    parse_macro_indicators,
-    scrape_mospi_macro,
-    scrape_rbi_macro,
-    write_macro_parquet,
     try_sources_in_order,
+    write_macro_parquet,
 )
 
 logger = structlog.get_logger()

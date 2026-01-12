@@ -43,7 +43,7 @@ Complete documentation for the Champion data platform.
 
 ## Documentation Map
 
-```
+```text
 docs/
 ├── 00_getting_started/      👉 START HERE if new
 │   ├── README.md            Quick navigation for this section

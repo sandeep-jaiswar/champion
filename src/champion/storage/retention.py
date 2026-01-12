@@ -2,7 +2,6 @@
 
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Optional, Union
 
 import structlog
 
@@ -51,11 +50,11 @@ def calculate_partition_age(partition_path: Path, partition_pattern: str = "%Y-%
 
 
 def find_old_partitions(
-    dataset_path: Union[str, Path],
+    dataset_path: str | Path,
     retention_days: int,
     partition_pattern: str = "%Y-%m-%d",
     partition_key: str = "date",
-) -> List[Path]:
+) -> list[Path]:
     """
     Find partitions older than the specified retention period.
 
@@ -79,7 +78,7 @@ def find_old_partitions(
         return []
 
     old_partitions = []
-    cutoff_date = datetime.now() - timedelta(days=retention_days)
+    datetime.now() - timedelta(days=retention_days)
 
     # Find all partition directories
     # Look for directories matching partition_key pattern
@@ -124,7 +123,7 @@ def find_old_partitions(
 
 
 def cleanup_old_partitions(
-    dataset_path: Union[str, Path],
+    dataset_path: str | Path,
     retention_days: int,
     partition_pattern: str = "%Y-%m-%d",
     partition_key: str = "date",
@@ -197,7 +196,7 @@ def cleanup_old_partitions(
     return deleted_count
 
 
-def get_dataset_statistics(dataset_path: Union[str, Path]) -> dict:
+def get_dataset_statistics(dataset_path: str | Path) -> dict:
     """
     Get statistics about a Parquet dataset.
 
@@ -228,9 +227,7 @@ def get_dataset_statistics(dataset_path: Union[str, Path]) -> dict:
         "file_count": len(parquet_files),
         "total_size_bytes": total_size,
         "total_size_mb": round(total_size_mb, 2),
-        "avg_file_size_mb": round(total_size_mb / len(parquet_files), 2)
-        if parquet_files
-        else 0,
+        "avg_file_size_mb": round(total_size_mb / len(parquet_files), 2) if parquet_files else 0,
         "dataset_path": str(dataset_path),
     }
 

@@ -7,7 +7,6 @@ windowed operations in Polars.
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
 
 import polars as pl
 import structlog
@@ -18,7 +17,7 @@ logger = structlog.get_logger()
 def compute_sma(
     df: pl.DataFrame,
     column: str = "close",
-    windows: List[int] = [5, 20],
+    windows: list[int] = None,
 ) -> pl.DataFrame:
     """
     Compute Simple Moving Average (SMA) for specified windows.
@@ -39,6 +38,8 @@ def compute_sma(
         ... })
         >>> df_sma = compute_sma(df, column='close', windows=[5, 20])
     """
+    if windows is None:
+        windows = [5, 20]
     logger.info("Computing SMA", column=column, windows=windows)
 
     # Sort by symbol and date to ensure correct window calculations
@@ -48,10 +49,7 @@ def compute_sma(
     for window in windows:
         col_name = f"sma_{window}"
         df = df.with_columns(
-            pl.col(column)
-            .rolling_mean(window_size=window)
-            .over("symbol")
-            .alias(col_name)
+            pl.col(column).rolling_mean(window_size=window).over("symbol").alias(col_name)
         )
         logger.debug(f"Computed {col_name}")
 
@@ -61,7 +59,7 @@ def compute_sma(
 def compute_ema(
     df: pl.DataFrame,
     column: str = "close",
-    windows: List[int] = [12, 26],
+    windows: list[int] = None,
 ) -> pl.DataFrame:
     """
     Compute Exponential Moving Average (EMA) for specified windows.
@@ -82,6 +80,8 @@ def compute_ema(
         ... })
         >>> df_ema = compute_ema(df, column='close', windows=[12, 26])
     """
+    if windows is None:
+        windows = [12, 26]
     logger.info("Computing EMA", column=column, windows=windows)
 
     # Sort by symbol and date
@@ -93,10 +93,7 @@ def compute_ema(
         # EMA uses exponential weighting
         # alpha = 2 / (window + 1)
         df = df.with_columns(
-            pl.col(column)
-            .ewm_mean(span=window, adjust=False)
-            .over("symbol")
-            .alias(col_name)
+            pl.col(column).ewm_mean(span=window, adjust=False).over("symbol").alias(col_name)
         )
         logger.debug(f"Computed {col_name}")
 
@@ -138,9 +135,7 @@ def compute_rsi(
     col_name = f"rsi_{window}"
 
     # Calculate price changes
-    df = df.with_columns(
-        pl.col(column).diff().over("symbol").alias("price_change")
-    )
+    df = df.with_columns(pl.col(column).diff().over("symbol").alias("price_change"))
 
     # Separate gains and losses
     df = df.with_columns(
@@ -159,14 +154,8 @@ def compute_rsi(
     # Calculate average gain and loss using EMA
     df = df.with_columns(
         [
-            pl.col("gain")
-            .ewm_mean(span=window, adjust=False)
-            .over("symbol")
-            .alias("avg_gain"),
-            pl.col("loss")
-            .ewm_mean(span=window, adjust=False)
-            .over("symbol")
-            .alias("avg_loss"),
+            pl.col("gain").ewm_mean(span=window, adjust=False).over("symbol").alias("avg_gain"),
+            pl.col("loss").ewm_mean(span=window, adjust=False).over("symbol").alias("avg_loss"),
         ]
     )
 
@@ -195,11 +184,11 @@ def compute_rsi(
 
 def compute_features(
     df: pl.DataFrame,
-    output_path: Optional[Union[str, Path]] = None,
-    sma_windows: List[int] = [5, 20],
-    ema_windows: List[int] = [12, 26],
+    output_path: str | Path | None = None,
+    sma_windows: list[int] = None,
+    ema_windows: list[int] = None,
     rsi_window: int = 14,
-    partition_cols: Optional[List[str]] = None,
+    partition_cols: list[str] | None = None,
 ) -> pl.DataFrame:
     """
     Compute all technical indicators and optionally write to Parquet.
@@ -230,6 +219,10 @@ def compute_features(
         ...     partition_cols=['trade_date']
         ... )
     """
+    if ema_windows is None:
+        ema_windows = [12, 26]
+    if sma_windows is None:
+        sma_windows = [5, 20]
     logger.info(
         "Computing features",
         rows=len(df),
@@ -253,22 +246,19 @@ def compute_features(
     df = df.with_columns(
         [
             pl.lit("v1").alias("feature_version"),
-            pl.col("trade_date")
-            .cast(pl.Datetime)
-            .dt.timestamp("ms")
-            .alias("feature_timestamp"),
+            pl.col("trade_date").cast(pl.Datetime).dt.timestamp("ms").alias("feature_timestamp"),
         ]
     )
 
     # Select only relevant columns for features table
     feature_cols = ["symbol", "trade_date", "feature_timestamp", "feature_version"]
-    
+
     # Add all computed SMA columns
     feature_cols.extend([f"sma_{w}" for w in sma_windows])
-    
+
     # Add all computed EMA columns
     feature_cols.extend([f"ema_{w}" for w in ema_windows])
-    
+
     # Add RSI column
     feature_cols.append(f"rsi_{rsi_window}")
 
@@ -286,7 +276,6 @@ def compute_features(
         logger.info("Writing features to Parquet", path=str(output_path))
 
         # Convert to Arrow table for partitioned writes
-        import pyarrow as pa
         import pyarrow.parquet as pq
 
         arrow_table = df_features.to_arrow()

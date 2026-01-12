@@ -1,12 +1,10 @@
 """Tests for Parquet I/O utilities."""
 
 import shutil
-from pathlib import Path
 
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
-
 from champion.storage.parquet_io import (
     coalesce_small_files,
     generate_dataset_metadata,
