@@ -20,7 +20,7 @@ MAX_DATE_GAP_DAYS = 30  # Maximum acceptable gap between data points (in days)
 
 class MacroIndicatorParser:
     """Parser for macro indicator JSON files.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """

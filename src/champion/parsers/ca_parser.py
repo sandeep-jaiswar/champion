@@ -36,7 +36,7 @@ CA_SCHEMA = {
 
 class CorporateActionsParser:
     """Parser for NSE Corporate Actions CSV files.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """

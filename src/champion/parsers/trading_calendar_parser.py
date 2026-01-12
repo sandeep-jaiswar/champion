@@ -33,7 +33,7 @@ WEEKEND_DAYS = {SATURDAY, SUNDAY}
 
 class TradingCalendarParser:
     """Parser for NSE Trading Calendar JSON files.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """

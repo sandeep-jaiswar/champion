@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 class BulkBlockDealsParser:
     """High-performance parser for NSE bulk and block deals data using Polars.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """

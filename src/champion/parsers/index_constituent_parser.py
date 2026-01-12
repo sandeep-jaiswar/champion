@@ -26,7 +26,7 @@ MISSING_DATA_VALUES = ["-", "", "null", "NULL", "N/A", "NA"]
 
 class IndexConstituentParser:
     """High-performance parser for NSE index constituent data using Polars.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """

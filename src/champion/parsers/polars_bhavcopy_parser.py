@@ -62,7 +62,7 @@ BHAVCOPY_SCHEMA = {
 
 class PolarsBhavcopyParser:
     """High-performance parser for NSE CM Bhavcopy CSV files using Polars.
-    
+
     Attributes:
         SCHEMA_VERSION: Parser schema version for tracking compatibility.
     """
