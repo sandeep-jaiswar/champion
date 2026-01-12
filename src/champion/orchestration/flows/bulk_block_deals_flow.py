@@ -131,14 +131,8 @@ def bulk_block_deals_etl_flow(
                     raise
 
         # Log overall validation metrics
+        mlflow.log_metric("validation_pass_rate", 1.0 if validation_succeeded else 0.0)
         if validation_succeeded:
-            mlflow.log_metric("validation_pass_rate", 1.0)
-            mlflow.log_metric("validation_failures", 0)
-        mlflow.log_param("status", "SUCCESS" if validation_succeeded else "FAILED")
-
-        # Log overall validation metrics
-        if validation_succeeded:
-            mlflow.log_metric("validation_pass_rate", 1.0)
             mlflow.log_metric("validation_failures", 0)
         mlflow.log_param("status", "SUCCESS" if validation_succeeded else "FAILED")
 

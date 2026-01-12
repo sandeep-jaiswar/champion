@@ -259,11 +259,11 @@ class PolarsBhavcopyParser:
                 rows=len(df),
                 trade_date=str(trade_date),
             )
-            
+
             try:
                 validator = ParquetValidator(schema_dir=Path("schemas/parquet"))
                 result = validator.validate_dataframe(df, schema_name="normalized_equity_ohlc")
-                
+
                 if result.critical_failures > 0:
                     error_msg = (
                         f"Validation failed: {result.critical_failures} critical errors "
@@ -290,7 +290,7 @@ class PolarsBhavcopyParser:
                     "Validation check failed, continuing with write",
                     error=str(e),
                 )
-        
+
         # Add partition columns
         year = trade_date.year
         month = trade_date.month
