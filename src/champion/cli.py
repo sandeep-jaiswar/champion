@@ -15,23 +15,23 @@ app = typer.Typer(help="Champion CLI: run common ETL flows and utilities")
 
 def validate_date_format(date_str: str, allow_future: bool = False) -> date:
     """Validate date format and return date object.
-    
+
     Supports multiple formats:
     - YYYY-MM-DD (ISO format)
     - YYYYMMDD (compact format)
-    
+
     Args:
         date_str: Date string to validate
         allow_future: If False, reject dates in the future (default: False)
-    
+
     Returns:
         date: Parsed date object
-    
+
     Raises:
         typer.Exit: If date format is invalid or date is in future when not allowed
     """
     parsed_date = None
-    
+
     # Try ISO format (YYYY-MM-DD)
     try:
         parsed_date = date.fromisoformat(date_str)
@@ -42,14 +42,14 @@ def validate_date_format(date_str: str, allow_future: bool = False) -> date:
                 parsed_date = datetime.strptime(date_str, "%Y%m%d").date()
         except ValueError:
             pass
-    
+
     if parsed_date is None:
         typer.secho(
             f"Invalid date format: {date_str}. Use YYYY-MM-DD or YYYYMMDD",
             fg=typer.colors.RED,
         )
         raise typer.Exit(1) from None
-    
+
     # Check if date is not in the future (unless allowed)
     if not allow_future and parsed_date > date.today():
         typer.secho(
@@ -57,7 +57,7 @@ def validate_date_format(date_str: str, allow_future: bool = False) -> date:
             fg=typer.colors.RED,
         )
         raise typer.Exit(1)
-    
+
     return parsed_date
 
 
@@ -295,10 +295,10 @@ def show_config():
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point.
-    
+
     Args:
         argv: Command line arguments (optional)
-        
+
     Returns:
         Exit code (0 for success, 1 for error)
     """
