@@ -122,20 +122,12 @@ def test_write_df_safe_validation_failure(schema_dir, tmp_path):
 
 def test_write_df_safe_with_quarantine(schema_dir, tmp_path):
     """Test write_df_safe quarantines failed records."""
-    # Create data with some invalid rows
+    # Create data with a row missing a required field
     mixed_df = pl.DataFrame(
         {
-            "indicator_date": ["2024-01-01", "2024-01-02"],
-            "indicator_code": ["REPO_RATE", "CPI_COMBINED"],
-            "indicator_name": ["Repo Rate", "CPI Combined"],
-            "indicator_category": ["POLICY_RATE", "INFLATION"],
-            "value": [6.5, "invalid"],  # Second row has invalid type
-            "unit": ["%", "%"],
-            "frequency": ["DAILY", "MONTHLY"],
-            "source": ["RBI", "MOSPI"],
-            "source_url": [None, None],
-            "metadata": [None, None],
-            "ingestion_timestamp": ["2024-01-01T10:00:00", "2024-01-02T10:00:00"],
+            "indicator_date": ["2024-01-01"],
+            "indicator_code": ["REPO_RATE"],
+            # Missing required fields: indicator_name, indicator_category, value, unit, frequency, source, ingestion_timestamp
         }
     )
 
