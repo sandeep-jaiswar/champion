@@ -209,9 +209,25 @@ def write_bulk_block_deals_parquet(
         out_file = output_path / "data.parquet"
         return str(out_file)
 
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "bulk_block_deals_file_write_failed",
+            error=str(e),
+            deal_date=str(d),
+            deal_type=deal_type,
+        )
+        raise
     except ValueError as e:
         logger.error(
             "bulk_block_deals_validation_failed",
+            error=str(e),
+            deal_date=str(d),
+            deal_type=deal_type,
+        )
+        raise
+    except Exception as e:
+        logger.critical(
+            "unexpected_bulk_block_deals_write_error",
             error=str(e),
             deal_date=str(d),
             deal_type=deal_type,

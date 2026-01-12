@@ -52,9 +52,23 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
         out_file = output_path / "data.parquet"
         return str(out_file)
 
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "trading_calendar_file_write_failed",
+            error=str(e),
+            year=year,
+        )
+        raise
     except ValueError as e:
         logger.error(
             "trading_calendar_validation_failed",
+            error=str(e),
+            year=year,
+        )
+        raise
+    except Exception as e:
+        logger.critical(
+            "unexpected_trading_calendar_write_error",
             error=str(e),
             year=year,
         )

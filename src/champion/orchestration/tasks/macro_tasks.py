@@ -162,9 +162,23 @@ def write_macro_parquet(df: pl.DataFrame, start_date: datetime, end_date: dateti
         out_file = output_path / "data.parquet"
         return str(out_file)
 
+    except (FileNotFoundError, OSError) as e:
+        logger.error(
+            "macro_file_write_failed",
+            error=str(e),
+            rows=len(df),
+        )
+        raise
     except ValueError as e:
         logger.error(
             "macro_validation_failed",
+            error=str(e),
+            rows=len(df),
+        )
+        raise
+    except Exception as e:
+        logger.critical(
+            "unexpected_macro_write_error",
             error=str(e),
             rows=len(df),
         )
