@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import typer
 
@@ -89,6 +89,8 @@ def etl_index(
 @app.command("etl-macro")
 def etl_macro(
     days: int = typer.Option(90, help="Number of days back to include"),
+    start_date: str | None = typer.Option(None, help="Start date YYYY-MM-DD"),
+    end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD"),
     fail_on_empty: bool = typer.Option(
         False, help="Fail if no macro data retrieved from any source"
     ),
@@ -101,12 +103,20 @@ def etl_macro(
     # Ensure MLflow uses file backend by default if not set
     os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
     try:
-        from datetime import datetime, timedelta
-
         from champion.orchestration.flows.macro_flow import macro_indicators_flow
 
-        end = datetime.now()
-        start = end - timedelta(days=days)
+        # Determine start/end datetimes
+        if start_date and end_date:
+            start = datetime.combine(validate_date_format(start_date), datetime.min.time())
+            end = datetime.combine(validate_date_format(end_date), datetime.max.time())
+        else:
+            end = datetime.now()
+            start = end - timedelta(days=days)
+
+        if start > end:
+            typer.secho("start_date must be before or equal to end_date", fg=typer.colors.RED)
+            raise typer.Exit(1)
+
         sources = [s.strip() for s in source_order.split(",")] if source_order else None
         macro_indicators_flow(
             start_date=start, end_date=end, source_order=sources, fail_on_empty=fail_on_empty
@@ -205,6 +215,8 @@ def etl_ohlc(
     trade_date: str | None = typer.Option(
         None, help="Trade date YYYY-MM-DD (default: previous business day)"
     ),
+    start_date: str | None = typer.Option(None, help="Start date YYYY-MM-DD for range run"),
+    end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD for range run"),
     output_base_path: str | None = typer.Option(None, help="Base output path (default: data/lake)"),
     load_to_clickhouse: bool = typer.Option(True, help="Load results into ClickHouse"),
 ):
@@ -213,6 +225,23 @@ def etl_ohlc(
     os.environ.setdefault("MLFLOW_TRACKING_URI", "file:./mlruns")
     try:
         from champion.orchestration.flows.flows import nse_bhavcopy_etl_flow
+        # If both start_date and end_date provided, run the flow for each date in the range
+        if start_date and end_date:
+            start_dt = validate_date_format(start_date)
+            end_dt = validate_date_format(end_date)
+            if start_dt > end_dt:
+                typer.secho("start_date must be before or equal to end_date", fg=typer.colors.RED)
+                raise typer.Exit(1)
+            cur = start_dt
+            while cur <= end_dt:
+                nse_bhavcopy_etl_flow(
+                    trade_date=cur,
+                    output_base_path=output_base_path,
+                    load_to_clickhouse=load_to_clickhouse,
+                    start_metrics_server_flag=False,
+                )
+                cur = cur + timedelta(days=1)
+            return
 
         td = validate_date_format(trade_date) if trade_date else None
         nse_bhavcopy_etl_flow(
