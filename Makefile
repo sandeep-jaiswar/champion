@@ -1,4 +1,4 @@
-.PHONY: help lint-md lint-md-fix lint test
+.PHONY: help lint-md lint-md-fix lint test setup preflight
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -19,3 +19,9 @@ lint: lint-md ## Run all linters
 test: ## Run tests
 	@echo "Running tests..."
 	@cd validation && poetry run pytest tests/ -v
+
+setup: ## Install dependencies, start local services, and run preflight checks
+	@bash scripts/dev_setup.sh
+
+preflight: ## Run preflight checks without starting services
+	@poetry run python scripts/preflight_check.py
