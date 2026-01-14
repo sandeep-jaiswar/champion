@@ -53,6 +53,7 @@ class ClickHouseLoader:
         "raw_equity_ohlc": "raw",
         "normalized_equity_ohlc": "normalized",
         "features_equity_indicators": "features",
+        "trading_calendar": "reference",
         "bulk_block_deals": "normalized",
         "symbol_master": "reference",
     }

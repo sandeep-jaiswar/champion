@@ -8,6 +8,7 @@ import structlog
 from champion.parsers.trading_calendar_parser import TradingCalendarParser
 from champion.scrapers.nse.trading_calendar import TradingCalendarScraper
 from champion.storage.parquet_io import write_df_safe
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 logger = structlog.get_logger()
 
@@ -34,6 +35,15 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
         rows=len(df),
         year=year,
     )
+
+    # Ensure `trade_date` is serialized as an ISO string to match JSON-schema
+    # (validator expects `trade_date` to be of type `string`).
+    try:
+        # Use `with_columns` (plural) on a DataFrame to apply expressions.
+        df = df.with_columns(pl.col("trade_date").dt.strftime("%Y-%m-%d").alias("trade_date"))
+    except Exception:
+        # If column is already string or cast fails, fallback to casting to Utf8
+        df = df.with_columns(pl.col("trade_date").cast(pl.Utf8))
 
     try:
         # Use write_df_safe with validation
@@ -78,8 +88,28 @@ def write_trading_calendar_parquet(df: pl.DataFrame, year: int) -> str:
 def load_trading_calendar_clickhouse(parquet_path: str | Path) -> int:
     """Stub loader: return row count from Parquet file."""
     try:
-        df = pl.read_parquet(str(parquet_path))
-        return len(df)
+        # Read parquet without Hive partition inference to avoid duplicate-field errors
+        df = pl.read_parquet(str(parquet_path), hive_partitioning=False)
+
+        # Instantiate ClickHouse loader which will read credentials from environment
+        loader = ClickHouseLoader()
+        try:
+            loader.connect()
+        except Exception as e:
+            logger.error("clickhouse_connect_failed", error=str(e))
+            # If connection fails, return row count but do not raise to keep flow resilient
+            return len(df)
+
+        # Use native insert path via insert_polars_dataframe (handles batching & type coercion)
+        try:
+            rows = loader.insert_polars_dataframe(table="trading_calendar", df=df, dry_run=False)
+        finally:
+            try:
+                loader.disconnect()
+            except Exception:
+                pass
+
+        return int(rows)
     except (FileNotFoundError, OSError) as e:
         logger.error("parquet_read_failed", error=str(e), path=str(parquet_path), retryable=True)
         return 0
