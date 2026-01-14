@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Corporate Actions Parquet Schema",
+  "description": "Schema for corporate actions reference data stored in Parquet format",
+  "type": "object",
+  "properties": {
+    "event_id": {"type": "string"},
+    "event_time": {"type": "integer"},
+    "ingest_time": {"type": "integer"},
+    "source": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "entity_id": {"type": ["string", "null"]},
+    "symbol": {"type": "string"},
+    "company": {"type": ["string", "null"]},
+    "series": {"type": ["string", "null"]},
+    "face_value": {"type": ["number", "null"]},
+    "purpose": {"type": ["string", "null"]},
+    "ex_date": {"type": ["string", "null"], "format": "date"},
+    "record_date": {"type": ["string", "null"], "format": "date"},
+    "bc_start_date": {"type": ["string", "null"], "format": "date"},
+    "bc_end_date": {"type": ["string", "null"], "format": "date"},
+    "nd_start_date": {"type": ["string", "null"], "format": "date"},
+    "nd_end_date": {"type": ["string", "null"], "format": "date"},
+    "actual_payment_date": {"type": ["string", "null"], "format": "date"},
+    "isin": {"type": ["string", "null"]},
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "SPLIT",
+        "BONUS",
+        "DIVIDEND",
+        "RIGHTS",
+        "INTEREST_PAYMENT",
+        "EGMMEETING",
+        "DEMERGER",
+        "MERGER",
+        "BUYBACK",
+        "OTHER"
+      ]
+    },
+    "adjustment_factor": {"type": ["number", "null"]},
+    "split_ratio": {
+      "type": ["object", "null"],
+      "properties": {
+        "old_shares": {"type": "integer"},
+        "new_shares": {"type": "integer"}
+      }
+    },
+    "bonus_ratio": {
+      "type": ["object", "null"],
+      "properties": {
+        "new_shares": {"type": "integer"},
+        "existing_shares": {"type": "integer"}
+      }
+    },
+    "year": {"type": "integer"},
+    "month": {"type": "integer"},
+    "day": {"type": "integer"}
+  },
+  "required": [
+    "event_id",
+    "event_time",
+    "ingest_time",
+    "source",
+    "schema_version",
+    "symbol",
+    "ex_date",
+    "action_type",
+    "adjustment_factor",
+    "year",
+    "month",
+    "day"
+  ]
+}

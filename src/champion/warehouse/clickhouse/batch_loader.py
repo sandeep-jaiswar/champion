@@ -55,6 +55,7 @@ class ClickHouseLoader:
         "features_equity_indicators": "features",
         "trading_calendar": "reference",
         "bulk_block_deals": "normalized",
+        "corporate_actions": "reference",
         "symbol_master": "reference",
     }
 
