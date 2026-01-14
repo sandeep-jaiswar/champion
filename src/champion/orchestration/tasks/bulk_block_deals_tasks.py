@@ -10,6 +10,7 @@ import structlog
 
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
 from champion.storage.parquet_io import write_df_safe
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 from champion.utils.idempotency import (
     check_idempotency_marker,
     create_idempotency_marker,
@@ -219,6 +220,7 @@ def write_bulk_block_deals_parquet(
         deal_type=deal_type,
     )
 
+    # Create DataFrame and coerce types
     df = pl.DataFrame(events).with_columns(
         [
             pl.col("deal_date").cast(pl.Date),
@@ -229,6 +231,19 @@ def write_bulk_block_deals_parquet(
             pl.col("year").cast(pl.Int64),
             pl.col("month").cast(pl.Int64),
             pl.col("day").cast(pl.Int64),
+        ]
+    )
+
+    # Adjust column names and temporal encodings to match JSON schema expectations:
+    # - `trade_date`: ISO date string (schema expects format date)
+    # - `price`: numeric price (schema expects `price` not `avg_price`)
+    # - `event_time` and `ingest_time`: integers (milliseconds since epoch)
+    df = df.with_columns(
+        [
+            pl.col("deal_date").dt.strftime("%Y-%m-%d").alias("trade_date"),
+            pl.col("avg_price").alias("price"),
+            pl.col("event_time").dt.timestamp("ms").cast(pl.Int64),
+            pl.col("ingest_time").dt.timestamp("ms").cast(pl.Int64),
         ]
     )
 
@@ -292,10 +307,49 @@ def load_bulk_block_deals_clickhouse(
     parquet_file: str | Path,
     deal_type: str,
 ) -> int:
-    """Stub loader: return row count from Parquet file."""
+    """Load Parquet file into ClickHouse using the batch loader.
+
+    Reads the Parquet file with hive_partitioning disabled to avoid
+    partition-schema conflicts, then streams the Polars DataFrame into
+    ClickHouse using the `ClickHouseLoader` which will prefer the native
+    client when available (port 9000).
+    """
     try:
-        df = pl.read_parquet(str(parquet_file))
-        return len(df)
+        # Read parquet without hive partition inference
+        df = pl.read_parquet(str(parquet_file), hive_partitioning=False)
+
+        # Instantiate loader (will pick up CLICKHOUSE_* env vars if present)
+        loader = ClickHouseLoader()
+        try:
+            # Use insert_polars_dataframe which connects and retries
+            rows = loader.insert_polars_dataframe(table="bulk_block_deals", df=df, dry_run=False)
+            return int(rows)
+        except Exception as e:
+            # If HTTP auth/connection failed, attempt native TCP on port 9000 as a fallback
+            err = str(e)
+            logger.debug("clickhouse_load_error", error=err)
+            try:
+                if "9000" not in str(loader.port):
+                    logger.info("Attempting ClickHouse native client fallback on port 9000")
+                    native_loader = ClickHouseLoader(port=9000)
+                    try:
+                        rows = native_loader.insert_polars_dataframe(table="bulk_block_deals", df=df, dry_run=False)
+                        return int(rows)
+                    finally:
+                        try:
+                            native_loader.disconnect()
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            finally:
+                try:
+                    loader.disconnect()
+                except Exception:
+                    pass
+            # re-raise to be handled by outer exception logging
+            raise
+
     except (FileNotFoundError, OSError) as e:
         logger.error(
             "parquet_read_failed",

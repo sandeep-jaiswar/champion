@@ -53,6 +53,7 @@ class ClickHouseLoader:
         "raw_equity_ohlc": "raw",
         "normalized_equity_ohlc": "normalized",
         "features_equity_indicators": "features",
+        "bulk_block_deals": "normalized",
         "symbol_master": "reference",
     }
 
@@ -121,22 +122,71 @@ class ClickHouseLoader:
         self.password = password or os.getenv("CLICKHOUSE_PASSWORD")
         self.database = database or os.getenv("CLICKHOUSE_DATABASE")
         self.client: Client | None = None
+        self.native_client = None
 
     def connect(self) -> None:
         """Establish connection to ClickHouse."""
         try:
-            self.client = clickhouse_connect.get_client(
-                host=self.host,
-                port=self.port,
-                username=self.user,
-                password=self.password,
-                database=self.database,
-            )
+            # If the configured port is the native ClickHouse TCP port (9000)
+            # prefer the native protocol client. Otherwise use the HTTP client.
+            if int(self.port) == 9000:
+                # Attempt to create a native driver client for inserts (clickhouse native TCP)
+                logger.info(f"Attempting native ClickHouse driver for {self.host}:{self.port}")
+                try:
+                    # Defer import to here so dependency is optional
+                    from clickhouse_driver import Client as NativeClient
+
+                    self.native_client = NativeClient(
+                        host=self.host,
+                        port=self.port,
+                        user=self.user,
+                        password=self.password,
+                        database=self.database,
+                    )
+                    logger.info("Native ClickHouse driver client created")
+                except Exception as exc:
+                    logger.debug(f"Native ClickHouse driver unavailable: {exc}")
+                    self.native_client = None
+
+                # Also try to create an HTTP client for metadata queries (system.columns)
+                try:
+                    self.client = clickhouse_connect.get_client(
+                        host=self.host,
+                        port=8123,
+                        username=self.user,
+                        password=self.password,
+                        database=self.database,
+                    )
+                    logger.info(f"HTTP ClickHouse client for metadata at {self.host}:8123 created")
+                except Exception:
+                    # If HTTP client cannot be created, leave as None and rely on fallbacks
+                    logger.debug("HTTP metadata client could not be created; some metadata queries may fail")
+            else:
+                # Default to HTTP client (clickhouse-connect helper)
+                logger.info(f"Using HTTP ClickHouse client for {self.host}:{self.port}")
+                self.client = clickhouse_connect.get_client(
+                    host=self.host,
+                    port=self.port,
+                    username=self.user,
+                    password=self.password,
+                    database=self.database,
+                )
+
             logger.info(f"Connected to ClickHouse at {self.host}:{self.port}")
 
             # Test connection
-            self.client.command("SELECT 1")
-            logger.info("Connection test successful")
+            # Some client variants return results directly, others via a list of lines.
+            try:
+                resp = self.client.command("SELECT 1")
+                logger.debug(f"Connection test response: {resp}")
+            except Exception:
+                # Older/native clients may expose a ping or simple query method
+                try:
+                    # Attempt a lightweight query
+                    self.client.query("SELECT 1")
+                except Exception:
+                    # If test fails, still allow upward error handling
+                    raise
 
         except Exception as e:
             logger.error(f"Failed to connect to ClickHouse: {e}")
@@ -192,8 +242,10 @@ class ClickHouseLoader:
             try:
                 logger.info(f"Loading file: {file_path.name}")
 
-                # Read Parquet file
-                df = pl.read_parquet(file_path)
+                # Read Parquet file (disable hive partition inference to avoid
+                # merging partition schema with file schema which can cause
+                # duplicate-field errors on some files)
+                df = pl.read_parquet(file_path, hive_partitioning=False)
                 rows = len(df)
 
                 logger.info(f"Read {rows:,} rows from {file_path.name}")
@@ -494,7 +546,17 @@ class ClickHouseLoader:
                     logger.info(f"Sample aligned row (tuple): {aligned_tuples[0] if aligned_tuples else None}")
 
                     try:
-                        self.client.insert(table=table, data=aligned_tuples, column_names=columns)
+                        # If a native client exists, use it for bulk inserts (native TCP)
+                        if self.native_client is not None:
+                            try:
+                                # clickhouse_driver accepts execute with data as list of tuples
+                                insert_stmt = f"INSERT INTO {self.database}.{table} ({', '.join(columns)}) VALUES"
+                                self.native_client.execute(insert_stmt, aligned_tuples)
+                            except Exception as exc:
+                                logger.error(f"Native ClickHouse insert failed: {repr(exc)}")
+                                raise
+                        else:
+                            self.client.insert(table=table, data=aligned_tuples, column_names=columns)
                     except Exception as exc:
                         logger.error(f"ClickHouse insert failed: {repr(exc)}")
                         raise
