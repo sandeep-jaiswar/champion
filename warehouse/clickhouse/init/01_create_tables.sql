@@ -2,7 +2,7 @@
 -- This script creates database and tables for raw, normalized, and features layers
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS champion_market;
+CREATE DATABASE IF NOT EXISTS default;
 
 -- ==============================================================================
 -- 1. RAW EQUITY OHLC TABLE
@@ -12,7 +12,7 @@ CREATE DATABASE IF NOT EXISTS champion_market;
 -- Partitioning: Monthly (YYYYMM)
 -- Sort Key: Symbol, TradDt, event_time for efficient queries
 
-CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
+CREATE TABLE IF NOT EXISTS default.raw_equity_ohlc
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
     Sgmt                LowCardinality(Nullable(String)),
     Src                 LowCardinality(Nullable(String)),
     FinInstrmTp         LowCardinality(Nullable(String)),
-    FinInstrmId         Int64 DEFAULT 0,
+    FinInstrmId         String DEFAULT '',
     ISIN                Nullable(String),
     TckrSymb            String DEFAULT '',  -- Not nullable since it's in ORDER BY
     SctySrs             LowCardinality(Nullable(String)),
@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS champion_market.raw_equity_ohlc
     Rsvd02              Nullable(String),
     Rsvd03              Nullable(String),
     Rsvd04              Nullable(String),
+    adjustment_date     Nullable(Date),
+    adjustment_factor   Float64 DEFAULT 1.0,
+    is_trading_day      Nullable(UInt8) DEFAULT 1,
     year                Int64 DEFAULT toYear(TradDt),
     month               Int64 DEFAULT toMonth(TradDt),
     day                 Int64 DEFAULT toDayOfMonth(TradDt)
@@ -70,7 +73,7 @@ SETTINGS
 
 -- Index for faster ISIN lookups
 CREATE INDEX IF NOT EXISTS idx_raw_isin 
-ON champion_market.raw_equity_ohlc (ISIN) 
+ON default.raw_equity_ohlc (ISIN) 
 TYPE bloom_filter GRANULARITY 4;
 
 -- ==============================================================================
@@ -81,7 +84,7 @@ TYPE bloom_filter GRANULARITY 4;
 -- Partitioning: Monthly (YYYYMM)
 -- Engine: ReplacingMergeTree for upserts with late-arriving data
 
-CREATE TABLE IF NOT EXISTS champion_market.normalized_equity_ohlc
+CREATE TABLE IF NOT EXISTS default.normalized_equity_ohlc
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -97,7 +100,7 @@ CREATE TABLE IF NOT EXISTS champion_market.normalized_equity_ohlc
     Sgmt                LowCardinality(Nullable(String)),
     Src                 LowCardinality(Nullable(String)),
     FinInstrmTp         LowCardinality(Nullable(String)),
-    FinInstrmId         Int64 DEFAULT 0,
+    FinInstrmId         String DEFAULT '',
     ISIN                Nullable(String),
     TckrSymb            String DEFAULT '',
     SctySrs             LowCardinality(Nullable(String)),
@@ -126,6 +129,9 @@ CREATE TABLE IF NOT EXISTS champion_market.normalized_equity_ohlc
     Rsvd02              Nullable(String),
     Rsvd03              Nullable(String),
     Rsvd04              Nullable(String),
+    adjustment_date     Nullable(Date),
+    adjustment_factor   Float64 DEFAULT 1.0,
+    is_trading_day      Nullable(UInt8) DEFAULT 1,
     year                Int64 DEFAULT toYear(TradDt),
     month               Int64 DEFAULT toMonth(TradDt),
     day                 Int64 DEFAULT toDayOfMonth(TradDt)
@@ -139,11 +145,11 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_norm_isin 
-ON champion_market.normalized_equity_ohlc (ISIN) 
+ON default.normalized_equity_ohlc (ISIN) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_norm_volume 
-ON champion_market.normalized_equity_ohlc (TtlTradgVol) 
+ON default.normalized_equity_ohlc (TtlTradgVol) 
 TYPE minmax GRANULARITY 1;
 
 -- ==============================================================================
@@ -153,7 +159,7 @@ TYPE minmax GRANULARITY 1;
 -- Retention: 1 year
 -- Partitioning: Monthly (YYYYMM)
 
-CREATE TABLE IF NOT EXISTS champion_market.features_equity_indicators
+CREATE TABLE IF NOT EXISTS default.features_equity_indicators
 (
     -- Metadata
     symbol              String,
@@ -206,7 +212,7 @@ SETTINGS
 -- ==============================================================================
 
 -- Daily OHLC Summary View
-CREATE MATERIALIZED VIEW IF NOT EXISTS champion_market.equity_ohlc_daily_summary
+CREATE MATERIALIZED VIEW IF NOT EXISTS default.equity_ohlc_daily_summary
 ENGINE = SummingMergeTree()
 PARTITION BY toYYYYMM(trade_date)
 ORDER BY (trade_date, exchange)
@@ -219,7 +225,7 @@ AS SELECT
     avg(coalesce(ClsPric, 0.0)) as avg_close_price,
     max(coalesce(HghPric, 0.0)) as max_high_price,
     min(coalesce(LwPric, 0.0)) as min_low_price
-FROM champion_market.normalized_equity_ohlc
+FROM default.normalized_equity_ohlc
 GROUP BY TradDt, coalesce(Sgmt, '');
 
 -- ==============================================================================
@@ -229,7 +235,7 @@ GROUP BY TradDt, coalesce(Sgmt, '');
 -- Retention: 10 years (historical reference)
 -- Partitioning: Yearly (YYYY)
 
-CREATE TABLE IF NOT EXISTS champion_market.corporate_actions
+CREATE TABLE IF NOT EXISTS default.corporate_actions
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -288,11 +294,11 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_ca_isin 
-ON champion_market.corporate_actions (isin) 
+ON default.corporate_actions (isin) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_ca_type 
-ON champion_market.corporate_actions (action_type) 
+ON default.corporate_actions (action_type) 
 TYPE set(100) GRANULARITY 1;
 
 -- ==============================================================================
@@ -304,7 +310,7 @@ TYPE set(100) GRANULARITY 1;
 -- Partitioning: By year of valid_from date
 -- This resolves one-to-many ticker cases (e.g., IBULHSGFIN with EQ + 18 NCD tranches)
 
-CREATE TABLE IF NOT EXISTS champion_market.symbol_master
+CREATE TABLE IF NOT EXISTS default.symbol_master
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -363,15 +369,15 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_sm_isin 
-ON champion_market.symbol_master (isin) 
+ON default.symbol_master (isin) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_sm_status 
-ON champion_market.symbol_master (status) 
+ON default.symbol_master (status) 
 TYPE set(10) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_sm_series 
-ON champion_market.symbol_master (series) 
+ON default.symbol_master (series) 
 TYPE set(100) GRANULARITY 1;
 
 -- ==============================================================================
@@ -382,7 +388,7 @@ TYPE set(100) GRANULARITY 1;
 -- Partitioning: By index_name and year of effective_date
 -- Engine: MergeTree for full historical tracking
 
-CREATE TABLE IF NOT EXISTS champion_market.index_constituent
+CREATE TABLE IF NOT EXISTS default.index_constituent
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -422,15 +428,15 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_ic_isin 
-ON champion_market.index_constituent (isin) 
+ON default.index_constituent (isin) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_ic_action 
-ON champion_market.index_constituent (action) 
+ON default.index_constituent (action) 
 TYPE set(10) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_ic_effective_date 
-ON champion_market.index_constituent (effective_date) 
+ON default.index_constituent (effective_date) 
 TYPE minmax GRANULARITY 1;
 
 -- 7. TRADING CALENDAR TABLE
@@ -439,7 +445,7 @@ TYPE minmax GRANULARITY 1;
 -- Retention: 10 years (historical reference)
 -- Partitioning: Yearly (YYYY)
 
-CREATE TABLE IF NOT EXISTS champion_market.trading_calendar
+CREATE TABLE IF NOT EXISTS default.trading_calendar
 (
     -- Metadata
     trade_date          Date,
@@ -466,12 +472,12 @@ SETTINGS
 
 -- Index for fast trading day lookups
 CREATE INDEX IF NOT EXISTS idx_tc_trading_day 
-ON champion_market.trading_calendar (is_trading_day) 
+ON default.trading_calendar (is_trading_day) 
 TYPE set(2) GRANULARITY 1;
 
 -- Index for holiday lookups
 CREATE INDEX IF NOT EXISTS idx_tc_day_type 
-ON champion_market.trading_calendar (day_type) 
+ON default.trading_calendar (day_type) 
 TYPE set(10) GRANULARITY 1;
 
 -- ==============================================================================
@@ -484,7 +490,7 @@ TYPE set(10) GRANULARITY 1;
 -- Bulk Deals: Transactions where total quantity > 0.5% of listed shares
 -- Block Deals: Transactions with minimum 5 lakh shares or Rs 5 crore value
 
-CREATE TABLE IF NOT EXISTS champion_market.bulk_block_deals
+CREATE TABLE IF NOT EXISTS default.bulk_block_deals
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -518,19 +524,19 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_bbd_client 
-ON champion_market.bulk_block_deals (client_name) 
+ON default.bulk_block_deals (client_name) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_bbd_deal_type 
-ON champion_market.bulk_block_deals (deal_type) 
+ON default.bulk_block_deals (deal_type) 
 TYPE set(2) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_bbd_transaction_type 
-ON champion_market.bulk_block_deals (transaction_type) 
+ON default.bulk_block_deals (transaction_type) 
 TYPE set(2) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_bbd_quantity 
-ON champion_market.bulk_block_deals (quantity) 
+ON default.bulk_block_deals (quantity) 
 TYPE minmax GRANULARITY 1;
 
 -- ==============================================================================
@@ -540,7 +546,7 @@ TYPE minmax GRANULARITY 1;
 -- Retention: 10 years (historical reference for analysis)
 -- Partitioning: By year and quarter of period_end_date
 
-CREATE TABLE IF NOT EXISTS champion_market.quarterly_financials
+CREATE TABLE IF NOT EXISTS default.quarterly_financials
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -607,15 +613,15 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_qf_cin 
-ON champion_market.quarterly_financials (cin) 
+ON default.quarterly_financials (cin) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_qf_period_type 
-ON champion_market.quarterly_financials (period_type) 
+ON default.quarterly_financials (period_type) 
 TYPE set(10) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_qf_statement_type 
-ON champion_market.quarterly_financials (statement_type) 
+ON default.quarterly_financials (statement_type) 
 TYPE set(10) GRANULARITY 1;
 
 -- ==============================================================================
@@ -625,7 +631,7 @@ TYPE set(10) GRANULARITY 1;
 -- Retention: 10 years (historical reference for analysis)
 -- Partitioning: By year and quarter of quarter_end_date
 
-CREATE TABLE IF NOT EXISTS champion_market.shareholding_pattern
+CREATE TABLE IF NOT EXISTS default.shareholding_pattern
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -694,11 +700,11 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_sp_isin 
-ON champion_market.shareholding_pattern (isin) 
+ON default.shareholding_pattern (isin) 
 TYPE bloom_filter GRANULARITY 4;
 
 CREATE INDEX IF NOT EXISTS idx_sp_scrip_code 
-ON champion_market.shareholding_pattern (scrip_code) 
+ON default.shareholding_pattern (scrip_code) 
 TYPE bloom_filter GRANULARITY 4;
 
 -- ==============================================================================
@@ -709,7 +715,7 @@ TYPE bloom_filter GRANULARITY 4;
 -- Partitioning: By indicator_category and year of indicator_date
 -- Includes: Policy rates, CPI, WPI, FX reserves, GDP, employment metrics
 
-CREATE TABLE IF NOT EXISTS champion_market.macro_indicators
+CREATE TABLE IF NOT EXISTS default.macro_indicators
 (
     -- Envelope fields (metadata)
     event_id            String,
@@ -744,19 +750,19 @@ SETTINGS
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_mi_code 
-ON champion_market.macro_indicators (indicator_code) 
+ON default.macro_indicators (indicator_code) 
 TYPE set(100) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_mi_category 
-ON champion_market.macro_indicators (indicator_category) 
+ON default.macro_indicators (indicator_category) 
 TYPE set(20) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_mi_frequency 
-ON champion_market.macro_indicators (frequency) 
+ON default.macro_indicators (frequency) 
 TYPE set(10) GRANULARITY 1;
 
 CREATE INDEX IF NOT EXISTS idx_mi_date 
-ON champion_market.macro_indicators (indicator_date) 
+ON default.macro_indicators (indicator_date) 
 TYPE minmax GRANULARITY 1;
 
 -- Note: User permissions are managed via environment variables and docker-entrypoint

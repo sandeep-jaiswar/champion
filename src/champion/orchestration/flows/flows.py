@@ -126,12 +126,72 @@ def scrape_bhavcopy(trade_date: date) -> str:
                     "scraper_network_error_fallback_to_direct", error=str(e), retryable=True
                 )
                 if not scraper.download_file(url, str(local_path)):
-                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}") from e
+                    # Treat download failures (e.g., 404) as non-fatal: create idempotency marker and continue
+                    try:
+                        resolved_base_path = Path("data/lake")
+                        year = trade_date.year
+                        month = trade_date.month
+                        day = trade_date.day
+                        partition_path = (
+                            resolved_base_path
+                            / "normalized"
+                            / "equity_ohlc"
+                            / f"year={year}"
+                            / f"month={month:02d}"
+                            / f"day={day:02d}"
+                        )
+                        expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        partition_path.mkdir(parents=True, exist_ok=True)
+                        create_idempotency_marker(
+                            output_file=expected_output_file,
+                            trade_date=trade_date.isoformat(),
+                            rows=0,
+                            metadata={"skipped": "download_failed", "url": url},
+                        )
+                        mlflow.log_param("download_skipped", True)
+                        logger.warning(
+                            "bhavcopy_download_skipped_created_idempotency",
+                            trade_date=str(trade_date),
+                            url=url,
+                        )
+                    except Exception as ie:
+                        logger.error("failed_creating_idempotency_marker", error=str(ie))
+                    return str(local_path)
             except Exception as e:
                 # Other errors, fallback to direct file download (older interface)
                 logger.warning("scraper_error_fallback_to_direct", error=str(e), retryable=False)
                 if not scraper.download_file(url, str(local_path)):
-                    raise RuntimeError(f"Failed to download bhavcopy for {trade_date}") from e
+                    # Treat download failures (e.g., 404) as non-fatal: create idempotency marker and continue
+                    try:
+                        resolved_base_path = Path("data/lake")
+                        year = trade_date.year
+                        month = trade_date.month
+                        day = trade_date.day
+                        partition_path = (
+                            resolved_base_path
+                            / "normalized"
+                            / "equity_ohlc"
+                            / f"year={year}"
+                            / f"month={month:02d}"
+                            / f"day={day:02d}"
+                        )
+                        expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        partition_path.mkdir(parents=True, exist_ok=True)
+                        create_idempotency_marker(
+                            output_file=expected_output_file,
+                            trade_date=trade_date.isoformat(),
+                            rows=0,
+                            metadata={"skipped": "download_failed", "url": url},
+                        )
+                        mlflow.log_param("download_skipped", True)
+                        logger.warning(
+                            "bhavcopy_download_skipped_created_idempotency",
+                            trade_date=str(trade_date),
+                            url=url,
+                        )
+                    except Exception as ie:
+                        logger.error("failed_creating_idempotency_marker", error=str(ie))
+                    return str(local_path)
 
         duration = time.time() - start_time
 
@@ -225,7 +285,13 @@ def parse_polars_raw(csv_file_path: str, trade_date: date) -> pl.DataFrame:
         logger.error(
             "polars_parse_file_failed", csv_file_path=csv_file_path, error=str(e), retryable=True
         )
-        raise
+        # If the CSV is missing, log and return an empty DataFrame so the flow can continue.
+        logger.warning(
+            "polars_parse_missing_file_skipping",
+            csv_file_path=csv_file_path,
+            trade_date=str(trade_date),
+        )
+        return pl.DataFrame([])
     except ValueError as e:
         logger.error(
             "polars_parse_validation_failed",
@@ -267,8 +333,14 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
     logger.info("starting_normalization", input_rows=len(df))
 
     try:
-        # Filter out rows with missing critical fields
+        # If empty DataFrame, skip normalization and return as-is
+        if df is None or len(df) == 0:
+            logger.info("normalize_skipped_empty_dataframe", input_rows=0)
+            return df
+
         initial_rows = len(df)
+
+        # Basic filtering: require a symbol and a positive close price
         df = df.filter(
             pl.col("TckrSymb").is_not_null()
             & (pl.col("TckrSymb") != "")
@@ -276,27 +348,135 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
             & (pl.col("ClsPric") > 0)
         )
 
-        # Validate we have data
         if len(df) == 0:
             raise ValueError("No valid rows after normalization")
 
-        filtered_rows = initial_rows - len(df)
+        # Map bhavcopy columns to the canonical normalized_equity_ohlc schema
+        # - trade_date: parse TradDt (YYYY-MM-DD) into Polars Date (days since epoch)
+        # - instrument_id: use symbol:exchange
+        mapped = df.with_columns(
+            [
+                # Ensure TradDt is an integer in YYYYMMDD format (schema expects integer)
+                pl.col("TradDt")
+                .str
+                .strptime(pl.Date, "%Y-%m-%d")
+                .dt.strftime("%Y%m%d")
+                .cast(pl.Int64)
+                .alias("trade_date"),
+                # Canonical identifiers
+                (pl.col("TckrSymb") + pl.lit(":" ) + pl.lit("NSE")).alias("instrument_id"),
+                pl.col("TckrSymb").alias("symbol"),
+                pl.lit("NSE").alias("exchange"),
+                pl.col("ISIN").alias("isin"),
+                pl.col("FinInstrmTp").alias("instrument_type"),
+                pl.col("SctySrs").alias("series"),
+
+                # Price fields
+                pl.col("PrvsClsgPric").alias("prev_close"),
+                pl.col("OpnPric").alias("open"),
+                pl.col("HghPric").alias("high"),
+                pl.col("LwPric").alias("low"),
+                pl.col("ClsPric").alias("close"),
+                pl.col("LastPric").alias("last_price"),
+                pl.col("SttlmPric").alias("settlement_price"),
+
+                # Volume / turnover
+                pl.col("TtlTradgVol").alias("volume"),
+                pl.col("TtlTrfVal").alias("turnover"),
+                pl.col("TtlNbOfTxsExctd").alias("trades"),
+
+                # Defaults
+                pl.lit(1.0).alias("adjustment_factor"),
+                pl.lit(None).cast(pl.Int64).alias("adjustment_date"),
+                pl.lit(True).alias("is_trading_day"),
+            ]
+        )
+
+        # Preserve required metadata columns (event_id, event_time, ingest_time, source, schema_version, entity_id)
+        cols_to_select = [
+            "event_id",
+            "event_time",
+            "ingest_time",
+            "source",
+            "schema_version",
+            "entity_id",
+            "instrument_id",
+            "symbol",
+            "exchange",
+            "isin",
+            "instrument_type",
+            "series",
+            "trade_date",
+            "prev_close",
+            "open",
+            "high",
+            "low",
+            "close",
+            "last_price",
+            "settlement_price",
+            "volume",
+            "turnover",
+            "trades",
+            "adjustment_factor",
+            "adjustment_date",
+            "is_trading_day",
+        ]
+
+        # Some bhavcopy inputs might be missing optional columns; select only existing columns and fill missing with nulls
+        existing = [c for c in cols_to_select if c in mapped.columns]
+        normalized_df = mapped.select(existing)
+
+        # Ensure all required properties exist; for missing non-present columns add null/defaults
+        required_cols = [
+            "event_id",
+            "event_time",
+            "ingest_time",
+            "source",
+            "schema_version",
+            "entity_id",
+            "instrument_id",
+            "symbol",
+            "exchange",
+            "trade_date",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "turnover",
+            "adjustment_factor",
+            "is_trading_day",
+        ]
+
+        for c in required_cols:
+            if c not in normalized_df.columns:
+                # infer type for default: numeric -> 0/0.0, string -> empty, boolean -> False
+                if c in ("open", "high", "low", "close", "turnover", "adjustment_factor"):
+                    normalized_df = normalized_df.with_column(pl.lit(0.0).alias(c))
+                elif c in ("volume",):
+                    normalized_df = normalized_df.with_column(pl.lit(0).alias(c))
+                elif c in ("is_trading_day",):
+                    normalized_df = normalized_df.with_column(pl.lit(False).alias(c))
+                else:
+                    normalized_df = normalized_df.with_column(pl.lit("").alias(c))
+
+        filtered_rows = initial_rows - len(normalized_df)
         duration = time.time() - start_time
 
         logger.info(
             "normalization_complete",
             input_rows=initial_rows,
-            output_rows=len(df),
+            output_rows=len(normalized_df),
             filtered_rows=filtered_rows,
             duration_seconds=duration,
         )
 
         # Log metrics to MLflow
         mlflow.log_metric("normalize_duration_seconds", duration)
-        mlflow.log_metric("normalized_rows", len(df))
+        mlflow.log_metric("normalized_rows", len(normalized_df))
         mlflow.log_metric("filtered_rows", filtered_rows)
 
-        return df
+        return normalized_df
 
     except ValueError as e:
         logger.error("normalization_validation_failed", error=str(e), retryable=False)
@@ -339,13 +519,13 @@ def write_parquet(
     try:
         parser = PolarsBhavcopyParser()
 
-        resolved_base_path: Path
+        # Resolve base path early so skip logic can reference it
         if base_path is None:
             resolved_base_path = Path("data/lake")
         else:
             resolved_base_path = Path(base_path)
 
-        # Calculate expected output file path
+        # Calculate expected output file path and partition before any early returns
         year = trade_date.year
         month = trade_date.month
         day = trade_date.day
@@ -358,6 +538,24 @@ def write_parquet(
             / f"day={day:02d}"
         )
         expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+
+        # If the dataframe is empty, skip writing parquet but create an idempotency marker
+        if df is None or len(df) == 0:
+            logger.info(
+                "parquet_write_skipped_empty_dataframe",
+                trade_date=str(trade_date),
+            )
+            # Ensure partition path exists
+            partition_path.mkdir(parents=True, exist_ok=True)
+            # Create idempotency marker indicating zero rows
+            create_idempotency_marker(
+                output_file=expected_output_file,
+                trade_date=trade_date.isoformat(),
+                rows=0,
+                metadata={"skipped": "no_rows"},
+            )
+            mlflow.log_param("idempotent_skip", True)
+            return str(expected_output_file)
 
         # Check idempotency marker
         if is_task_completed(expected_output_file, trade_date.isoformat()):
@@ -475,96 +673,37 @@ def load_clickhouse(
     logger.info("starting_clickhouse_load", parquet_file=parquet_file, table=table)
 
     try:
-        # Import here to avoid dependency if ClickHouse not available
-        import clickhouse_connect
+        # Use the ClickHouse batch loader utility for robust mapping/validation
+        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
         # Use defaults from environment or parameters
-        ch_host = host or "localhost"
-        ch_port = port or 8123
-        ch_user = user or "champion_user"
-        ch_password = password or "champion_pass"
-        ch_database = database or "champion_market"
+        import os
 
-        # Read Parquet file
-        df = pl.read_parquet(parquet_file)
-        rows = len(df)
+        ch_host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
+        ch_port = port or int(os.getenv("CLICKHOUSE_PORT", "8123"))
+        ch_user = user or os.getenv("CLICKHOUSE_USER")
+        ch_password = password or os.getenv("CLICKHOUSE_PASSWORD")
+        ch_database = database or os.getenv("CLICKHOUSE_DATABASE")
 
-        logger.info("read_parquet_for_load", parquet_file=parquet_file, rows=rows)
+        # Initialize loader
+        loader = ClickHouseLoader(host=ch_host, port=ch_port, user=ch_user, password=ch_password, database=ch_database)
+        try:
+            loader.connect()
+        except Exception as e:
+            logger.error("clickhouse_connect_failed", error=str(e), retryable=True)
+            metrics.clickhouse_load_failed.labels(table=table).inc()
+            logger.warning("continuing_without_clickhouse_load")
+            return {"table": table, "rows_loaded": 0, "duration_seconds": 0, "error": str(e)}
 
-        # Connect to ClickHouse
-        client = clickhouse_connect.get_client(
-            host=ch_host,
-            port=ch_port,
-            username=ch_user,
-            password=ch_password,
-            database=ch_database,
-        )
+        # Delegate loading to the batch loader (handles mapping + validation)
+        try:
+            stats = loader.load_parquet_files(table=table, source_path=parquet_file, batch_size=100000, dry_run=False)
+        finally:
+            loader.disconnect()
 
-        # Deduplicate by deleting existing data for the same date
-        if deduplicate and "TradDt" in df.columns:
-            # Extract unique trade dates from the DataFrame
-            trade_dates = df.select("TradDt").unique().to_series().to_list()
-
-            for trade_date in trade_dates:
-                # Use parameterized query to prevent SQL injection
-                # Note: ClickHouse ALTER TABLE DELETE doesn't support placeholders in the same way
-                # as SELECT, so we validate inputs before constructing the query
-
-                # Validate table name (alphanumeric and underscores only)
-                if not table.replace("_", "").isalnum():
-                    logger.error(
-                        "invalid_table_name",
-                        table=table,
-                    )
-                    continue
-
-                # Validate trade_date format (should be a string in YYYY-MM-DD format)
-                trade_date_str = str(trade_date).strip()
-                if not trade_date_str or "'" in trade_date_str or ";" in trade_date_str:
-                    logger.warning(
-                        "invalid_trade_date_format",
-                        trade_date=trade_date_str,
-                    )
-                    continue
-
-                # Construct query with validated inputs
-                delete_query = f"ALTER TABLE {table} DELETE WHERE TradDt = '{trade_date_str}'"
-                try:
-                    client.command(delete_query)
-                    logger.info(
-                        "deleted_existing_data_for_date",
-                        table=table,
-                        trade_date=trade_date_str,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "failed_to_delete_existing_data",
-                        table=table,
-                        trade_date=trade_date_str,
-                        error=str(e),
-                    )
-                    # Continue with insert even if delete fails
-
-        # Convert to pandas for clickhouse-connect compatibility
-        pdf = df.to_pandas()
-
-        # Insert data
-        client.insert_df(
-            table=table,
-            df=pdf,
-            settings={"async_insert": 0, "wait_for_async_insert": 0},
-        )
-
-        client.close()
-
-        duration = time.time() - start_time
-
-        stats = {
-            "table": table,
-            "rows_loaded": rows,
-            "duration_seconds": duration,
-            "deduplicated": deduplicate,
-        }
+        # Normalize stats to previous return shape
+        duration = stats.get("duration_seconds", 0)
+        rows = stats.get("total_rows", 0)
 
         logger.info(
             "clickhouse_load_complete",
@@ -574,16 +713,14 @@ def load_clickhouse(
             deduplicated=deduplicate,
         )
 
-        # Log metrics to MLflow
         mlflow.log_metric("load_duration_seconds", duration)
         mlflow.log_metric("rows_loaded", rows)
         mlflow.log_param("clickhouse_table", table)
         mlflow.log_param("deduplicated", deduplicate)
 
-        # Track Prometheus metrics
         metrics.clickhouse_load_success.labels(table=table).inc()
 
-        return stats
+        return {"table": table, "rows_loaded": rows, "duration_seconds": duration, "deduplicated": deduplicate}
 
     except (ConnectionError, TimeoutError) as e:
         logger.error(
@@ -592,30 +729,16 @@ def load_clickhouse(
             error=str(e),
             retryable=True,
         )
-        # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
-        # Don't fail the flow if ClickHouse is unavailable
         logger.warning("continuing_without_clickhouse_load")
-        return {
-            "table": table,
-            "rows_loaded": 0,
-            "duration_seconds": 0,
-            "error": str(e),
-        }
+        return {"table": table, "rows_loaded": 0, "duration_seconds": 0, "error": str(e)}
     except (FileNotFoundError, OSError) as e:
         logger.error(
             "clickhouse_load_file_failed", parquet_file=parquet_file, error=str(e), retryable=True
         )
-        # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
-        # Don't fail the flow if ClickHouse is unavailable
         logger.warning("continuing_without_clickhouse_load")
-        return {
-            "table": table,
-            "rows_loaded": 0,
-            "duration_seconds": 0,
-            "error": str(e),
-        }
+        return {"table": table, "rows_loaded": 0, "duration_seconds": 0, "error": str(e)}
     except ValueError as e:
         logger.error(
             "clickhouse_load_validation_failed",
@@ -623,30 +746,16 @@ def load_clickhouse(
             error=str(e),
             retryable=False,
         )
-        # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
-        # Don't fail the flow if ClickHouse is unavailable
         logger.warning("continuing_without_clickhouse_load")
-        return {
-            "table": table,
-            "rows_loaded": 0,
-            "duration_seconds": 0,
-            "error": str(e),
-        }
+        return {"table": table, "rows_loaded": 0, "duration_seconds": 0, "error": str(e)}
     except Exception as e:
         logger.critical(
             "clickhouse_load_fatal_error", parquet_file=parquet_file, error=str(e), retryable=False
         )
-        # Track failure in Prometheus
         metrics.clickhouse_load_failed.labels(table=table).inc()
-        # Don't fail the flow if ClickHouse is unavailable
         logger.warning("continuing_without_clickhouse_load")
-        return {
-            "table": table,
-            "rows_loaded": 0,
-            "duration_seconds": 0,
-            "error": str(e),
-        }
+        return {"table": table, "rows_loaded": 0, "duration_seconds": 0, "error": str(e)}
 
 
 @flow(
@@ -727,6 +836,39 @@ def nse_bhavcopy_etl_flow(
             # Step 2: Parse raw CSV
             raw_df = parse_polars_raw(csv_file, trade_date)
 
+            # Step 2.5: Write raw rows to ClickHouse raw table (source-of-truth)
+            if load_to_clickhouse and raw_df is not None and len(raw_df) > 0:
+                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+
+                import os
+
+                ch_host = clickhouse_host or os.getenv("CLICKHOUSE_HOST", "localhost")
+                ch_port = clickhouse_port or int(os.getenv("CLICKHOUSE_PORT", "8123"))
+                ch_user = clickhouse_user or os.getenv("CLICKHOUSE_USER")
+                ch_password = clickhouse_password or os.getenv("CLICKHOUSE_PASSWORD")
+                ch_database = clickhouse_database or os.getenv("CLICKHOUSE_DATABASE")
+
+                raw_loader = ClickHouseLoader(
+                    host=ch_host, port=ch_port, user=ch_user, password=ch_password, database=ch_database
+                )
+
+                try:
+                    raw_loader.connect()
+                    inserted = raw_loader.insert_polars_dataframe(
+                        table="raw_equity_ohlc", df=raw_df, batch_size=50000, dry_run=False
+                    )
+                    mlflow.log_metric("raw_rows_loaded", inserted)
+                    metrics.clickhouse_load_success.labels(table="raw_equity_ohlc").inc()
+                    logger.info("raw_clickhouse_load_complete", rows=inserted, table="raw_equity_ohlc")
+                except Exception as e:
+                    logger.error("raw_clickhouse_load_failed", error=str(e), retryable=False)
+                    metrics.clickhouse_load_failed.labels(table="raw_equity_ohlc").inc()
+                    logger.warning("continuing_without_raw_clickhouse_load")
+                finally:
+                    try:
+                        raw_loader.disconnect()
+                    except Exception:
+                        pass
             # Step 3: Normalize data
             normalized_df = normalize_polars(raw_df)
 
