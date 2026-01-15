@@ -430,6 +430,11 @@ class ClickHouseLoader:
                         if typ is None:
                             return None
                         t = typ.lower()
+                        # For complex container types, return sensible empty container defaults
+                        if "map" in t or t.startswith("map("):
+                            return {}
+                        if "array" in t or t.startswith("array("):
+                            return []
                         if "date" in t and "time" not in t:
                             # ClickHouse Date will be sent as integer days-since-epoch
                             return 0
@@ -476,6 +481,37 @@ class ClickHouseLoader:
                                     return None
                             except Exception:
                                 pass
+                            # Handle Map and Array container types first to avoid
+                            # matching 'string' inside e.g. 'array(string)'
+                            if "map" in t or t.startswith("map("):
+                                # Expect a dict-like object for Map columns
+                                if isinstance(val, str):
+                                    try:
+                                        import json
+
+                                        return json.loads(val)
+                                    except Exception:
+                                        return {}
+                                if isinstance(val, dict):
+                                    return val
+                                return {}
+                            if "array" in t or t.startswith("array("):
+                                # Expect list/tuple for Array columns
+                                if isinstance(val, str):
+                                    try:
+                                        import json
+
+                                        parsed = json.loads(val)
+                                        return (
+                                            list(parsed)
+                                            if isinstance(parsed, list | tuple)
+                                            else [parsed]
+                                        )
+                                    except Exception:
+                                        return []
+                                if isinstance(val, list | tuple):
+                                    return list(val)
+                                return []
                             if "string" in t or "varchar" in t or "text" in t:
                                 return str(val)
                             if "int" in t or "uint" in t:
@@ -569,9 +605,17 @@ class ClickHouseLoader:
                                 logger.error(f"Native ClickHouse insert failed: {repr(exc)}")
                                 raise
                         else:
-                            self.client.insert(
-                                table=table, data=aligned_tuples, column_names=columns
-                            )
+                            # For HTTP client, prefer list-of-dicts to preserve complex types
+                            try:
+                                aligned_dicts = [
+                                    dict(zip(columns, tup, strict=False)) for tup in aligned_tuples
+                                ]
+                                self.client.insert(table=table, data=aligned_dicts)
+                            except Exception:
+                                # Fallback to previous behaviour if list-of-dicts fails
+                                self.client.insert(
+                                    table=table, data=aligned_tuples, column_names=columns
+                                )
                     except Exception as exc:
                         logger.error(f"ClickHouse insert failed: {repr(exc)}")
                         raise

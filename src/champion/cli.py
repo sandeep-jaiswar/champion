@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 import typer
 
@@ -321,6 +322,133 @@ def show_config():
     typer.echo(f"Data dir: {config.storage.data_dir}")
     typer.echo(f"Kafka bootstrap: {config.kafka.bootstrap_servers}")
     typer.echo("ClickHouse: configured via flows/loaders")
+
+
+@app.command("equity-list")
+def equity_list(
+    output_base_path: str | None = typer.Option(None, help="Base output path (default: data/lake)"),
+    load_to_clickhouse: bool = typer.Option(True, help="Load results into ClickHouse"),
+):
+    """Download NSE equity list, save as Parquet and optionally load into ClickHouse."""
+    # Local imports to avoid top-level dependency issues during help/info runs
+    from io import BytesIO
+
+    import httpx
+    import pandas as pd
+    import polars as pl
+
+    base_path = Path(output_base_path or "data/lake")
+
+    origin_url = "https://nsewebsite-staging.nseindia.com"
+    url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+
+    try:
+        resp = httpx.get(
+            url, headers={"Origin": origin_url, "User-Agent": "champion-cli/1.0"}, timeout=30.0
+        )
+    except Exception as e:
+        typer.secho(f"Failed to fetch equity list: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1) from e
+
+    if resp.status_code != 200:
+        typer.secho(
+            f"No data equity list available (status {resp.status_code})", fg=typer.colors.RED
+        )
+        raise typer.Exit(1)
+
+    try:
+        # Read into pandas to perform robust column-normalisation, then convert to Polars
+        pdf = pd.read_csv(BytesIO(resp.content))
+    except Exception as e:
+        typer.secho(f"Failed to parse equity CSV: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1) from e
+
+    # Normalise column names by stripping whitespace
+    pdf.rename(columns=lambda c: c.strip() if isinstance(c, str) else c, inplace=True)
+
+    # Map CSV columns to ClickHouse `symbol_master` columns
+    column_map = {
+        "SYMBOL": "symbol",
+        "NAME OF COMPANY": "company_name",
+        "SERIES": "series",
+        "DATE OF LISTING": "listing_date",
+        "FACE VALUE": "face_value",
+        "ISIN NUMBER": "isin",
+        "PAID UP VALUE": "paid_up_value",
+        "MARKET LOT": "lot_size",
+    }
+
+    # Apply mapping for columns that exist
+    existing_map = {k: v for k, v in column_map.items() if k in pdf.columns}
+    pdf = pdf.rename(columns=existing_map)
+
+    # Parse listing_date which is in formats like '06-OCT-2008'
+    if "listing_date" in pdf.columns:
+        try:
+            pdf["listing_date"] = pd.to_datetime(
+                pdf["listing_date"], format="%d-%b-%Y", errors="coerce"
+            ).dt.date
+        except Exception:
+            pdf["listing_date"] = pd.to_datetime(pdf["listing_date"], errors="coerce").dt.date
+
+    # Ensure numeric types
+    if "face_value" in pdf.columns:
+        pdf["face_value"] = pd.to_numeric(pdf["face_value"], errors="coerce")
+    if "paid_up_value" in pdf.columns:
+        pdf["paid_up_value"] = pd.to_numeric(pdf["paid_up_value"], errors="coerce")
+    if "lot_size" in pdf.columns:
+        pdf["lot_size"] = pd.to_numeric(pdf["lot_size"], errors="coerce").astype("Int64")
+
+    # Add valid_from as ISO date string if missing
+    if "valid_from" not in pdf.columns:
+        pdf["valid_from"] = date.today().isoformat()
+
+    # Convert to Polars and write Parquet to data lake
+    try:
+        pldf = pl.from_pandas(pdf)
+    except Exception:
+        # If conversion fails, fall back to reading via Polars directly
+        try:
+            pldf = pl.read_csv(BytesIO(resp.content))
+        except Exception as e:
+            typer.secho(f"Failed to create DataFrame: {e}", fg=typer.colors.RED)
+            raise typer.Exit(1) from e
+
+    # Ensure `valid_from` column exists so ClickHouse partitioning is sane
+    if "valid_from" not in pldf.columns:
+        try:
+            pldf = pldf.with_columns(pl.lit(date.today().isoformat()).alias("valid_from"))
+        except Exception:
+            # Best-effort: fall back to adding via pandas before writing
+            pdf["valid_from"] = date.today().isoformat()
+            pldf = pl.from_pandas(pdf)
+
+    # Build storage paths
+    today = date.today().isoformat()
+    target_dir = base_path / "raw" / "symbol_master" / f"date={today}"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    parquet_path = target_dir / "symbol_master.parquet"
+
+    try:
+        pldf.write_parquet(parquet_path)
+    except Exception as e:
+        typer.secho(f"Failed to write Parquet file: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1) from e
+
+    typer.echo(f"Wrote Parquet to: {parquet_path}")
+
+    if load_to_clickhouse:
+        try:
+            from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+
+            loader = ClickHouseLoader()
+            loader.connect()
+            stats = loader.load_parquet_files(table="symbol_master", source_path=str(target_dir))
+            loader.disconnect()
+            typer.echo(f"ClickHouse load complete: {stats}")
+        except Exception as e:
+            typer.secho(f"ClickHouse load failed: {e}", fg=typer.colors.RED)
+            raise typer.Exit(1) from e
 
 
 def main(argv: list[str] | None = None) -> int:
