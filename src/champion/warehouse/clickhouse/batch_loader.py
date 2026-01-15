@@ -502,10 +502,14 @@ class ClickHouseLoader:
                                         import json
 
                                         parsed = json.loads(val)
-                                        return list(parsed) if isinstance(parsed, (list, tuple)) else [parsed]
+                                        return (
+                                            list(parsed)
+                                            if isinstance(parsed, list | tuple)
+                                            else [parsed]
+                                        )
                                     except Exception:
                                         return []
-                                if isinstance(val, (list, tuple)):
+                                if isinstance(val, list | tuple):
                                     return list(val)
                                 return []
                             if "string" in t or "varchar" in t or "text" in t:
@@ -603,11 +607,15 @@ class ClickHouseLoader:
                         else:
                             # For HTTP client, prefer list-of-dicts to preserve complex types
                             try:
-                                aligned_dicts = [dict(zip(columns, tup)) for tup in aligned_tuples]
+                                aligned_dicts = [
+                                    dict(zip(columns, tup, strict=False)) for tup in aligned_tuples
+                                ]
                                 self.client.insert(table=table, data=aligned_dicts)
                             except Exception:
                                 # Fallback to previous behaviour if list-of-dicts fails
-                                self.client.insert(table=table, data=aligned_tuples, column_names=columns)
+                                self.client.insert(
+                                    table=table, data=aligned_tuples, column_names=columns
+                                )
                     except Exception as exc:
                         logger.error(f"ClickHouse insert failed: {repr(exc)}")
                         raise

@@ -331,10 +331,11 @@ def equity_list(
 ):
     """Download NSE equity list, save as Parquet and optionally load into ClickHouse."""
     # Local imports to avoid top-level dependency issues during help/info runs
+    from io import BytesIO
+
     import httpx
     import pandas as pd
     import polars as pl
-    from io import BytesIO
 
     base_path = Path(output_base_path or "data/lake")
 
@@ -342,13 +343,17 @@ def equity_list(
     url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
 
     try:
-        resp = httpx.get(url, headers={"Origin": origin_url, "User-Agent": "champion-cli/1.0"}, timeout=30.0)
+        resp = httpx.get(
+            url, headers={"Origin": origin_url, "User-Agent": "champion-cli/1.0"}, timeout=30.0
+        )
     except Exception as e:
         typer.secho(f"Failed to fetch equity list: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     if resp.status_code != 200:
-        typer.secho(f"No data equity list available (status {resp.status_code})", fg=typer.colors.RED)
+        typer.secho(
+            f"No data equity list available (status {resp.status_code})", fg=typer.colors.RED
+        )
         raise typer.Exit(1)
 
     try:
@@ -356,7 +361,7 @@ def equity_list(
         pdf = pd.read_csv(BytesIO(resp.content))
     except Exception as e:
         typer.secho(f"Failed to parse equity CSV: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     # Normalise column names by stripping whitespace
     pdf.rename(columns=lambda c: c.strip() if isinstance(c, str) else c, inplace=True)
@@ -380,7 +385,9 @@ def equity_list(
     # Parse listing_date which is in formats like '06-OCT-2008'
     if "listing_date" in pdf.columns:
         try:
-            pdf["listing_date"] = pd.to_datetime(pdf["listing_date"], format="%d-%b-%Y", errors="coerce").dt.date
+            pdf["listing_date"] = pd.to_datetime(
+                pdf["listing_date"], format="%d-%b-%Y", errors="coerce"
+            ).dt.date
         except Exception:
             pdf["listing_date"] = pd.to_datetime(pdf["listing_date"], errors="coerce").dt.date
 
@@ -405,7 +412,7 @@ def equity_list(
             pldf = pl.read_csv(BytesIO(resp.content))
         except Exception as e:
             typer.secho(f"Failed to create DataFrame: {e}", fg=typer.colors.RED)
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     # Ensure `valid_from` column exists so ClickHouse partitioning is sane
     if "valid_from" not in pldf.columns:
@@ -426,7 +433,7 @@ def equity_list(
         pldf.write_parquet(parquet_path)
     except Exception as e:
         typer.secho(f"Failed to write Parquet file: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
     typer.echo(f"Wrote Parquet to: {parquet_path}")
 
@@ -441,7 +448,7 @@ def equity_list(
             typer.echo(f"ClickHouse load complete: {stats}")
         except Exception as e:
             typer.secho(f"ClickHouse load failed: {e}", fg=typer.colors.RED)
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 def main(argv: list[str] | None = None) -> int:
