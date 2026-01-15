@@ -6,7 +6,6 @@ import json
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -24,7 +23,7 @@ class CorporateActionsScraper(BaseScraper):
     def __init__(self) -> None:
         """Initialize corporate actions scraper."""
         super().__init__("corporate_actions")
-        self.session: Optional[httpx.Client] = None
+        self.session: httpx.Client | None = None
 
     def _establish_session(self) -> httpx.Client:
         """Establish an httpx session with NSE (visit landing page first).
@@ -37,7 +36,9 @@ class CorporateActionsScraper(BaseScraper):
             try:
                 self.logger.info("Establishing session with NSE")
                 # Hit the landing page to get cookies set
-                self.session.get("https://www.nseindia.com/", headers={"User-Agent": config.scraper.user_agent})
+                self.session.get(
+                    "https://www.nseindia.com/", headers={"User-Agent": config.scraper.user_agent}
+                )
                 time.sleep(1)
             except Exception as e:
                 self.logger.warning("Failed to establish NSE session", error=str(e))
@@ -46,8 +47,8 @@ class CorporateActionsScraper(BaseScraper):
 
     def scrape(
         self,
-        from_date: Optional[str] = None,
-        to_date: Optional[str] = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
         fno_only: bool = False,
         dry_run: bool = False,
     ) -> Path:
@@ -62,7 +63,12 @@ class CorporateActionsScraper(BaseScraper):
         Returns:
             Path to saved JSON directory (directory containing file)
         """
-        self.logger.info("Starting corporate actions scrape", from_date=from_date, to_date=to_date, dry_run=dry_run)
+        self.logger.info(
+            "Starting corporate actions scrape",
+            from_date=from_date,
+            to_date=to_date,
+            dry_run=dry_run,
+        )
 
         # Default date range: last 90 days
         today = date.today()
@@ -73,7 +79,9 @@ class CorporateActionsScraper(BaseScraper):
         to_date = to_date or default_to
 
         # Prepare API URL and params
-        base_url = config.nse.ca_url  # e.g., https://www.nseindia.com/api/corporates-corporateActions
+        base_url = (
+            config.nse.ca_url
+        )  # e.g., https://www.nseindia.com/api/corporates-corporateActions
         params = {"index": "equities", "from_date": from_date, "to_date": to_date}
         if fno_only:
             params["fo_sec"] = "true"
@@ -96,12 +104,19 @@ class CorporateActionsScraper(BaseScraper):
             # Prepare output path
             output_dir = config.storage.data_dir / "lake" / "reference" / "corporate_actions"
             output_dir.mkdir(parents=True, exist_ok=True)
-            out_file = output_dir / f"corporate_actions_{from_date.replace('-','')}_to_{to_date.replace('-','')}.json"
+            out_file = (
+                output_dir
+                / f"corporate_actions_{from_date.replace('-','')}_to_{to_date.replace('-','')}.json"
+            )
 
             if not dry_run:
                 with open(out_file, "w") as f:
                     json.dump(data, f, indent=2)
-                self.logger.info("Corporate actions downloaded", path=str(out_file), records=len(data) if isinstance(data, list) else None)
+                self.logger.info(
+                    "Corporate actions downloaded",
+                    path=str(out_file),
+                    records=len(data) if isinstance(data, list) else None,
+                )
 
             return output_dir
 

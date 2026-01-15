@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Iterable
 
 import polars as pl
 
@@ -41,7 +41,10 @@ def generate_quarterly_financials_sample(
             )
 
     df = pl.DataFrame(records)
-    out = output_dir / f"quarterly_financials_sample_{start_date.isoformat()}_{end_date.isoformat()}.parquet"
+    out = (
+        output_dir
+        / f"quarterly_financials_sample_{start_date.isoformat()}_{end_date.isoformat()}.parquet"
+    )
     df.write_parquet(out)
     return out
 
@@ -66,6 +69,9 @@ def generate_shareholding_pattern_sample(
             )
 
     df = pl.DataFrame(records)
-    out = output_dir / f"shareholding_pattern_sample_{start_date.isoformat()}_{end_date.isoformat()}.parquet"
+    out = (
+        output_dir
+        / f"shareholding_pattern_sample_{start_date.isoformat()}_{end_date.isoformat()}.parquet"
+    )
     df.write_parquet(out)
     return out

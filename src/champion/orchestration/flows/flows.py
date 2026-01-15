@@ -140,7 +140,9 @@ def scrape_bhavcopy(trade_date: date) -> str:
                             / f"month={month:02d}"
                             / f"day={day:02d}"
                         )
-                        expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        expected_output_file = (
+                            partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        )
                         partition_path.mkdir(parents=True, exist_ok=True)
                         create_idempotency_marker(
                             output_file=expected_output_file,
@@ -175,7 +177,9 @@ def scrape_bhavcopy(trade_date: date) -> str:
                             / f"month={month:02d}"
                             / f"day={day:02d}"
                         )
-                        expected_output_file = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        expected_output_file = (
+                            partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                        )
                         partition_path.mkdir(parents=True, exist_ok=True)
                         create_idempotency_marker(
                             output_file=expected_output_file,
@@ -358,19 +362,17 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
             [
                 # Ensure TradDt is an integer in YYYYMMDD format (schema expects integer)
                 pl.col("TradDt")
-                .str
-                .strptime(pl.Date, "%Y-%m-%d")
+                .str.strptime(pl.Date, "%Y-%m-%d")
                 .dt.strftime("%Y%m%d")
                 .cast(pl.Int64)
                 .alias("trade_date"),
                 # Canonical identifiers
-                (pl.col("TckrSymb") + pl.lit(":" ) + pl.lit("NSE")).alias("instrument_id"),
+                (pl.col("TckrSymb") + pl.lit(":") + pl.lit("NSE")).alias("instrument_id"),
                 pl.col("TckrSymb").alias("symbol"),
                 pl.lit("NSE").alias("exchange"),
                 pl.col("ISIN").alias("isin"),
                 pl.col("FinInstrmTp").alias("instrument_type"),
                 pl.col("SctySrs").alias("series"),
-
                 # Price fields
                 pl.col("PrvsClsgPric").alias("prev_close"),
                 pl.col("OpnPric").alias("open"),
@@ -379,12 +381,10 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
                 pl.col("ClsPric").alias("close"),
                 pl.col("LastPric").alias("last_price"),
                 pl.col("SttlmPric").alias("settlement_price"),
-
                 # Volume / turnover
                 pl.col("TtlTradgVol").alias("volume"),
                 pl.col("TtlTrfVal").alias("turnover"),
                 pl.col("TtlNbOfTxsExctd").alias("trades"),
-
                 # Defaults
                 pl.lit(1.0).alias("adjustment_factor"),
                 pl.lit(None).cast(pl.Int64).alias("adjustment_date"),
@@ -669,15 +669,15 @@ def load_clickhouse(
     Raises:
         Exception: If load fails
     """
-    start_time = time.time()
+    # start_time not used here; loader provides its own duration metric
     logger.info("starting_clickhouse_load", parquet_file=parquet_file, table=table)
 
     try:
         # Use the ClickHouse batch loader utility for robust mapping/validation
-        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
-
         # Use defaults from environment or parameters
         import os
+
+        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
         ch_host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
         ch_port = port or int(os.getenv("CLICKHOUSE_PORT", "8123"))
@@ -686,7 +686,9 @@ def load_clickhouse(
         ch_database = database or os.getenv("CLICKHOUSE_DATABASE")
 
         # Initialize loader
-        loader = ClickHouseLoader(host=ch_host, port=ch_port, user=ch_user, password=ch_password, database=ch_database)
+        loader = ClickHouseLoader(
+            host=ch_host, port=ch_port, user=ch_user, password=ch_password, database=ch_database
+        )
         try:
             loader.connect()
         except Exception as e:
@@ -697,7 +699,9 @@ def load_clickhouse(
 
         # Delegate loading to the batch loader (handles mapping + validation)
         try:
-            stats = loader.load_parquet_files(table=table, source_path=parquet_file, batch_size=100000, dry_run=False)
+            stats = loader.load_parquet_files(
+                table=table, source_path=parquet_file, batch_size=100000, dry_run=False
+            )
         finally:
             loader.disconnect()
 
@@ -720,7 +724,12 @@ def load_clickhouse(
 
         metrics.clickhouse_load_success.labels(table=table).inc()
 
-        return {"table": table, "rows_loaded": rows, "duration_seconds": duration, "deduplicated": deduplicate}
+        return {
+            "table": table,
+            "rows_loaded": rows,
+            "duration_seconds": duration,
+            "deduplicated": deduplicate,
+        }
 
     except (ConnectionError, TimeoutError) as e:
         logger.error(
@@ -838,9 +847,9 @@ def nse_bhavcopy_etl_flow(
 
             # Step 2.5: Write raw rows to ClickHouse raw table (source-of-truth)
             if load_to_clickhouse and raw_df is not None and len(raw_df) > 0:
-                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
-
                 import os
+
+                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
                 ch_host = clickhouse_host or os.getenv("CLICKHOUSE_HOST", "localhost")
                 ch_port = clickhouse_port or int(os.getenv("CLICKHOUSE_PORT", "8123"))
@@ -849,7 +858,11 @@ def nse_bhavcopy_etl_flow(
                 ch_database = clickhouse_database or os.getenv("CLICKHOUSE_DATABASE")
 
                 raw_loader = ClickHouseLoader(
-                    host=ch_host, port=ch_port, user=ch_user, password=ch_password, database=ch_database
+                    host=ch_host,
+                    port=ch_port,
+                    user=ch_user,
+                    password=ch_password,
+                    database=ch_database,
                 )
 
                 try:
@@ -859,7 +872,9 @@ def nse_bhavcopy_etl_flow(
                     )
                     mlflow.log_metric("raw_rows_loaded", inserted)
                     metrics.clickhouse_load_success.labels(table="raw_equity_ohlc").inc()
-                    logger.info("raw_clickhouse_load_complete", rows=inserted, table="raw_equity_ohlc")
+                    logger.info(
+                        "raw_clickhouse_load_complete", rows=inserted, table="raw_equity_ohlc"
+                    )
                 except Exception as e:
                     logger.error("raw_clickhouse_load_failed", error=str(e), retryable=False)
                     metrics.clickhouse_load_failed.labels(table="raw_equity_ohlc").inc()

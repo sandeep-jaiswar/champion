@@ -10,12 +10,12 @@ import structlog
 
 from champion.scrapers.nse.bulk_block_deals import BulkBlockDealsScraper
 from champion.storage.parquet_io import write_df_safe
-from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 from champion.utils.idempotency import (
     check_idempotency_marker,
     create_idempotency_marker,
     is_task_completed,
 )
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 logger = structlog.get_logger()
 
@@ -333,7 +333,9 @@ def load_bulk_block_deals_clickhouse(
                     logger.info("Attempting ClickHouse native client fallback on port 9000")
                     native_loader = ClickHouseLoader(port=9000)
                     try:
-                        rows = native_loader.insert_polars_dataframe(table="bulk_block_deals", df=df, dry_run=False)
+                        rows = native_loader.insert_polars_dataframe(
+                            table="bulk_block_deals", df=df, dry_run=False
+                        )
                         return int(rows)
                     finally:
                         try:

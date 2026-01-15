@@ -254,19 +254,27 @@ class PolarsBhavcopyParser(Parser):
                     # Try common formats: YYYYMMDD, YYYY-MM-DD, DD-MMM-YYYY
                     if df[col].dtype == pl.Utf8:
                         try:
-                            df = df.with_columns(pl.col(col).str.strptime(pl.Date, fmt="%Y%m%d").alias(col))
+                            df = df.with_columns(
+                                pl.col(col).str.strptime(pl.Date, fmt="%Y%m%d").alias(col)
+                            )
                         except Exception:
                             try:
-                                df = df.with_columns(pl.col(col).str.strptime(pl.Date, fmt="%Y-%m-%d").alias(col))
+                                df = df.with_columns(
+                                    pl.col(col).str.strptime(pl.Date, fmt="%Y-%m-%d").alias(col)
+                                )
                             except Exception:
                                 try:
-                                    df = df.with_columns(pl.col(col).str.strptime(pl.Date, fmt="%d-%b-%Y").alias(col))
+                                    df = df.with_columns(
+                                        pl.col(col).str.strptime(pl.Date, fmt="%d-%b-%Y").alias(col)
+                                    )
                                 except Exception:
                                     # leave as-is if parsing fails
                                     pass
                     elif df[col].dtype in [pl.Int64, pl.Int32]:
                         # integers like 20240103 -> cast via string parse
-                        df = df.with_columns(pl.col(col).cast(pl.Utf8).str.strptime(pl.Date, fmt="%Y%m%d").alias(col))
+                        df = df.with_columns(
+                            pl.col(col).cast(pl.Utf8).str.strptime(pl.Date, fmt="%Y%m%d").alias(col)
+                        )
                 except Exception:
                     pass
 
@@ -327,13 +335,14 @@ class PolarsBhavcopyParser(Parser):
         Raises:
             ValueError: If validation fails
         """
+
         # Convert high-level temporal types to primitive integers expected by Parquet JSON schema
         # - `event_time` / `ingest_time` -> milliseconds since epoch (int)
         # - `trade_date`, `adjustment_date` -> days since epoch (int) or null
         def _to_epoch_ms(val):
             if val is None:
                 return None
-            if isinstance(val, (int, float)):
+            if isinstance(val, int | float):
                 # assume already epoch-ms
                 return int(val)
             try:
@@ -374,15 +383,21 @@ class PolarsBhavcopyParser(Parser):
                 return None
 
         # Create a copy of the dataframe with converted temporal fields for validation/write
-        df_for_write = df.with_columns([
-            pl.col("event_time").apply(_to_epoch_ms, return_dtype=pl.Int64).alias("event_time"),
-            pl.col("ingest_time").apply(_to_epoch_ms, return_dtype=pl.Int64).alias("ingest_time"),
-        ])
+        df_for_write = df.with_columns(
+            [
+                pl.col("event_time").apply(_to_epoch_ms, return_dtype=pl.Int64).alias("event_time"),
+                pl.col("ingest_time")
+                .apply(_to_epoch_ms, return_dtype=pl.Int64)
+                .alias("ingest_time"),
+            ]
+        )
 
         # trade_date may be present either as `trade_date` or `TradDt` depending on earlier normalization
         if "trade_date" in df_for_write.columns:
             df_for_write = df_for_write.with_columns(
-                pl.col("trade_date").apply(_to_days_since_epoch, return_dtype=pl.Int64).alias("trade_date")
+                pl.col("trade_date")
+                .apply(_to_days_since_epoch, return_dtype=pl.Int64)
+                .alias("trade_date")
             )
         elif "TradDt" in df_for_write.columns:
             df_for_write = df_for_write.with_columns(
@@ -391,7 +406,9 @@ class PolarsBhavcopyParser(Parser):
 
         if "adjustment_date" in df_for_write.columns:
             df_for_write = df_for_write.with_columns(
-                pl.col("adjustment_date").apply(_to_days_since_epoch, return_dtype=pl.Int64).alias("adjustment_date")
+                pl.col("adjustment_date")
+                .apply(_to_days_since_epoch, return_dtype=pl.Int64)
+                .alias("adjustment_date")
             )
 
         # Validate data before writing if enabled (validate the converted dataframe)
@@ -404,7 +421,9 @@ class PolarsBhavcopyParser(Parser):
 
             try:
                 validator = ParquetValidator(schema_dir=Path("schemas/parquet"))
-                result = validator.validate_dataframe(df_for_write, schema_name="normalized_equity_ohlc")
+                result = validator.validate_dataframe(
+                    df_for_write, schema_name="normalized_equity_ohlc"
+                )
 
                 if result.critical_failures > 0:
                     error_msg = (

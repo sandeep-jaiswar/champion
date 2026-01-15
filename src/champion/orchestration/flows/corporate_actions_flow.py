@@ -75,7 +75,7 @@ def parse_ca_task(ca_dir: Path, effective_date: date | None = None) -> dict:
     json_files = sorted(ca_dir.glob("*.json"))
     for jf in json_files:
         try:
-            with open(jf, "r") as f:
+            with open(jf) as f:
                 data = json.load(f)
         except Exception as e:
             logger.warning("failed_to_load_json", path=str(jf), error=str(e))
@@ -133,7 +133,10 @@ def parse_ca_task(ca_dir: Path, effective_date: date | None = None) -> dict:
         "effective_date": eff_date.isoformat(),
         "status": "ok",
     }
-    logger.info("parsed_corporate_actions", **{"count": result["count"], "effective_date": result["effective_date"]})
+    logger.info(
+        "parsed_corporate_actions",
+        **{"count": result["count"], "effective_date": result["effective_date"]},
+    )
     return result
 
 
@@ -152,9 +155,10 @@ def write_ca_parquet_task(parse_result: dict, output_base_path: str | None = Non
     Returns:
         Path to written Parquet file
     """
-    import polars as pl
     import time
     import uuid
+
+    import polars as pl
 
     from champion.storage.parquet_io import write_df_safe
 
@@ -167,7 +171,7 @@ def write_ca_parquet_task(parse_result: dict, output_base_path: str | None = Non
     output_dir = output_base / "reference" / "corporate_actions"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    eff_date = parse_result["effective_date"]
+    # effective_date present in parse_result but not needed here
 
     # Normalize event keys to expected schema field names
     normalized: list[dict] = []
@@ -184,7 +188,11 @@ def write_ca_parquet_task(parse_result: dict, output_base_path: str | None = Non
         bc_end = ev.get("BC END DATE") or ev.get("bc_end_date")
         nd_start = ev.get("ND START DATE") or ev.get("nd_start_date")
         nd_end = ev.get("ND END DATE") or ev.get("nd_end_date")
-        actual_payment = ev.get("ACTUAL PAYMENT DATE") or ev.get("actual_payment_date") or ev.get("caBroadcastDate")
+        actual_payment = (
+            ev.get("ACTUAL PAYMENT DATE")
+            or ev.get("actual_payment_date")
+            or ev.get("caBroadcastDate")
+        )
         isin = ev.get("ISIN") or ev.get("isin")
 
         # Normalize ex_date to ISO string if it's a date object
@@ -267,7 +275,9 @@ def write_ca_parquet_task(parse_result: dict, output_base_path: str | None = Non
     def _parse_split_ratio(purpose: str | None):
         if not purpose:
             return None
-        m = re.search(r"rs\.?\s*(\d+(?:\.\d+)?)\s*/?\-?\s*to\s*rs\.?\s*(\d+(?:\.\d+)?)", purpose.lower())
+        m = re.search(
+            r"rs\.?\s*(\d+(?:\.\d+)?)\s*/?\-?\s*to\s*rs\.?\s*(\d+(?:\.\d+)?)", purpose.lower()
+        )
         if m:
             old_fv = float(m.group(1))
             new_fv = float(m.group(2))
@@ -301,21 +311,42 @@ def write_ca_parquet_task(parse_result: dict, output_base_path: str | None = Non
     # Parse and coerce fields
     df = df.with_columns(
         [
-            pl.col("face_value").map_elements(lambda v: float(v) if v not in (None, "", "-") else None, return_dtype=pl.Float64).alias("face_value"),
-            pl.col("ex_date").map_elements(_parse_date, return_dtype=pl.Date).alias("ex_date_parsed"),
-            pl.col("record_date").map_elements(_parse_date, return_dtype=pl.Date).alias("record_date_parsed"),
+            pl.col("face_value")
+            .map_elements(
+                lambda v: float(v) if v not in (None, "", "-") else None, return_dtype=pl.Float64
+            )
+            .alias("face_value"),
+            pl.col("ex_date")
+            .map_elements(_parse_date, return_dtype=pl.Date)
+            .alias("ex_date_parsed"),
+            pl.col("record_date")
+            .map_elements(_parse_date, return_dtype=pl.Date)
+            .alias("record_date_parsed"),
         ]
     )
 
-    df = df.with_columns(pl.col("purpose").map_elements(_parse_action_type, return_dtype=pl.Utf8).alias("action_type"))
-    df = df.with_columns(pl.struct(["action_type", "purpose"]).map_elements(lambda r: _compute_adjustment(r.get("action_type"), r.get("purpose")), return_dtype=pl.Float64).alias("adjustment_factor"))
+    df = df.with_columns(
+        pl.col("purpose")
+        .map_elements(_parse_action_type, return_dtype=pl.Utf8)
+        .alias("action_type")
+    )
+    df = df.with_columns(
+        pl.struct(["action_type", "purpose"])
+        .map_elements(
+            lambda r: _compute_adjustment(r.get("action_type"), r.get("purpose")),
+            return_dtype=pl.Float64,
+        )
+        .alias("adjustment_factor")
+    )
 
-    df = df.with_columns([
-        pl.col("ex_date_parsed").dt.strftime("%Y-%m-%d").alias("ex_date"),
-        pl.col("ex_date_parsed").dt.year().alias("year"),
-        pl.col("ex_date_parsed").dt.month().alias("month"),
-        pl.col("ex_date_parsed").dt.day().alias("day"),
-    ])
+    df = df.with_columns(
+        [
+            pl.col("ex_date_parsed").dt.strftime("%Y-%m-%d").alias("ex_date"),
+            pl.col("ex_date_parsed").dt.year().alias("year"),
+            pl.col("ex_date_parsed").dt.month().alias("month"),
+            pl.col("ex_date_parsed").dt.day().alias("day"),
+        ]
+    )
 
     # Drop intermediate parsed date columns
     if "ex_date_parsed" in df.columns:
@@ -390,7 +421,9 @@ def corporate_actions_etl_flow(
 
                     loader = ClickHouseLoader()
                     loader.connect()
-                    stats = loader.load_parquet_files(table="corporate_actions", source_path=parquet_path)
+                    stats = loader.load_parquet_files(
+                        table="corporate_actions", source_path=parquet_path
+                    )
                     mlflow.log_metric("clickhouse_rows", stats.get("total_rows", 0))
                     loader.disconnect()
                 except Exception as e:

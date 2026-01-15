@@ -1,13 +1,16 @@
 from datetime import date
 from pathlib import Path
-from typing import Optional
 
 import polars as pl
 import structlog
-from prefect import flow, task
+from prefect import flow
 
-from champion.utils.idempotency import is_task_completed, create_idempotency_marker, check_idempotency_marker
-from champion.orchestration.flows.flows import normalize_polars, write_parquet, load_clickhouse
+from champion.orchestration.flows.flows import load_clickhouse, normalize_polars, write_parquet
+from champion.utils.idempotency import (
+    check_idempotency_marker,
+    create_idempotency_marker,
+    is_task_completed,
+)
 from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 logger = structlog.get_logger()
@@ -16,12 +19,12 @@ logger = structlog.get_logger()
 @flow(name="raw-to-normalized", log_prints=True)
 def raw_to_normalized_flow(
     trade_date: date,
-    base_path: Optional[str] = None,
-    clickhouse_host: Optional[str] = None,
-    clickhouse_port: Optional[int] = None,
-    clickhouse_user: Optional[str] = None,
-    clickhouse_password: Optional[str] = None,
-    clickhouse_database: Optional[str] = None,
+    base_path: str | None = None,
+    clickhouse_host: str | None = None,
+    clickhouse_port: int | None = None,
+    clickhouse_user: str | None = None,
+    clickhouse_password: str | None = None,
+    clickhouse_database: str | None = None,
     dry_run: bool = False,
 ) -> dict:
     """Idempotent job: read from ClickHouse raw table, normalize, write Parquet, load normalized table.
@@ -36,15 +39,28 @@ def raw_to_normalized_flow(
     month = trade_date.month
     day = trade_date.day
     partition_path = (
-        resolved_base / "normalized" / "equity_ohlc" / f"year={year}" / f"month={month:02d}" / f"day={day:02d}"
+        resolved_base
+        / "normalized"
+        / "equity_ohlc"
+        / f"year={year}"
+        / f"month={month:02d}"
+        / f"day={day:02d}"
     )
     expected_output = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
 
     # Early idempotency check
     if is_task_completed(expected_output, trade_date.isoformat()):
         marker = check_idempotency_marker(expected_output, trade_date.isoformat())
-        logger.info("raw_to_normalized_skipping_already_completed", output_file=str(expected_output), marker=marker)
-        return {"status": "skipped", "output_file": str(expected_output), "rows": marker.get("rows") if marker else 0}
+        logger.info(
+            "raw_to_normalized_skipping_already_completed",
+            output_file=str(expected_output),
+            marker=marker,
+        )
+        return {
+            "status": "skipped",
+            "output_file": str(expected_output),
+            "rows": marker.get("rows") if marker else 0,
+        }
 
     # Read raw rows: prefer local lake when dry_run, otherwise read from ClickHouse
     date_str = trade_date.strftime("%Y-%m-%d")
@@ -87,9 +103,7 @@ def raw_to_normalized_flow(
             logger.error("raw_to_normalized_clickhouse_connect_failed", error=str(e))
             raise
 
-        query = (
-            f"SELECT * FROM {loader.database}.raw_equity_ohlc WHERE toString(TradDt) IN ('{date_str}','{date_int}')"
-        )
+        query = f"SELECT * FROM {loader.database}.raw_equity_ohlc WHERE toString(TradDt) IN ('{date_str}','{date_int}')"
 
         try:
             # Try to use client.query_df if available
@@ -114,7 +128,12 @@ def raw_to_normalized_flow(
     if df is None or len(df) == 0:
         # Ensure partition exists
         partition_path.mkdir(parents=True, exist_ok=True)
-        create_idempotency_marker(output_file=expected_output, trade_date=trade_date.isoformat(), rows=0, metadata={"source": "clickhouse_raw", "note": "no_rows"})
+        create_idempotency_marker(
+            output_file=expected_output,
+            trade_date=trade_date.isoformat(),
+            rows=0,
+            metadata={"source": "clickhouse_raw", "note": "no_rows"},
+        )
         logger.info("raw_to_normalized_no_raw_rows", trade_date=str(trade_date))
         return {"status": "no_rows", "output_file": str(expected_output), "rows": 0}
 
@@ -122,12 +141,31 @@ def raw_to_normalized_flow(
     normalized_df = normalize_polars(df)
 
     # Write Parquet (this function is idempotent)
-    parquet_path = write_parquet(df=normalized_df, trade_date=trade_date, base_path=str(resolved_base))
+    parquet_path = write_parquet(
+        df=normalized_df, trade_date=trade_date, base_path=str(resolved_base)
+    )
 
     # Optionally load to ClickHouse
     if dry_run:
-        return {"status": "completed_dry_run", "parquet_file": parquet_path, "rows": len(normalized_df)}
+        return {
+            "status": "completed_dry_run",
+            "parquet_file": parquet_path,
+            "rows": len(normalized_df),
+        }
 
-    load_result = load_clickhouse(parquet_file=parquet_path, table="normalized_equity_ohlc", host=clickhouse_host, port=clickhouse_port, user=clickhouse_user, password=clickhouse_password, database=clickhouse_database)
+    load_result = load_clickhouse(
+        parquet_file=parquet_path,
+        table="normalized_equity_ohlc",
+        host=clickhouse_host,
+        port=clickhouse_port,
+        user=clickhouse_user,
+        password=clickhouse_password,
+        database=clickhouse_database,
+    )
 
-    return {"status": "completed", "parquet_file": parquet_path, "rows": len(normalized_df), "load_result": load_result}
+    return {
+        "status": "completed",
+        "parquet_file": parquet_path,
+        "rows": len(normalized_df),
+        "load_result": load_result,
+    }

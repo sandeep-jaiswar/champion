@@ -35,12 +35,20 @@ class BhavcopyScraper(BaseScraper):
 
             # Prefer organized local data lake path if present
             date_str = target_date.strftime("%Y-%m-%d")
-            lake_dir = config.storage.data_dir / "lake" / "intraday" / "bhavcopy" / f"trade_date={date_str}"
+            lake_dir = (
+                config.storage.data_dir
+                / "lake"
+                / "intraday"
+                / "bhavcopy"
+                / f"trade_date={date_str}"
+            )
             if lake_dir.exists() and lake_dir.is_dir():
                 # Find CSV file inside
                 for p in sorted(lake_dir.iterdir()):
                     if p.is_file() and p.name.lower().endswith(".csv"):
-                        self.logger.info("Using local bhavcopy CSV", path=str(p), trade_date=str(target_date))
+                        self.logger.info(
+                            "Using local bhavcopy CSV", path=str(p), trade_date=str(target_date)
+                        )
                         return p
 
             # Fallback to download into storage root (preserve previous behavior)
@@ -49,8 +57,16 @@ class BhavcopyScraper(BaseScraper):
             url = config.nse.bhavcopy_url.format(date=date_compact)
 
             # Download ZIP file into lake_dir if possible
-            zip_path = (lake_dir / f"BhavCopy_NSE_CM_{date_compact}.csv.zip") if lake_dir.exists() else config.storage.data_dir / f"BhavCopy_NSE_CM_{date_compact}.csv.zip"
-            csv_path = (lake_dir / f"BhavCopy_NSE_CM_{date_compact}.csv") if lake_dir.exists() else config.storage.data_dir / f"BhavCopy_NSE_CM_{date_compact}.csv"
+            zip_path = (
+                (lake_dir / f"BhavCopy_NSE_CM_{date_compact}.csv.zip")
+                if lake_dir.exists()
+                else config.storage.data_dir / f"BhavCopy_NSE_CM_{date_compact}.csv.zip"
+            )
+            csv_path = (
+                (lake_dir / f"BhavCopy_NSE_CM_{date_compact}.csv")
+                if lake_dir.exists()
+                else config.storage.data_dir / f"BhavCopy_NSE_CM_{date_compact}.csv"
+            )
 
             # Ensure target dir exists when writing
             if lake_dir and not lake_dir.exists():

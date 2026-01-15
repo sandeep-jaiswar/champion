@@ -23,16 +23,16 @@ import argparse
 import logging
 import os
 import sys
-from datetime import datetime
 import time
+from datetime import datetime
 from pathlib import Path
 
 try:
     import clickhouse_connect
+    import numpy as np
+    import pandas as pd
     import polars as pl
     from clickhouse_connect.driver import Client
-    import pandas as pd
-    import numpy as np
 except ImportError as e:
     print(f"Error: Missing required dependency: {e}")
     print("Please install dependencies: pip install polars clickhouse-connect")
@@ -162,7 +162,9 @@ class ClickHouseLoader:
                     logger.info(f"HTTP ClickHouse client for metadata at {self.host}:8123 created")
                 except Exception:
                     # If HTTP client cannot be created, leave as None and rely on fallbacks
-                    logger.debug("HTTP metadata client could not be created; some metadata queries may fail")
+                    logger.debug(
+                        "HTTP metadata client could not be created; some metadata queries may fail"
+                    )
             else:
                 # Default to HTTP client (clickhouse-connect helper)
                 logger.info(f"Using HTTP ClickHouse client for {self.host}:{self.port}")
@@ -347,7 +349,7 @@ class ClickHouseLoader:
                 def _normalize_value(v):
                     try:
                         # numpy scalar -> native python
-                        if isinstance(v, (np.generic,)):
+                        if isinstance(v, np.generic):
                             return v.item()
                     except Exception:
                         pass
@@ -375,8 +377,7 @@ class ClickHouseLoader:
 
                 # Convert to list-of-dicts, normalize values, then back to pandas DataFrame
                 rows = batch_clean.to_dict(orient="records")
-                normalized_rows = [ {k: _normalize_value(v) for k, v in r.items()} for r in rows ]
-                safe_df = pd.DataFrame(normalized_rows)
+                normalized_rows = [{k: _normalize_value(v) for k, v in r.items()} for r in rows]
                 # Insert using list-of-dicts to avoid pandas/clickhouse-connect dtype edge cases
                 # Align row dicts to the ClickHouse table column order to avoid
                 # "Insert data column count does not match column names" errors.
@@ -405,7 +406,7 @@ class ClickHouseLoader:
                             if isinstance(r, dict) and "name" in r:
                                 columns.append(r["name"])
                                 column_types.append(r.get("type"))
-                            elif isinstance(r, (list, tuple)) and len(r) > 1:
+                            elif isinstance(r, list | tuple) and len(r) > 1:
                                 columns.append(r[0])
                                 column_types.append(r[1])
 
@@ -418,9 +419,10 @@ class ClickHouseLoader:
                         # If anything fails, fall back to using keys from first row
                         columns = list(normalized_rows[0].keys())
 
-
                     # Align each row to the column order, filling missing with None
-                    aligned_rows = [{col: row.get(col, None) for col in columns} for row in normalized_rows]
+                    aligned_rows = [
+                        {col: row.get(col, None) for col in columns} for row in normalized_rows
+                    ]
 
                     # If ClickHouse column type is non-Nullable, replace None with a
                     # sensible default for that column type to avoid insertion errors.
@@ -445,8 +447,14 @@ class ClickHouseLoader:
                         tup = []
                         for col_idx, col in enumerate(columns):
                             val = row.get(col, None)
-                            col_type = column_types[col_idx] if col_idx < len(column_types) else None
-                            if val is None and col_type and not (col_type.lower().startswith("nullable(")):
+                            col_type = (
+                                column_types[col_idx] if col_idx < len(column_types) else None
+                            )
+                            if (
+                                val is None
+                                and col_type
+                                and not (col_type.lower().startswith("nullable("))
+                            ):
                                 val = _default_for_type(col_type)
                             tup.append(val)
                         aligned_tuples.append(tuple(tup))
@@ -462,6 +470,7 @@ class ClickHouseLoader:
                         try:
                             # Handle pandas NA and numpy nan/NA
                             import pandas as _pd
+
                             try:
                                 if _pd.isna(val):
                                     return None
@@ -492,7 +501,7 @@ class ClickHouseLoader:
                                             return _default_for_type(typ)
                                     return int(val)
                                 # numpy integer types
-                                if isinstance(val, (np.integer,)):
+                                if isinstance(val, np.integer):
                                     return int(val)
                                 if isinstance(val, _date):
                                     return (val - _date(1970, 1, 1)).days
@@ -545,7 +554,9 @@ class ClickHouseLoader:
                     aligned_tuples = coerced_tuples
 
                     logger.info(f"Inserting into {table} with columns={columns}")
-                    logger.info(f"Sample aligned row (tuple): {aligned_tuples[0] if aligned_tuples else None}")
+                    logger.info(
+                        f"Sample aligned row (tuple): {aligned_tuples[0] if aligned_tuples else None}"
+                    )
 
                     try:
                         # If a native client exists, use it for bulk inserts (native TCP)
@@ -558,7 +569,9 @@ class ClickHouseLoader:
                                 logger.error(f"Native ClickHouse insert failed: {repr(exc)}")
                                 raise
                         else:
-                            self.client.insert(table=table, data=aligned_tuples, column_names=columns)
+                            self.client.insert(
+                                table=table, data=aligned_tuples, column_names=columns
+                            )
                     except Exception as exc:
                         logger.error(f"ClickHouse insert failed: {repr(exc)}")
                         raise
@@ -642,7 +655,10 @@ class ClickHouseLoader:
                 if df[col].dtype in [pl.Int64, pl.Int32]:
                     try:
                         df = df.with_columns(
-                            pl.col(col).cast(pl.Utf8).str.strptime(pl.Date, format="%Y%m%d").alias(col)
+                            pl.col(col)
+                            .cast(pl.Utf8)
+                            .str.strptime(pl.Date, format="%Y%m%d")
+                            .alias(col)
                         )
                     except (pl.ComputeError, ValueError) as e:
                         logger.warning(f"Failed to parse integer date column {col}: {e}")
@@ -757,7 +773,9 @@ class ClickHouseLoader:
                 logger.info(f"insert_polars_dataframe_complete table={table} rows={rows_inserted}")
                 return rows_inserted
             except Exception as e:
-                logger.warning(f"insert_polars_dataframe_attempt_failed table={table} attempt={attempt} error={e}")
+                logger.warning(
+                    f"insert_polars_dataframe_attempt_failed table={table} attempt={attempt} error={e}"
+                )
                 if attempt < attempts:
                     time.sleep(1 * attempt)
                     continue
