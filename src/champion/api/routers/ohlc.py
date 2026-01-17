@@ -91,7 +91,7 @@ async def get_ohlc_data(
         date_range = None
         if from_date or to_date:
             date_range = {
-                "from": from_date or date.min,
+                "from": from_date or date(2000, 1, 1),  # Reasonable default
                 "to": to_date or date.today(),
             }
         

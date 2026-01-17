@@ -1,6 +1,6 @@
 """Pydantic schemas for API request/response models."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -172,4 +172,4 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
