@@ -108,7 +108,7 @@ class QuarterlyResultsScraper:
             else:
                 out_path = Path("data/tmp")
         out_path.mkdir(parents=True, exist_ok=True)
-        csv_path = out_path / f"master_{to_date.replace('-','')}.csv"
+        csv_path = out_path / f"master_{to_date.replace('-', '')}.csv"
 
         # Parse response depending on content type
         content_type = r.headers.get("content-type", "")

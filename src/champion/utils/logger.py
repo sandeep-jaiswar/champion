@@ -21,7 +21,7 @@ def set_trace_id(trace_id: str | None = None) -> str:
 
     Returns:
         The trace ID that was set
-    
+
     Note:
         Uses uuid4().hex to generate trace IDs without hyphens (32 chars vs 36).
         This provides slightly better performance in string operations and

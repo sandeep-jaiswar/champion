@@ -227,9 +227,7 @@ class TestFeatureComputation:
         df_features = compute_features(df=sample_normalized_data)
 
         # Add week number for aggregation
-        df_features = df_features.with_columns(
-            pl.col("trade_date").dt.week().alias("week_number")
-        )
+        df_features = df_features.with_columns(pl.col("trade_date").dt.week().alias("week_number"))
 
         # Aggregate by week
         weekly_features = df_features.group_by(["symbol", "week_number"]).agg(

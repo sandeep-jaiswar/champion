@@ -22,20 +22,14 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            response = {
-                "status": "healthy",
-                "service": "champion"
-            }
+            response = {"status": "healthy", "service": "champion"}
             self.wfile.write(json.dumps(response).encode())
         elif self.path == "/ready":
             # Readiness check (can be extended with actual checks)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            response = {
-                "status": "ready",
-                "service": "champion"
-            }
+            response = {"status": "ready", "service": "champion"}
             self.wfile.write(json.dumps(response).encode())
         else:
             self.send_response(404)

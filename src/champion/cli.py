@@ -111,8 +111,12 @@ def validate_date_format(date_str: str, allow_future: bool = False) -> date:
 
 @etl_app.command("index")
 def etl_index(
-    index_name: str = typer.Option("NIFTY50", "--index", "-i", help="Index to process (e.g., NIFTY50)"),
-    effective_date: str | None = typer.Option(None, "--date", "-d", help="Effective date (YYYY-MM-DD)"),
+    index_name: str = typer.Option(
+        "NIFTY50", "--index", "-i", help="Index to process (e.g., NIFTY50)"
+    ),
+    effective_date: str | None = typer.Option(
+        None, "--date", "-d", help="Effective date (YYYY-MM-DD)"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run Index Constituent ETL flow.
@@ -286,10 +290,16 @@ def etl_ohlc(
     trade_date: str | None = typer.Option(
         None, "--date", "-d", help="Trade date (YYYY-MM-DD, default: previous business day)"
     ),
-    start_date: str | None = typer.Option(None, "--start", help="Start date (YYYY-MM-DD) for range run"),
+    start_date: str | None = typer.Option(
+        None, "--start", help="Start date (YYYY-MM-DD) for range run"
+    ),
     end_date: str | None = typer.Option(None, "--end", help="End date (YYYY-MM-DD) for range run"),
-    output_base_path: str | None = typer.Option(None, "--output", help="Base output path (default: data/lake)"),
-    load_to_clickhouse: bool = typer.Option(True, "--load/--no-load", help="Load results into ClickHouse"),
+    output_base_path: str | None = typer.Option(
+        None, "--output", help="Base output path (default: data/lake)"
+    ),
+    load_to_clickhouse: bool = typer.Option(
+        True, "--load/--no-load", help="Load results into ClickHouse"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run NSE OHLC (bhavcopy) ETL flow.
@@ -373,7 +383,9 @@ def etl_corporate_actions(
 
 @etl_app.command("combined-equity")
 def etl_combined_equity(
-    trade_date: str | None = typer.Option(None, "--date", "-d", help="Trade date (YYYY-MM-DD, default: today)"),
+    trade_date: str | None = typer.Option(
+        None, "--date", "-d", help="Trade date (YYYY-MM-DD, default: today)"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run combined equity ETL flow (NSE + BSE bhavcopy).
@@ -405,9 +417,13 @@ def etl_combined_equity(
 
 @etl_app.command("quarterly-financials")
 def etl_quarterly_financials(
-    start_date: str | None = typer.Option(None, "--start", help="Start date (YYYY-MM-DD) for range run"),
+    start_date: str | None = typer.Option(
+        None, "--start", help="Start date (YYYY-MM-DD) for range run"
+    ),
     end_date: str | None = typer.Option(None, "--end", help="End date (YYYY-MM-DD) for range run"),
-    symbol: str | None = typer.Option(None, "--symbol", "-s", help="Optional symbol to query (e.g., TCS)"),
+    symbol: str | None = typer.Option(
+        None, "--symbol", "-s", help="Optional symbol to query (e.g., TCS)"
+    ),
     issuer: str | None = typer.Option(None, help="Optional issuer name for symbol queries"),
     filter_audited: bool = typer.Option(
         False, help="Only download documents for rows where audited='Audited'"
@@ -739,8 +755,12 @@ def etl_scrape(
 
 @warehouse_app.command("load-equity-list")
 def equity_list(
-    output_base_path: str | None = typer.Option(None, "--output", help="Base output path (default: data/lake)"),
-    load_to_clickhouse: bool = typer.Option(True, "--load/--no-load", help="Load results into ClickHouse"),
+    output_base_path: str | None = typer.Option(
+        None, "--output", help="Base output path (default: data/lake)"
+    ),
+    load_to_clickhouse: bool = typer.Option(
+        True, "--load/--no-load", help="Load results into ClickHouse"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Download NSE equity list, save as Parquet and load into ClickHouse.

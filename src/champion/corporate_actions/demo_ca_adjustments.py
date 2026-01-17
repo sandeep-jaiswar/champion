@@ -237,7 +237,7 @@ def main():
     for i in range(1, len(close_prices)):
         change_pct = ((close_prices[i] - close_prices[i - 1]) / close_prices[i - 1]) * 100
         print(
-            f"  {reliance_sorted['TradDt'][i-1]} → {reliance_sorted['TradDt'][i]}: {change_pct:+.2f}%"
+            f"  {reliance_sorted['TradDt'][i - 1]} → {reliance_sorted['TradDt'][i]}: {change_pct:+.2f}%"
         )
 
     # Step 6: Show TCS and INFY

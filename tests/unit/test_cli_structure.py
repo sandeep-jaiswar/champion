@@ -47,19 +47,28 @@ def test_cli_has_expected_commands():
     # Group commands
     groups = {}
     for app, cmd in commands:
-        group = app.replace('_app', '')
+        group = app.replace("_app", "")
         if group not in groups:
             groups[group] = []
         groups[group].append(cmd)
 
     # Verify expected commands exist
     expected_groups = {
-        'etl': ['index', 'macro', 'ohlc', 'scrape', 'bulk-deals', 'corporate-actions',
-                'combined-equity', 'quarterly-financials', 'trading-calendar'],
-        'warehouse': ['load-equity-list'],
-        'validate': ['file'],
-        'orchestrate': ['backfill'],
-        'admin': ['config', 'health'],
+        "etl": [
+            "index",
+            "macro",
+            "ohlc",
+            "scrape",
+            "bulk-deals",
+            "corporate-actions",
+            "combined-equity",
+            "quarterly-financials",
+            "trading-calendar",
+        ],
+        "warehouse": ["load-equity-list"],
+        "validate": ["file"],
+        "orchestrate": ["backfill"],
+        "admin": ["config", "health"],
     }
 
     for group, expected_cmds in expected_groups.items():
@@ -75,7 +84,7 @@ def test_cli_has_verbose_flags():
         code = f.read()
 
     # Check for verbose flag pattern
-    verbose_pattern = r'verbose.*=.*typer\.Option.*--verbose.*-v'
+    verbose_pattern = r"verbose.*=.*typer\.Option.*--verbose.*-v"
     matches = re.findall(verbose_pattern, code, re.IGNORECASE)
 
     # Should have multiple verbose flags
@@ -89,10 +98,12 @@ def test_cli_has_help_text():
         code = f.read()
 
     # Check for rich formatting in docstrings
-    assert '[bold]Example' in code or '[bold]Examples' in code
+    assert "[bold]Example" in code or "[bold]Examples" in code
 
     # Check that commands have docstrings
-    command_functions = re.findall(r'def (etl_\w+|validate_\w+|orchestrate_\w+|show_\w+|health_\w+)\(', code)
+    command_functions = re.findall(
+        r"def (etl_\w+|validate_\w+|orchestrate_\w+|show_\w+|health_\w+)\(", code
+    )
     assert len(command_functions) > 5, "Expected multiple command functions"
 
 
@@ -107,7 +118,7 @@ def test_cli_no_duplicate_commands():
     # Group commands
     groups = {}
     for app, cmd in commands:
-        group = app.replace('_app', '')
+        group = app.replace("_app", "")
         if group not in groups:
             groups[group] = []
         groups[group].append(cmd)
@@ -123,4 +134,4 @@ def test_cli_has_auto_completion():
     with open(cli_path) as f:
         code = f.read()
 
-    assert 'add_completion=True' in code, "Auto-completion should be enabled"
+    assert "add_completion=True" in code, "Auto-completion should be enabled"

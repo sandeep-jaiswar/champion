@@ -8,7 +8,7 @@ Tests the complete flow:
 4. Validate price continuity
 """
 
-from datetime import date, timedelta
+from datetime import date
 
 import polars as pl
 import pytest
@@ -24,9 +24,7 @@ from tests.fixtures.sample_data import create_sample_corporate_actions, create_s
 @pytest.fixture
 def sample_ca_events():
     """Fixture providing sample corporate action events."""
-    return create_sample_corporate_actions(
-        symbols=["RELIANCE", "TCS"], start_date=date(2024, 1, 1)
-    )
+    return create_sample_corporate_actions(symbols=["RELIANCE", "TCS"], start_date=date(2024, 1, 1))
 
 
 @pytest.fixture
@@ -135,7 +133,9 @@ class TestCorporateActionsFlow:
 
         # Apply adjustments
         adjusted_df = apply_adjustments(
-            ohlc_df=sample_ohlc_before_ca, ca_factors_df=ca_factors, columns=["open", "high", "low", "close"]
+            ohlc_df=sample_ohlc_before_ca,
+            ca_factors_df=ca_factors,
+            columns=["open", "high", "low", "close"],
         )
 
         # Verify adjusted data exists
@@ -151,9 +151,10 @@ class TestCorporateActionsFlow:
         reliance_df = adjusted_df.filter(pl.col("symbol") == "RELIANCE")
         if len(reliance_df) > 0:
             # Prices should be modified for dates before corporate actions
-            assert reliance_df["close"].sum() != sample_ohlc_before_ca.filter(
-                pl.col("symbol") == "RELIANCE"
-            )["close"].sum()
+            assert (
+                reliance_df["close"].sum()
+                != sample_ohlc_before_ca.filter(pl.col("symbol") == "RELIANCE")["close"].sum()
+            )
 
     def test_price_continuity_after_adjustment(self, sample_ohlc_before_ca, sample_ca_events):
         """Test that adjusted prices maintain continuity across corporate actions."""
@@ -201,7 +202,9 @@ class TestCorporateActionsFlow:
         ca_factors = compute_adjustment_factors(ca_df)
 
         # Apply adjustments
-        adjusted_df = apply_adjustments(ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"])
+        adjusted_df = apply_adjustments(
+            ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"]
+        )
 
         # Verify: prices before split should be divided by 2
         before_split = adjusted_df.filter(pl.col("trade_date") < split_date)
@@ -276,7 +279,9 @@ class TestCorporateActionsFlow:
         assert "cumulative_factor" in ca_factors.columns
 
         # Apply adjustments
-        adjusted_df = apply_adjustments(ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"])
+        adjusted_df = apply_adjustments(
+            ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"]
+        )
 
         # Verify all dates have data
         assert len(adjusted_df) == len(reliance_df)
@@ -355,7 +360,9 @@ class TestCorporateActionsFlow:
 
         # Apply adjustments
         ca_factors = compute_adjustment_factors(ca_df)
-        adjusted_df = apply_adjustments(ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"])
+        adjusted_df = apply_adjustments(
+            ohlc_df=reliance_df, ca_factors_df=ca_factors, columns=["close"]
+        )
 
         # Verify: prices on or after ex_date should be unchanged
         after_ca = adjusted_df.filter(pl.col("trade_date") >= date(2024, 1, 15))

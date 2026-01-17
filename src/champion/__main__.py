@@ -51,6 +51,7 @@ def main() -> NoReturn:
 
     # Start health check server for container orchestration
     from champion.core.health import start_health_server
+
     try:
         start_health_server(host="0.0.0.0", port=8080)
     except Exception as e:

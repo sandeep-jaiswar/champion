@@ -9,12 +9,11 @@ Tests the complete flow:
 """
 
 from datetime import date
-from pathlib import Path
 
 import polars as pl
 import pytest
 
-from tests.fixtures.sample_data import create_sample_nse_bhavcopy_data, create_sample_ohlc_data
+from tests.fixtures.sample_data import create_sample_ohlc_data
 
 
 @pytest.fixture
@@ -318,9 +317,7 @@ class TestWarehouseLoading:
         df_read = pl.read_parquet(output_path / "*.parquet")
 
         # Detect duplicates
-        duplicates = df_read.filter(
-            df_read.select(["symbol", "trade_date"]).is_duplicated()
-        )
+        duplicates = df_read.filter(df_read.select(["symbol", "trade_date"]).is_duplicated())
 
         # We should have duplicates
         assert len(duplicates) > 0
