@@ -43,6 +43,18 @@ The monitoring services are included in the main `docker-compose.yml`:
 docker-compose up -d prometheus grafana
 ```
 
+**Important**: For market hours alerts to work correctly, ensure Prometheus is configured with the correct timezone:
+
+```yaml
+# docker-compose.yml
+services:
+  prometheus:
+    environment:
+      - TZ=Asia/Kolkata  # For Indian markets (IST)
+    # or
+    # - TZ=America/New_York  # For US markets (EST/EDT)
+```
+
 ### 2. Access Dashboards
 
 - **Prometheus**: http://localhost:9090

@@ -176,8 +176,12 @@ groups:
           (
             rate(champion_stocks_ingested_total[15m]) == 0
           ) and (
-            # Market hours check: 9 AM - 6 PM UTC (3:30 PM - 12:30 AM IST)
-            # Adjust timezone offset based on deployment region
+            # Market hours check using Prometheus server time
+            # The hour() function uses the Prometheus server's configured timezone
+            # Default example: 9 AM - 6 PM (server timezone)
+            # For IST markets (UTC+5:30): Configure Prometheus TZ to Asia/Kolkata
+            # For NSE: Market hours are 9:15 AM - 3:30 PM IST (Mon-Fri)
+            # Note: This does not account for market holidays
             (hour() >= 9 and hour() < 18) and (day_of_week() >= 1 and day_of_week() <= 5)
           )
         for: 30m
@@ -186,7 +190,7 @@ groups:
           component: data_quality
         annotations:
           summary: "No stocks ingested in last 15 minutes"
-          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours. Note: Market hours are approximate and do not account for holidays."
+          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours. Note: Market hours are approximate and do not account for holidays. Prometheus server timezone: {{ $labels.timezone }}"
 
       - alert: LowDataVolume
         expr: |
