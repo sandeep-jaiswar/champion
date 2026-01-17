@@ -6,7 +6,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from validation.validator import ParquetValidator
+from champion.validation.validator import ParquetValidator
 
 
 @pytest.fixture
