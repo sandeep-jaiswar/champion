@@ -23,12 +23,12 @@ def set_trace_id(trace_id: str | None = None) -> str:
         The trace ID that was set
     
     Note:
-        Uses uuid4().hex for efficient trace ID generation.
-        For even higher throughput scenarios, consider using a custom
-        lightweight ID generator (e.g., timestamp + counter).
+        Uses uuid4().hex to generate trace IDs without hyphens (32 chars vs 36).
+        This provides slightly better performance in string operations and
+        more compact representation in logs and metrics.
     """
     if trace_id is None:
-        trace_id = uuid.uuid4().hex  # More efficient than str(uuid.uuid4())
+        trace_id = uuid.uuid4().hex  # Compact format without hyphens
     _trace_id_var.set(trace_id)
     return trace_id
 

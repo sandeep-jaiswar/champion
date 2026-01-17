@@ -124,6 +124,11 @@ warehouse_load_latency = Histogram(
     "champion_warehouse_load_latency_seconds",
     "Time spent loading data into warehouse",
     ["table", "layer"],
+    # Buckets designed for typical warehouse load times:
+    # - 0.1-1s: Small batches (< 1000 rows)
+    # - 1-10s: Medium batches (1000-10000 rows)
+    # - 10-60s: Large batches (10000-100000 rows)
+    # - 60-300s: Very large batches or slow loads (> 100000 rows)
     buckets=[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0],
 )
 

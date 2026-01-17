@@ -178,9 +178,9 @@ groups:
           ) and (
             # Market hours check using Prometheus server time
             # The hour() function uses the Prometheus server's configured timezone
-            # Default example: 9 AM - 6 PM (server timezone)
+            # NSE trading hours: 9:15 AM - 3:30 PM IST (Mon-Fri)
+            # Alert uses broader 9 AM - 6 PM window to catch pre/post market issues
             # For IST markets (UTC+5:30): Configure Prometheus TZ to Asia/Kolkata
-            # For NSE: Market hours are 9:15 AM - 3:30 PM IST (Mon-Fri)
             # Note: This does not account for market holidays
             (hour() >= 9 and hour() < 18) and (day_of_week() >= 1 and day_of_week() <= 5)
           )
@@ -190,7 +190,7 @@ groups:
           component: data_quality
         annotations:
           summary: "No stocks ingested in last 15 minutes"
-          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours. Note: Market hours are approximate and do not account for holidays. Prometheus server timezone: {{ $labels.timezone }}"
+          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours (9 AM - 6 PM server time). Note: Does not account for holidays. Verify Prometheus timezone configuration."
 
       - alert: LowDataVolume
         expr: |
