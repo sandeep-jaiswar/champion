@@ -6,6 +6,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+
 from champion.storage.retention import (
     calculate_partition_age,
     cleanup_old_partitions,

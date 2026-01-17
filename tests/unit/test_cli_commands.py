@@ -1,6 +1,7 @@
 """Tests for unified CLI command structure."""
 
 from typer.testing import CliRunner
+
 from champion.cli import app
 
 runner = CliRunner()

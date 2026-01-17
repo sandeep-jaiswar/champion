@@ -1,0 +1,70 @@
+# Prometheus Configuration for Champion Platform
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'champion'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Champion application metrics
+  - job_name: 'champion'
+    static_configs:
+      - targets: ['champion-app:9090']
+        labels:
+          service: 'champion'
+          component: 'application'
+
+  # ClickHouse metrics
+  - job_name: 'clickhouse'
+    static_configs:
+      - targets: ['clickhouse:9363']
+        labels:
+          service: 'clickhouse'
+          component: 'database'
+
+  # MLflow metrics (if exposed)
+  # Note: MLflow does not expose Prometheus metrics by default
+  # You need to configure a metrics exporter or use MLflow's built-in metrics
+  # - job_name: 'mlflow'
+  #   static_configs:
+  #     - targets: ['mlflow:5000']
+  #       labels:
+  #         service: 'mlflow'
+  #         component: 'ml-tracking'
+  #   metrics_path: '/metrics'
+
+  # Prefect metrics (if exposed)
+  # Note: Prefect does not expose Prometheus metrics by default
+  # You need to configure a metrics exporter for Prefect
+  # - job_name: 'prefect'
+  #   static_configs:
+  #     - targets: ['prefect:4200']
+  #       labels:
+  #         service: 'prefect'
+  #         component: 'orchestration'
+  #   metrics_path: '/metrics'
+
+  # Grafana self-monitoring
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+          component: 'visualization'
+    metrics_path: '/metrics'

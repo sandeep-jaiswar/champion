@@ -1,0 +1,16 @@
+apiVersion: v2
+name: champion
+description: A Helm chart for Champion data platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - data-platform
+  - analytics
+  - market-data
+home: https://github.com/sandeep-jaiswar/champion
+sources:
+  - https://github.com/sandeep-jaiswar/champion
+maintainers:
+  - name: Champion Team
+    email: team@champion.com

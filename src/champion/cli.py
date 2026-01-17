@@ -116,7 +116,7 @@ def etl_index(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run Index Constituent ETL flow.
-    
+
     [bold]Example:[/bold]
         champion etl index --index NIFTY50 --date 2024-01-15
     """
@@ -154,7 +154,7 @@ def etl_macro(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run macro indicators ETL flow.
-    
+
     [bold]Example:[/bold]
         champion etl macro --days 90
         champion etl macro --start 2024-01-01 --end 2024-01-31
@@ -199,7 +199,7 @@ def etl_trading_calendar(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run trading calendar ETL flow.
-    
+
     [bold]Example:[/bold]
         champion etl trading-calendar
     """
@@ -230,7 +230,7 @@ def etl_bulk_deals(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run bulk/block deals ETL flow.
-    
+
     [bold]Example:[/bold]
         champion etl bulk-deals
         champion etl bulk-deals --start 2024-01-01 --end 2024-01-31
@@ -293,7 +293,7 @@ def etl_ohlc(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run NSE OHLC (bhavcopy) ETL flow.
-    
+
     [bold]Examples:[/bold]
         champion etl ohlc --date 2024-01-15
         champion etl ohlc --start 2024-01-01 --end 2024-01-31
@@ -347,7 +347,7 @@ def etl_corporate_actions(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run corporate actions ETL flow.
-    
+
     [bold]Example:[/bold]
         champion etl corporate-actions
     """
@@ -377,7 +377,7 @@ def etl_combined_equity(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run combined equity ETL flow (NSE + BSE bhavcopy).
-    
+
     [bold]Example:[/bold]
         champion etl combined-equity --date 2024-01-15
     """
@@ -418,7 +418,7 @@ def etl_quarterly_financials(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Run quarterly financials ETL flow.
-    
+
     [bold]Examples:[/bold]
         champion etl quarterly-financials --start 2024-01-01 --end 2024-03-31
         champion etl quarterly-financials --symbol TCS --load
@@ -688,7 +688,7 @@ def etl_scrape(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
     """Scrape NSE data for a specific date.
-    
+
     [bold]Examples:[/bold]
         champion etl scrape --scraper bhavcopy --date 2024-01-15
         champion etl scrape --scraper symbol-master --dry-run
@@ -744,7 +744,7 @@ def equity_list(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Download NSE equity list, save as Parquet and load into ClickHouse.
-    
+
     [bold]Example:[/bold]
         champion warehouse load-equity-list
         champion warehouse load-equity-list --no-load
@@ -879,7 +879,7 @@ def orchestrate_backfill(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
     """Backfill NSE data for a date range.
-    
+
     [bold]Example:[/bold]
         champion orchestrate backfill --start 2024-01-01 --end 2024-01-31
     """
@@ -932,7 +932,7 @@ def validate_file(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
     """Validate a downloaded NSE file.
-    
+
     [bold]Example:[/bold]
         champion validate file --file data.csv --type bhavcopy
     """
@@ -958,7 +958,7 @@ def show_config(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ):
     """Print current configuration values.
-    
+
     [bold]Example:[/bold]
         champion admin config
     """
@@ -972,7 +972,7 @@ def health_check(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
     """Check scraper health and dependencies.
-    
+
     [bold]Example:[/bold]
         champion admin health
     """
@@ -1011,7 +1011,7 @@ def main(argv: list[str] | None = None) -> int:
     """
     # Initialize logging
     configure_logging()
-    
+
     try:
         app()
         return 0

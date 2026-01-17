@@ -1,6 +1,7 @@
 """Integration tests for circuit breaker with scraper tasks."""
 
 import pytest
+
 from champion.utils.circuit_breaker import CircuitBreakerOpen
 
 

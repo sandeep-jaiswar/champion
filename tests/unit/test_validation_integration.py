@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import polars as pl
 import pytest
+
 from champion.storage.parquet_io import write_df_safe
 from champion.validation.validator import ValidationResult
 
