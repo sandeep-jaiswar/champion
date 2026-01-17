@@ -59,6 +59,14 @@ mlflow = "^3.5.0"
 # ============ CLI ============
 typer = { extras = ["all"], version = "^0.12.5" }
 
+# ============ API & Web ============
+fastapi = "^0.115.0"
+uvicorn = { extras = ["standard"], version = "^0.32.0" }
+redis = "^5.0.0"
+python-jose = { extras = ["cryptography"], version = "^3.3.0" }
+passlib = { extras = ["bcrypt"], version = "^1.7.4" }
+python-multipart = "^0.0.9"
+
 [tool.poetry.group.dev.dependencies]
 # ============ Testing ============
 pytest = "^7.4.0"

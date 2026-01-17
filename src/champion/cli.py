@@ -48,6 +48,11 @@ admin_app = typer.Typer(
     help="Administration and configuration",
     no_args_is_help=True,
 )
+api_app = typer.Typer(
+    name="api",
+    help="REST API server commands",
+    no_args_is_help=True,
+)
 
 # Register command groups
 app.add_typer(etl_app, name="etl")
@@ -55,6 +60,7 @@ app.add_typer(warehouse_app, name="warehouse")
 app.add_typer(validate_app, name="validate")
 app.add_typer(orchestrate_app, name="orchestrate")
 app.add_typer(admin_app, name="admin")
+app.add_typer(api_app, name="api")
 
 # Rich console for better output
 console = Console()
@@ -1018,6 +1024,42 @@ def health_check(
         console.print(f"[green]✓[/green] Data directory: {config.storage.data_dir}")
     else:
         console.print("[red]✗[/red] Data directory: Not found")
+
+
+@api_app.command("serve")
+def api_serve(
+    host: str = typer.Option("0.0.0.0", help="Host to bind the API server"),
+    port: int = typer.Option(8000, help="Port to bind the API server"),
+    reload: bool = typer.Option(False, help="Enable auto-reload for development"),
+    workers: int = typer.Option(1, help="Number of worker processes"),
+):
+    """Start the REST API server.
+    
+    [bold]Examples:[/bold]
+        champion api serve
+        champion api serve --port 8080
+        champion api serve --reload
+        champion api serve --workers 4
+    """
+    try:
+        import uvicorn
+        
+        console.print(f"[green]Starting Champion API server on {host}:{port}[/green]")
+        
+        uvicorn.run(
+            "champion.api.main:app",
+            host=host,
+            port=port,
+            reload=reload,
+            workers=workers if not reload else 1,  # workers>1 incompatible with reload
+            log_level="info",
+        )
+    except ImportError:
+        console.print("[red]uvicorn not installed. Install with: pip install uvicorn[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Failed to start API server: {e}[/red]")
+        raise typer.Exit(1) from e
 
 
 def main(argv: list[str] | None = None) -> int:
