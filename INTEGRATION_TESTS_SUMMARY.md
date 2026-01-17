@@ -36,6 +36,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 ## Test Infrastructure
 
 ### Test Fixtures
+
 - **Location**: `tests/fixtures/sample_data.py`
 - **Provides**:
   - `create_sample_ohlc_data()`: Generates realistic OHLC data
@@ -44,6 +45,7 @@ This document summarizes the comprehensive integration test suite implemented fo
   - `create_sample_features_data()`: Pre-computed features
 
 ### Test Configuration
+
 - Uses `pytest` fixtures for temporary directories
 - Leverages `conftest.py` for shared configuration
 - Isolated test data in temporary paths
@@ -52,6 +54,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 
 ### 1. Ingestion Pipeline
 ✅ **Complete Flow**:
+
 - Simulate NSE data scraping
 - Parse and validate data
 - Write to Parquet (raw layer)
@@ -61,6 +64,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 
 ### 2. Corporate Actions Adjustment
 ✅ **Complete Flow**:
+
 - Load CA events from fixtures
 - Compute adjustment factors for:
   - Stock splits (e.g., 1:2 split)
@@ -72,6 +76,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 
 ### 3. Warehouse Loading
 ✅ **Complete Flow**:
+
 - Read Parquet from data lake
 - Prepare DataFrames for ClickHouse
 - Test column mappings (NSE format → normalized)
@@ -81,6 +86,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 
 ### 4. Feature Computation
 ✅ **Complete Flow**:
+
 - Compute technical indicators:
   - Simple Moving Average (SMA)
   - Exponential Moving Average (EMA)
@@ -92,6 +98,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 
 ### 5. End-to-End Integration
 ✅ **Complete Flow**:
+
 - Multi-stage pipeline execution
 - Data lineage tracking
 - Incremental updates
@@ -117,6 +124,7 @@ This document summarizes the comprehensive integration test suite implemented fo
 | `champion.corporate_actions.price_adjuster` | 33% | ⚠️ Core functions tested |
 
 ### Overall Integration Coverage
+
 - **Files with tests**: 15+ modules
 - **Critical paths covered**: ✅
 - **Edge cases tested**: ✅
@@ -164,17 +172,20 @@ This document summarizes the comprehensive integration test suite implemented fo
 ```
 
 ### Prerequisites
+
 - Python 3.11+
 - Dependencies: `pytest`, `pytest-cov`, `polars`, `pyarrow`, `pydantic`, `structlog`
 
 ## Usage
 
 ### Run All Integration Tests
+
 ```bash
 python3 -m pytest tests/integration/ -v
 ```
 
 ### Run Specific Test Suite
+
 ```bash
 # Ingestion pipeline only
 python3 -m pytest tests/integration/test_ingestion_pipeline.py -v
@@ -187,6 +198,7 @@ python3 -m pytest tests/integration/test_feature_computation.py -v
 ```
 
 ### Run With Coverage
+
 ```bash
 python3 -m pytest tests/integration/ --cov=src/champion --cov-report=html
 ```

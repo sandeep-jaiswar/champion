@@ -72,8 +72,7 @@ class ParquetValidator:
         """
         if schema_name not in self.schemas:
             raise ValueError(
-                f"Schema '{schema_name}' not found. "
-                f"Available schemas: {list(self.schemas.keys())}"
+                f"Schema '{schema_name}' not found. Available schemas: {list(self.schemas.keys())}"
             )
 
         schema = self.schemas[schema_name]

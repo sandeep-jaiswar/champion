@@ -12,11 +12,11 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.corporate_actions.ca_processor import compute_adjustment_factors
 from champion.corporate_actions.price_adjuster import apply_adjustments
 from champion.features.indicators import compute_features
 from champion.storage.parquet_io import write_df
+
 from tests.fixtures.sample_data import (
     create_sample_corporate_actions,
     create_sample_nse_bhavcopy_data,
@@ -125,7 +125,7 @@ class TestEndToEndPipeline:
         )
 
         # Write unadjusted OHLC
-        unadjusted_path = write_df(
+        write_df(
             df=ohlc_data,
             dataset="equity_ohlc_unadjusted",
             base_path=pipeline_workspace["normalized"],
@@ -138,7 +138,7 @@ class TestEndToEndPipeline:
         )
 
         # Write CA events
-        ca_path = write_df(
+        write_df(
             df=ca_events,
             dataset="corporate_actions",
             base_path=pipeline_workspace["raw"],
@@ -420,7 +420,9 @@ class TestEndToEndPipeline:
         )
 
         # Add source metadata
-        source_data = source_data.with_columns([pl.lit("NSE").alias("source"), pl.lit("v1").alias("version")])
+        source_data = source_data.with_columns(
+            [pl.lit("NSE").alias("source"), pl.lit("v1").alias("version")]
+        )
 
         # ===== RAW LAYER =====
         raw_path = write_df(
@@ -428,9 +430,7 @@ class TestEndToEndPipeline:
         )
 
         # ===== NORMALIZED LAYER =====
-        normalized_data = source_data.select(
-            ["symbol", "trade_date", "close", "source", "version"]
-        )
+        normalized_data = source_data.select(["symbol", "trade_date", "close", "source", "version"])
 
         normalized_path = write_df(
             df=normalized_data,

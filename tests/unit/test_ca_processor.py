@@ -4,7 +4,6 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.corporate_actions.ca_processor import (
     CorporateActionsProcessor,
     compute_adjustment_factors,

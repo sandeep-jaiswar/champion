@@ -106,7 +106,7 @@ class CorporateActionsScraper(BaseScraper):
             output_dir.mkdir(parents=True, exist_ok=True)
             out_file = (
                 output_dir
-                / f"corporate_actions_{from_date.replace('-','')}_to_{to_date.replace('-','')}.json"
+                / f"corporate_actions_{from_date.replace('-', '')}_to_{to_date.replace('-', '')}.json"
             )
 
             if not dry_run:

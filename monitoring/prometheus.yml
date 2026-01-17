@@ -13,6 +13,10 @@ global:
 #         - targets:
 #           - alertmanager:9093
 
+# Alert rules configuration
+rule_files:
+  - 'alert_rules.yml'
+
 # Scrape configurations
 scrape_configs:
   # Prometheus self-monitoring

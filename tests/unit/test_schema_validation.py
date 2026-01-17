@@ -4,7 +4,6 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.parsers.polars_bhavcopy_parser import BHAVCOPY_SCHEMA, PolarsBhavcopyParser
 from champion.parsers.polars_bse_parser import BSE_BHAVCOPY_SCHEMA, PolarsBseParser
 from champion.parsers.symbol_master_parser import SYMBOL_MASTER_SCHEMA, SymbolMasterParser

@@ -1,0 +1,204 @@
+# Prometheus Alert Rules for Champion Platform
+groups:
+  - name: circuit_breaker_alerts
+    interval: 30s
+    rules:
+      - alert: CircuitBreakerOpened
+        expr: circuit_breaker_state == 2
+        for: 1m
+        labels:
+          severity: critical
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker opened for {{ $labels.source }}"
+          description: "Circuit breaker for {{ $labels.source }} has been in OPEN state for more than 1 minute. Service is unavailable."
+
+      - alert: CircuitBreakerHighFailureRate
+        expr: rate(circuit_breaker_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "High failure rate for {{ $labels.source }}"
+          description: "Circuit breaker for {{ $labels.source }} is experiencing {{ $value }} failures per second."
+
+  - name: validation_alerts
+    interval: 30s
+    rules:
+      - alert: HighValidationFailureRate
+        expr: champion_validation_failure_rate > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: validation
+        annotations:
+          summary: "High validation failure rate for {{ $labels.table }}"
+          description: "Validation failure rate for {{ $labels.table }} is {{ $value | humanizePercentage }}, exceeding 5% threshold."
+
+      - alert: CriticalValidationFailureRate
+        expr: champion_validation_failure_rate > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          component: validation
+        annotations:
+          summary: "Critical validation failure rate for {{ $labels.table }}"
+          description: "Validation failure rate for {{ $labels.table }} is {{ $value | humanizePercentage }}, exceeding 20% threshold."
+
+  - name: pipeline_alerts
+    interval: 30s
+    rules:
+      - alert: PipelineDurationAnomaly
+        expr: |
+          (
+            nse_pipeline_flow_duration_seconds_sum{status="success"} 
+            / nse_pipeline_flow_duration_seconds_count{status="success"}
+          ) > (
+            avg_over_time(nse_pipeline_flow_duration_seconds_sum{status="success"}[1h]) 
+            / avg_over_time(nse_pipeline_flow_duration_seconds_count{status="success"}[1h])
+          ) * 2
+        for: 5m
+        labels:
+          severity: warning
+          component: pipeline
+        annotations:
+          summary: "Pipeline duration anomaly detected for {{ $labels.flow_name }}"
+          description: "Flow {{ $labels.flow_name }} is taking {{ $value }}s, which is 2x longer than the 1-hour average."
+
+      - alert: PipelineFailureRate
+        expr: |
+          rate(nse_pipeline_flow_duration_seconds_count{status="failed"}[10m]) 
+          / 
+          rate(nse_pipeline_flow_duration_seconds_count[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: pipeline
+        annotations:
+          summary: "High pipeline failure rate for {{ $labels.flow_name }}"
+          description: "Pipeline {{ $labels.flow_name }} has a failure rate of {{ $value | humanizePercentage }} over the last 10 minutes."
+
+  - name: warehouse_alerts
+    interval: 30s
+    rules:
+      - alert: WarehouseLoadFailure
+        expr: rate(nse_pipeline_clickhouse_load_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: warehouse
+        annotations:
+          summary: "ClickHouse load failures detected for {{ $labels.table }}"
+          description: "Table {{ $labels.table }} has {{ $value }} load failures per second in the last 5 minutes."
+
+      - alert: WarehouseLoadHighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(champion_warehouse_load_latency_seconds_bucket[5m])
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: warehouse
+        annotations:
+          summary: "High warehouse load latency for {{ $labels.table }}"
+          description: "95th percentile load latency for {{ $labels.table }} is {{ $value }}s, exceeding 60s threshold."
+
+      - alert: ParquetWriteFailures
+        expr: rate(nse_pipeline_parquet_write_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "Parquet write failures detected for {{ $labels.table }}"
+          description: "Table {{ $labels.table }} has {{ $value }} Parquet write failures per second."
+
+  - name: resource_alerts
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="champion"} 
+            / 
+            (4 * 1024 * 1024 * 1024)
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is at {{ $value | humanizePercentage }} of the 4GB limit."
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job="champion"} 
+            / 
+            (4 * 1024 * 1024 * 1024)
+          ) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          component: resources
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is at {{ $value | humanizePercentage }} of the 4GB limit. Service may crash."
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="champion"}[5m]) > 1.7
+        for: 10m
+        labels:
+          severity: warning
+          component: resources
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }} cores, exceeding 1.7 cores threshold (85% of 2 cores limit)."
+
+      - alert: ServiceDown
+        expr: up{job="champion"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: service
+        annotations:
+          summary: "Champion service is down"
+          description: "Champion application service has been down for more than 1 minute."
+
+  - name: data_quality_alerts
+    interval: 30s
+    rules:
+      - alert: NoDataIngested
+        expr: |
+          (
+            rate(champion_stocks_ingested_total[15m]) == 0
+          ) and (
+            # Market hours check using Prometheus server time
+            # The hour() function uses the Prometheus server's configured timezone
+            # NSE trading hours: 9:15 AM - 3:30 PM IST (Mon-Fri)
+            # Alert uses broader 9 AM - 6 PM window to catch pre/post market issues
+            # For IST markets (UTC+5:30): Configure Prometheus TZ to Asia/Kolkata
+            # Note: This does not account for market holidays
+            (hour() >= 9 and hour() < 18) and (day_of_week() >= 1 and day_of_week() <= 5)
+          )
+        for: 30m
+        labels:
+          severity: warning
+          component: data_quality
+        annotations:
+          summary: "No stocks ingested in last 15 minutes"
+          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours (9 AM - 6 PM server time). Note: Does not account for holidays. Verify Prometheus timezone configuration."
+
+      - alert: LowDataVolume
+        expr: |
+          sum(rate(champion_stocks_ingested_total[1h])) < 100
+        for: 30m
+        labels:
+          severity: warning
+          component: data_quality
+        annotations:
+          summary: "Low data volume detected"
+          description: "Only {{ $value }} stocks ingested per hour, which is unusually low."

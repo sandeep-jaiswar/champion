@@ -8,9 +8,7 @@ Tests the complete flow:
 4. Verify schema and data integrity
 """
 
-import shutil
 from datetime import date
-from pathlib import Path
 
 import polars as pl
 import pytest

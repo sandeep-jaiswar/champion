@@ -8,6 +8,7 @@ The implementation is intentionally conservative: it extracts a fixed set
 of commonly-used tags (Revenue, Profit, EPS, Assets, Liabilities etc.) and
 stores any unmapped facts into `metadata` to avoid data loss.
 """
+
 from __future__ import annotations
 
 import uuid
