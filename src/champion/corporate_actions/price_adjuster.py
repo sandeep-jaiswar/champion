@@ -207,6 +207,69 @@ def apply_ca_adjustments_simple(
     return result
 
 
+def apply_adjustments(
+    ohlc_df: pl.DataFrame,
+    ca_factors_df: pl.DataFrame,
+    columns: list[str] | None = None,
+) -> pl.DataFrame:
+    """Simplified wrapper for applying corporate action adjustments.
+
+    Args:
+        ohlc_df: DataFrame with OHLC data (normalized format with lowercase columns)
+        ca_factors_df: DataFrame with adjustment factors
+        columns: List of columns to adjust (default: ["open", "high", "low", "close"])
+
+    Returns:
+        DataFrame with adjusted prices
+    """
+    if columns is None:
+        columns = ["open", "high", "low", "close"]
+
+    # If empty data, return as is
+    if ohlc_df.is_empty() or ca_factors_df.is_empty():
+        return ohlc_df
+
+    # Join OHLC with CA factors on symbol
+    # For each trade date, we need to find all CA events that happened after
+    result = ohlc_df.join(
+        ca_factors_df.select(["symbol", "ex_date", "cumulative_factor"]),
+        on="symbol",
+        how="left",
+    )
+
+    # Apply adjustment only if ex_date > trade_date
+    # Group by symbol and trade_date, take product of all applicable factors
+    result = result.with_columns(
+        pl.when(pl.col("ex_date") > pl.col("trade_date"))
+        .then(pl.col("cumulative_factor"))
+        .otherwise(1.0)
+        .alias("adj_factor")
+    )
+
+    # Aggregate by symbol and trade_date to get final adjustment factor
+    adjustment_agg = result.group_by(["symbol", "trade_date"]).agg(
+        pl.col("adj_factor").product().alias("final_adjustment")
+    )
+
+    # Join back to original OHLC data
+    adjusted_df = ohlc_df.join(adjustment_agg, on=["symbol", "trade_date"], how="left")
+
+    # Fill null adjustments with 1.0
+    adjusted_df = adjusted_df.with_columns(pl.col("final_adjustment").fill_null(1.0))
+
+    # Apply adjustments to price columns
+    for col in columns:
+        if col in adjusted_df.columns:
+            adjusted_df = adjusted_df.with_columns(
+                (pl.col(col) / pl.col("final_adjustment")).alias(col)
+            )
+
+    # Drop the adjustment column
+    adjusted_df = adjusted_df.drop("final_adjustment")
+
+    return adjusted_df
+
+
 def write_adjusted_ohlc(
     adjusted_df: pl.DataFrame,
     output_path: Path,
