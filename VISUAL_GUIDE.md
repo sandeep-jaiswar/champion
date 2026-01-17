@@ -28,7 +28,7 @@ src/champion/               warehouse/loader           validation/
 
 ```python
 # scrapers/nse.py
-from warehouse.loader.batch_loader import ClickHouseLoader
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 from validation.validator import ParquetValidator
 import logging
 

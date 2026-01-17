@@ -6,7 +6,7 @@ import structlog
 from prefect import flow, task
 from prefect.blocks.notifications import SlackWebhook
 
-from validation.validator import ParquetValidator, ValidationResult
+from champion.validation.validator import ParquetValidator, ValidationResult
 
 logger = structlog.get_logger()
 

@@ -2,12 +2,33 @@
 
 Domain scope: ClickHouse integration (clients, loaders, queries, models).
 
-Current contents:
+## Structure
 
-- ClickHouse subpackage scaffold; loader code pending move from `warehouse/loader`.
+```
+warehouse/
+├── clickhouse/         # ClickHouse data warehouse integration
+│   ├── batch_loader.py        # Batch data loader for ClickHouse
+│   ├── generate_sample_data.py # Sample data generator
+│   └── __init__.py
+├── models/             # Data models for warehouse operations
+│   └── __init__.py
+├── adapters.py         # Adapters for different warehouse systems
+└── __init__.py
+```
 
-Migration notes:
+## Current Status
 
-- Move batch loader and related tests here.
-- Add query helpers and typed models under `models/`.
-- Keep DSN/config handling centralized.
+- ✅ ClickHouse batch loader and sample data generator integrated
+- ✅ All files consolidated under src/champion/warehouse/clickhouse/
+- ✅ Tests moved to root tests/ directory
+
+## Usage
+
+```python
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+
+loader = ClickHouseLoader()
+loader.load_table("raw_equity_ohlc", "data/lake/raw/equity_ohlc/")
+```
+
+For more details, see the main `/warehouse/README.md` documentation.

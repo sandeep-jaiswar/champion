@@ -73,13 +73,13 @@ This implementation delivers a complete ClickHouse data warehouse solution for t
 **CLI Usage**:
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --verify
 ```
 
-### 5. Sample Data Generator (`warehouse/loader/generate_sample_data.py`)
+### 5. Sample Data Generator (`champion.warehouse.clickhouse.generate_sample_data`)
 
 - Generates realistic market data samples
 - Creates 10 symbols × 5 days = 50 rows per layer
@@ -188,10 +188,10 @@ python -m warehouse.loader.batch_loader \
 docker compose up -d clickhouse
 
 # 2. Generate sample data
-python warehouse/loader/generate_sample_data.py
+python champion.warehouse.clickhouse.generate_sample_data
 
 # 3. Load data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/ \
     --verify

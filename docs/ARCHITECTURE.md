@@ -398,7 +398,7 @@ class EquityRepository(Repository[Equity]):
 
 ```python
 # scraper/nse.py
-from warehouse.loader.batch_loader import ClickHouseLoader
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 class NSEScraper:
     def __init__(self):

@@ -4,10 +4,10 @@
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Ensure src/ is on path for editable runs
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from validation.validator import ParquetValidator
+from champion.validation.validator import ParquetValidator
 
 
 def demo_validation():

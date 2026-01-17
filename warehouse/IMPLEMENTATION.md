@@ -101,19 +101,19 @@ python warehouse/loader/generate_sample_data.py
 
 ```bash
 # Load raw data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --verify
 
 # Load normalized data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/ \
     --verify
 
 # Load features data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table features_equity_indicators \
     --source data/lake/features/equity_indicators/ \
     --verify
@@ -352,7 +352,7 @@ docker compose exec clickhouse clickhouse-client --query "SELECT 1"
 
 ```bash
 # Dry run to validate
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --dry-run \

@@ -132,7 +132,7 @@ def main():
     print("Next steps:")
     print("  1. Start ClickHouse (if not running): docker-compose up -d clickhouse")
     print("  2. Load features into ClickHouse:")
-    print("     python -m warehouse.loader.batch_loader \\")
+    print("     python -m champion.warehouse.clickhouse.batch_loader \\")
     print("       --table features_equity_indicators \\")
     print(f"       --source {output_path}")
     print("  3. Query features in ClickHouse:")

@@ -154,7 +154,7 @@ except IntegrationError as e:
 **Before**:
 
 ```python
-from warehouse.loader.batch_loader import ClickHouseLoader
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 loader = ClickHouseLoader(host="localhost", port=9000)
 loader.load_parquet_files(table="raw_ohlc", source_path="data/")
@@ -205,7 +205,7 @@ class YourScraper(EquityScraper):
 
 ```python
 import unittest
-from warehouse.loader.batch_loader import ClickHouseLoader
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 class TestLoader(unittest.TestCase):
     def test_load(self):
@@ -440,7 +440,7 @@ ModuleNotFoundError: No module named 'warehouse.loader'
 
 ```python
 # Old (broken)
-from warehouse.loader.batch_loader import ClickHouseLoader
+from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
 # New (works)
 from champion.warehouse import ClickHouseSink
