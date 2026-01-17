@@ -1,0 +1,80 @@
+======================================================================
+CHAMPION CLI - Command Structure
+======================================================================
+
+Usage: champion [OPTIONS] COMMAND [ARGS]...
+
+Production-grade data platform for market analytics
+
+Command Groups:
+
+  etl             ETL commands for data ingestion
+  warehouse       Data warehouse loading commands
+  validate        Data validation and quality checks
+  orchestrate     Workflow orchestration and scheduling
+  admin           Administration and configuration
+
+======================================================================
+
+ETL COMMANDS:
+----------------------------------------------------------------------
+  champion etl bulk-deals
+  champion etl combined-equity
+  champion etl corporate-actions
+  champion etl index
+  champion etl macro
+  champion etl ohlc
+  champion etl quarterly-financials
+  champion etl scrape
+  champion etl trading-calendar
+
+WAREHOUSE COMMANDS:
+----------------------------------------------------------------------
+  champion warehouse load-equity-list
+
+VALIDATE COMMANDS:
+----------------------------------------------------------------------
+  champion validate file
+
+ORCHESTRATE COMMANDS:
+----------------------------------------------------------------------
+  champion orchestrate backfill
+
+ADMIN COMMANDS:
+----------------------------------------------------------------------
+  champion admin config
+  champion admin health
+
+======================================================================
+All commands support --help for detailed usage information
+Example: champion etl ohlc --help
+
+Auto-completion available:
+  champion --install-completion bash
+  champion --install-completion zsh
+======================================================================
+
+MIGRATION GUIDE
+======================================================================
+
+Old Command Format              New Command Format
+----------------------------------------------------------------------
+champion etl-index             → champion etl index
+champion etl-macro             → champion etl macro
+champion etl-ohlc              → champion etl ohlc
+champion etl-bulk-deals        → champion etl bulk-deals
+champion etl-corporate-actions → champion etl corporate-actions
+champion etl-combined-equity   → champion etl combined-equity
+champion etl-quarterly-financials → champion etl quarterly-financials
+champion etl-trading-calendar  → champion etl trading-calendar
+champion show-config           → champion admin config
+champion equity-list           → champion warehouse load-equity-list
+
+NEW COMMANDS:
+----------------------------------------------------------------------
+champion etl scrape            - Scrape NSE data (from orchestration/main.py)
+champion orchestrate backfill  - Backfill data for date range
+champion validate file         - Validate downloaded NSE files
+champion admin health          - Check system health
+
+======================================================================
