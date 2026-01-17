@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 import pandas as pd
 import structlog
@@ -303,8 +304,6 @@ class LSTMPricePredictor:
         self.model.save(path / "lstm_model.keras")
 
         # Save scaler
-        import joblib
-
         joblib.dump(self.scaler, path / "scaler.pkl")
         joblib.dump(self.feature_columns, path / "features.pkl")
 
@@ -322,8 +321,6 @@ class LSTMPricePredictor:
         self.model = keras.models.load_model(path / "lstm_model.keras")
 
         # Load scaler
-        import joblib
-
         self.scaler = joblib.load(path / "scaler.pkl")
         self.feature_columns = joblib.load(path / "features.pkl")
 

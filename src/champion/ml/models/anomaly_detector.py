@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 import pandas as pd
 import structlog
@@ -165,7 +166,6 @@ class IsolationForestDetector:
 
     def save(self, path: Path) -> None:
         """Save model to disk."""
-        import joblib
 
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
@@ -178,7 +178,6 @@ class IsolationForestDetector:
 
     def load(self, path: Path) -> None:
         """Load model from disk."""
-        import joblib
 
         path = Path(path)
 
@@ -407,7 +406,6 @@ class AutoencoderDetector:
 
     def save(self, path: Path) -> None:
         """Save model to disk."""
-        import joblib
 
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
@@ -421,7 +419,6 @@ class AutoencoderDetector:
 
     def load(self, path: Path) -> None:
         """Load model from disk."""
-        import joblib
 
         path = Path(path)
 

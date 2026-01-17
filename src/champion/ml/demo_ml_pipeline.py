@@ -356,7 +356,7 @@ def demo_prediction_serving():
 
     model = LSTMPricePredictor(sequence_length=60)
     print("Training model for serving...")
-    model.train(df, epochs=5, verbose=0, experiment_name="demo-prediction-serving")
+    model.train(df, epochs=5, experiment_name="demo-prediction-serving")
 
     model_path = Path("data/models/lstm_wipro/latest")
     model.save(model_path)
