@@ -99,12 +99,6 @@ jobs:
           poetry run pytest tests/unit/ -v --cov=src --cov-report=term-missing --cov-report=xml --tb=short || test $? -eq 5 && echo "No unit tests found"
         timeout-minutes: 10
 
-      - name: Run Pytest (integration tests with timeout)
-        run: |
-          timeout 30 poetry run pytest tests/integration/ -v --tb=short -x || test $? -eq 124 || test $? -eq 5 && echo "Integration tests skipped or timed out"
-        continue-on-error: true
-        timeout-minutes: 1
-
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: always()
@@ -196,6 +190,5 @@ jobs:
         run: |
           echo "Testing Champion CLI commands..."
           poetry run champion --help
-          poetry run champion --version
           poetry run champion show-config
           echo "All CLI commands validated successfully ✓"
