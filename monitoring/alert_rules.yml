@@ -4,7 +4,7 @@ groups:
     interval: 30s
     rules:
       - alert: CircuitBreakerOpened
-        expr: circuit_breaker_state{state="open"} == 2
+        expr: circuit_breaker_state == 2
         for: 1m
         labels:
           severity: critical
@@ -176,6 +176,8 @@ groups:
           (
             rate(champion_stocks_ingested_total[15m]) == 0
           ) and (
+            # Market hours check: 9 AM - 6 PM UTC (3:30 PM - 12:30 AM IST)
+            # Adjust timezone offset based on deployment region
             (hour() >= 9 and hour() < 18) and (day_of_week() >= 1 and day_of_week() <= 5)
           )
         for: 30m
@@ -184,7 +186,7 @@ groups:
           component: data_quality
         annotations:
           summary: "No stocks ingested in last 15 minutes"
-          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours."
+          description: "No stocks have been ingested by {{ $labels.scraper }} during market hours. Note: Market hours are approximate and do not account for holidays."
 
       - alert: LowDataVolume
         expr: |
