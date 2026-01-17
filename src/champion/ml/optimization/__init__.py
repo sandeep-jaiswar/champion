@@ -133,21 +133,15 @@ class PortfolioOptimizer:
         initial_weights = np.ones(n_assets) / n_assets
 
         # Constraints
-        constraints = [
-            {"type": "eq", "fun": lambda x: np.sum(x) - 1}  # Weights sum to 1
-        ]
+        constraints = [{"type": "eq", "fun": lambda x: np.sum(x) - 1}]  # Weights sum to 1
 
         # Bounds: position size limits
-        bounds = tuple(
-            [(self.min_position_size, self.max_position_size) for _ in range(n_assets)]
-        )
+        bounds = tuple([(self.min_position_size, self.max_position_size) for _ in range(n_assets)])
 
         # Track with MLflow
         tracker = MLflowTracker(experiment_name=experiment_name)
 
-        with tracker.start_run(
-            run_name=f"portfolio-opt-{pd.Timestamp.now().isoformat()}"
-        ):
+        with tracker.start_run(run_name=f"portfolio-opt-{pd.Timestamp.now().isoformat()}"):
             # Log parameters
             tracker.log_params(
                 {
@@ -204,7 +198,7 @@ class PortfolioOptimizer:
 
             logger.info(
                 "portfolio_optimized",
-                return=portfolio_return,
+                portfolio_return=portfolio_return,
                 volatility=portfolio_vol,
                 sharpe=sharpe,
             )
@@ -258,7 +252,9 @@ class PortfolioOptimizer:
         sector_constraints = []
 
         for sector in sectors:
-            sector_assets = [i for i, asset in enumerate(self.asset_names) if sector_mapping.get(asset) == sector]
+            sector_assets = [
+                i for i, asset in enumerate(self.asset_names) if sector_mapping.get(asset) == sector
+            ]
             if sector in sector_limits and sector_assets:
                 # Constraint: sum of weights in sector <= sector_limit
                 constraint_matrix = np.zeros(n_assets)
@@ -267,7 +263,8 @@ class PortfolioOptimizer:
                 sector_constraints.append(
                     {
                         "type": "ineq",
-                        "fun": lambda x, m=constraint_matrix, limit=sector_limits[sector]: limit - np.dot(m, x),
+                        "fun": lambda x, m=constraint_matrix, limit=sector_limits[sector]: limit
+                        - np.dot(m, x),
                     }
                 )
 
@@ -275,16 +272,12 @@ class PortfolioOptimizer:
         constraints = [{"type": "eq", "fun": lambda x: np.sum(x) - 1}] + sector_constraints
 
         # Bounds
-        bounds = tuple(
-            [(self.min_position_size, self.max_position_size) for _ in range(n_assets)]
-        )
+        bounds = tuple([(self.min_position_size, self.max_position_size) for _ in range(n_assets)])
 
         # Track with MLflow
         tracker = MLflowTracker(experiment_name=experiment_name)
 
-        with tracker.start_run(
-            run_name=f"portfolio-opt-sectors-{pd.Timestamp.now().isoformat()}"
-        ):
+        with tracker.start_run(run_name=f"portfolio-opt-sectors-{pd.Timestamp.now().isoformat()}"):
             tracker.log_params(
                 {
                     "n_assets": n_assets,
@@ -323,7 +316,11 @@ class PortfolioOptimizer:
             # Calculate sector exposures
             sector_exposures = {}
             for sector in sectors:
-                sector_assets = [i for i, asset in enumerate(self.asset_names) if sector_mapping.get(asset) == sector]
+                sector_assets = [
+                    i
+                    for i, asset in enumerate(self.asset_names)
+                    if sector_mapping.get(asset) == sector
+                ]
                 sector_weight = sum(self.optimal_weights[i] for i in sector_assets)
                 sector_exposures[sector] = float(sector_weight)
 
@@ -351,7 +348,7 @@ class PortfolioOptimizer:
 
             logger.info(
                 "portfolio_optimized_with_sectors",
-                return=portfolio_return,
+                portfolio_return=portfolio_return,
                 sharpe=sharpe,
                 sector_exposures=sector_exposures,
             )
@@ -388,7 +385,8 @@ class PortfolioOptimizer:
                 {"type": "eq", "fun": lambda x: np.sum(x) - 1},
                 {
                     "type": "eq",
-                    "fun": lambda x, tr=target_return: np.sum(x * self.expected_returns.values) - tr,
+                    "fun": lambda x, tr=target_return: np.sum(x * self.expected_returns.values)
+                    - tr,
                 },
             ]
 
@@ -396,9 +394,7 @@ class PortfolioOptimizer:
 
             # Minimize volatility for target return
             result = minimize(
-                lambda x: np.sqrt(
-                    np.dot(x.T, np.dot(self.cov_matrix.values, x))
-                ),
+                lambda x: np.sqrt(np.dot(x.T, np.dot(self.cov_matrix.values, x))),
                 np.ones(n_assets) / n_assets,
                 method="SLSQP",
                 bounds=bounds,

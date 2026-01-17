@@ -1,8 +1,7 @@
 """Backtesting framework for ML models."""
 
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -87,9 +86,7 @@ class Backtester:
         # Track with MLflow
         tracker = MLflowTracker(experiment_name=experiment_name)
 
-        with tracker.start_run(
-            run_name=f"backtest-{pd.Timestamp.now().isoformat()}"
-        ):
+        with tracker.start_run(run_name=f"backtest-{pd.Timestamp.now().isoformat()}"):
             tracker.log_params(
                 {
                     "initial_capital": self.initial_capital,
@@ -105,9 +102,7 @@ class Backtester:
             while current_idx < len(df) - 1:
                 # Retrain model if needed
                 if periods_since_retrain == 0:
-                    train_df = df.iloc[
-                        max(0, current_idx - train_window) : current_idx
-                    ]
+                    train_df = df.iloc[max(0, current_idx - train_window) : current_idx]
 
                     logger.info(
                         "retraining_model",
@@ -122,9 +117,7 @@ class Backtester:
                         break
 
                 # Predict next period
-                pred_df = df.iloc[
-                    max(0, current_idx - model.sequence_length) : current_idx
-                ]
+                pred_df = df.iloc[max(0, current_idx - model.sequence_length) : current_idx]
 
                 try:
                     pred = model.predict(pred_df, steps=1)[0]
@@ -147,7 +140,9 @@ class Backtester:
                 if pred > current_price * 1.01 and position == 0:
                     # Buy signal
                     shares_to_buy = int(cash / (current_price * (1 + self.transaction_cost)))
-                    cost = shares_to_buy * current_price * (1 + self.transaction_cost + self.slippage)
+                    cost = (
+                        shares_to_buy * current_price * (1 + self.transaction_cost + self.slippage)
+                    )
 
                     if cost <= cash:
                         position += shares_to_buy
@@ -220,9 +215,7 @@ class Backtester:
             # Sharpe ratio (assuming daily returns)
             portfolio_df = pd.DataFrame(self.portfolio_values)
             returns = portfolio_df["portfolio_value"].pct_change().dropna()
-            sharpe_ratio = (
-                returns.mean() / returns.std() * np.sqrt(252) if len(returns) > 0 else 0
-            )
+            sharpe_ratio = returns.mean() / returns.std() * np.sqrt(252) if len(returns) > 0 else 0
 
             # Max drawdown
             cummax = portfolio_df["portfolio_value"].cummax()

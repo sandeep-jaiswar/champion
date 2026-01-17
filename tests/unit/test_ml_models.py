@@ -1,17 +1,15 @@
 """Tests for ML models."""
 
-from datetime import date, timedelta
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from champion.ml.models.lstm_predictor import LSTMPricePredictor
-from champion.ml.models.anomaly_detector import IsolationForestDetector, AutoencoderDetector
-from champion.ml.optimization import PortfolioOptimizer
-from champion.ml.backtesting import Backtester
 from champion.ml.alerts import AlertGenerator, AlertSeverity, AlertType
+from champion.ml.backtesting import Backtester
+from champion.ml.models.anomaly_detector import AutoencoderDetector, IsolationForestDetector
+from champion.ml.models.lstm_predictor import LSTMPricePredictor
+from champion.ml.optimization import PortfolioOptimizer
 
 
 @pytest.fixture
@@ -23,7 +21,7 @@ def sample_ohlc_data():
     data = []
     base_price = 1000.0
 
-    for i, trade_date in enumerate(dates):
+    for trade_date in dates:
         # Random walk
         change = np.random.normal(0.001, 0.02)
         close = base_price * (1 + change)
@@ -380,7 +378,7 @@ class TestAlertGenerator:
         alert_gen = AlertGenerator()
 
         # Generate some alerts
-        alerts = alert_gen.generate_price_movement_alerts(sample_ohlc_data[:50])
+        alert_gen.generate_price_movement_alerts(sample_ohlc_data[:50])
 
         # Export
         df = alert_gen.export_alerts()

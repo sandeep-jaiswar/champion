@@ -178,7 +178,9 @@ class PredictionServer:
                 "n_anomalies": len(anomaly_indices),
                 "anomaly_rate": len(anomaly_indices) / len(df),
                 "anomaly_indices": anomaly_indices.tolist(),
-                "anomaly_scores": scores[anomaly_indices].tolist() if len(anomaly_indices) > 0 else [],
+                "anomaly_scores": (
+                    scores[anomaly_indices].tolist() if len(anomaly_indices) > 0 else []
+                ),
                 "status": "success",
             }
 

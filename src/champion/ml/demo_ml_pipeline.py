@@ -9,21 +9,20 @@ This script demonstrates:
 6. Alert generation
 """
 
-from pathlib import Path
 from datetime import date, timedelta
+from pathlib import Path
 
-import pandas as pd
 import numpy as np
-import polars as pl
+import pandas as pd
 
 from champion.ml import (
-    LSTMPricePredictor,
-    IsolationForestDetector,
-    AutoencoderDetector,
-    PortfolioOptimizer,
-    Backtester,
-    PredictionServer,
     AlertGenerator,
+    AutoencoderDetector,
+    Backtester,
+    IsolationForestDetector,
+    LSTMPricePredictor,
+    PortfolioOptimizer,
+    PredictionServer,
 )
 
 
@@ -383,7 +382,7 @@ def demo_prediction_serving():
     )
 
     if pred_result["status"] == "success":
-        print(f"Predictions for next 3 days:")
+        print("Predictions for next 3 days:")
         for i, pred in enumerate(pred_result["predictions"], 1):
             print(f"  Day {i}: ₹{pred:.2f}")
     else:

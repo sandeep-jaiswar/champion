@@ -322,9 +322,7 @@ class AutoencoderDetector:
         # Track with MLflow
         tracker = MLflowTracker(experiment_name=experiment_name)
 
-        with tracker.start_run(
-            run_name=f"autoencoder-train-{pd.Timestamp.now().isoformat()}"
-        ):
+        with tracker.start_run(run_name=f"autoencoder-train-{pd.Timestamp.now().isoformat()}"):
             # Log hyperparameters
             tracker.log_params(
                 {
