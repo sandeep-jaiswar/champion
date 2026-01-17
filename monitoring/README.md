@@ -50,10 +50,12 @@ docker-compose up -d prometheus grafana
 services:
   prometheus:
     environment:
-      - TZ=Asia/Kolkata  # For Indian markets (IST)
+      - TZ=Asia/Kolkata  # For Indian markets (IST - no DST)
     # or
-    # - TZ=America/New_York  # For US markets (EST/EDT)
+    # - TZ=America/New_York  # For US markets (EST/EDT - observes DST)
 ```
+
+**Note**: Indian Standard Time (IST) does not observe Daylight Saving Time (DST). For markets in regions that observe DST (e.g., US markets), be aware that alert times will shift during DST transitions. Consider using UTC offsets in alert expressions or adjusting thresholds seasonally for DST-observing regions.
 
 ### 2. Access Dashboards
 

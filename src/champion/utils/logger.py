@@ -21,9 +21,14 @@ def set_trace_id(trace_id: str | None = None) -> str:
 
     Returns:
         The trace ID that was set
+    
+    Note:
+        Uses uuid4().hex for efficient trace ID generation.
+        For even higher throughput scenarios, consider using a custom
+        lightweight ID generator (e.g., timestamp + counter).
     """
     if trace_id is None:
-        trace_id = str(uuid.uuid4())
+        trace_id = uuid.uuid4().hex  # More efficient than str(uuid.uuid4())
     _trace_id_var.set(trace_id)
     return trace_id
 

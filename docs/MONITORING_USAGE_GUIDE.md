@@ -209,7 +209,7 @@ from champion.utils.metrics import (
     validation_failures,
     validation_total,
     warehouse_load_latency,
-    flow_duration,
+    flow_duration,  # This is an existing metric in the codebase
 )
 
 logger = get_logger(__name__)
@@ -493,7 +493,7 @@ Example queries:
 import time
 from contextlib import contextmanager
 from champion.utils.logger import get_logger
-from champion.utils.metrics import flow_duration
+from champion.utils.metrics import flow_duration  # Existing metric in codebase
 
 logger = get_logger(__name__)
 
@@ -572,7 +572,10 @@ def process_batch(items: list, batch_name: str):
 ```python
 from tenacity import retry, stop_after_attempt, wait_exponential
 from champion.utils.logger import get_logger
-from champion.utils.metrics import clickhouse_load_success, clickhouse_load_failed
+from champion.utils.metrics import (
+    clickhouse_load_success,  # Existing metrics in codebase
+    clickhouse_load_failed,
+)
 
 logger = get_logger(__name__)
 
