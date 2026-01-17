@@ -256,6 +256,7 @@ Result: Easy to configure for different environments
 ## Real-World Impact
 
 ### Code Reduction
+
 ```
 BEFORE:                         AFTER:
 ❌ batch_loader.py (x2)         ✅ warehouse/adapters.py (unified)
@@ -267,6 +268,7 @@ Result: 20% less code, 50% better reusability
 ```
 
 ### Maintainability
+
 ```
 Adding new scraper:
 BEFORE: 
@@ -287,6 +289,7 @@ Result: Faster, safer, more consistent
 ```
 
 ### Testability
+
 ```
 BEFORE:                    AFTER:
 ❌ Can't test without:     ✅ Mock all dependencies:
@@ -355,26 +358,31 @@ Result: 10x faster tests, 95% fewer flakes
 ## Getting Started
 
 ### 1. Read the Architecture (20 min)
+
 ```bash
 cat docs/ARCHITECTURE.md
 ```
 
 ### 2. Check Quick Reference (5 min)
+
 ```bash
 cat QUICK_REFERENCE.md
 ```
 
 ### 3. Run Tests (2 min)
+
 ```bash
 poetry run pytest tests/ -v
 ```
 
 ### 4. Try a Command (1 min)
+
 ```bash
 poetry run champion show-config
 ```
 
 ### 5. Migrate Your Code (Using MIGRATION.md)
+
 ```bash
 cat docs/MIGRATION.md  # Step-by-step guide
 ```

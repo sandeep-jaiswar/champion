@@ -191,24 +191,28 @@ Every week, the team should:
 ## Quarterly Goals
 
 ### Q1
+
 - [ ] All scrapers use EquityScraper interface
 - [ ] All storage uses DataSource/DataSink
 - [ ] All error handling uses custom exceptions
 - [ ] 90% test coverage
 
 ### Q2
+
 - [ ] All workflows use DI
 - [ ] Structured logging everywhere
 - [ ] No hard-coded configuration
 - [ ] Team training complete
 
 ### Q3
+
 - [ ] Feature plugin system
 - [ ] Multi-warehouse support
 - [ ] Streaming integration
 - [ ] GraphQL API
 
 ### Q4
+
 - [ ] ML pipeline integration
 - [ ] Advanced analytics features
 - [ ] Performance optimization
@@ -225,7 +229,7 @@ Every week, the team should:
 **A:** Check [QUICK_REFERENCE.md - Pattern 1](QUICK_REFERENCE.md#pattern-1-simple-data-processing)
 
 ### Q: How do I test my code?
-**A:** See [QUICK_REFERENCE.md - Debugging](#debugging-tips) and examples in `tests/`
+**A:** See [QUICK_REFERENCE.md - Common Patterns](QUICK_REFERENCE.md#common-patterns) and examples in `tests/`
 
 ### Q: How do I configure for production?
 **A:** See [ARCHITECTURE.md - Configuration Management](docs/ARCHITECTURE.md#configuration-management)
@@ -242,6 +246,7 @@ Every week, the team should:
 
 ### Problem: Tests fail after setup
 **Solution:**
+
 1. Verify Python version: `python --version` (should be 3.11+)
 2. Verify Poetry: `poetry --version`
 3. Reinstall: `poetry install --no-cache`
@@ -249,6 +254,7 @@ Every week, the team should:
 
 ### Problem: Import errors
 **Solution:**
+
 1. Check import path in [QUICK_REFERENCE.md](QUICK_REFERENCE.md#core-module-exports)
 2. Verify file exists in that location
 3. Check `__init__.py` exports
@@ -256,6 +262,7 @@ Every week, the team should:
 
 ### Problem: Configuration not loading
 **Solution:**
+
 1. Check `.env` file exists
 2. Verify `poetry run champion show-config` works
 3. Check environment variables: `env | grep CHAMPION`
@@ -263,6 +270,7 @@ Every week, the team should:
 
 ### Problem: Don't understand a pattern
 **Solution:**
+
 1. Check test examples in `tests/`
 2. Read relevant section in [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 3. Check code examples in [QUICK_REFERENCE.md](QUICK_REFERENCE.md#common-patterns)
@@ -273,6 +281,7 @@ Every week, the team should:
 ## Resources
 
 ### Documentation
+
 - 📖 [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Complete reference
 - 🔄 [MIGRATION.md](docs/MIGRATION.md) - How to migrate code
 - 🔧 [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Cheat sheet
@@ -280,11 +289,13 @@ Every week, the team should:
 - ✨ [ARCHITECTURE_TRANSFORMATION.md](ARCHITECTURE_TRANSFORMATION.md) - What was done
 
 ### Code Examples
+
 - `tests/` - Unit and integration tests
 - `src/champion/` - Clean code implementations
 - Domain `adapters.py` - Pattern examples
 
 ### External Resources
+
 - [Dependency Injection Pattern](https://en.wikipedia.org/wiki/Dependency_injection)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
@@ -296,12 +307,14 @@ Every week, the team should:
 ## Getting Help
 
 ### Team Resources
+
 - **Architecture Questions**: Ask tech lead
 - **Code Questions**: Code review team member
 - **Configuration Issues**: DevOps team
 - **Test Help**: Look at similar test in `tests/`
 
 ### Documentation First
+
 1. Check ARCHITECTURE.md section
 2. Check QUICK_REFERENCE.md
 3. Check test examples

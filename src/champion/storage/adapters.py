@@ -92,9 +92,11 @@ class ParquetDataSink(DataSink):
                 rows=len(data),
                 compression=self.compression,
             )
+            # Cast compression to proper Literal type for mypy
+            compression_type: Any = self.compression
             data.write_parquet(
                 target_path,
-                compression=self.compression,
+                compression=compression_type,
                 **kwargs,
             )
 
@@ -114,13 +116,14 @@ class ParquetDataSink(DataSink):
         total_bytes = 0
 
         for i, batch in enumerate(batches):
+            batch_path_str: str
             if len(batches) > 1:
                 # Multiple batches, write to separate files
-                batch_path = f"{file_path}_batch_{i}.parquet"
+                batch_path_str = f"{file_path}_batch_{i}.parquet"
             else:
-                batch_path = file_path
+                batch_path_str = str(file_path) if not isinstance(file_path, str) else file_path
 
-            stats = self.write(batch, batch_path, **kwargs)
+            stats = self.write(batch, batch_path_str, **kwargs)
             total_rows += stats.get("rows_written", 0)
             total_bytes += stats.get("bytes_written", 0)
 

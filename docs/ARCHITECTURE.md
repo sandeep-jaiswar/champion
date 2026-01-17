@@ -42,6 +42,7 @@ Champion is a production-grade data platform for stock market analytics built on
 Provides foundational infrastructure for all domains:
 
 ### 1. **Configuration** (`core/config.py`)
+
 - Centralized Pydantic-based configuration
 - Environment-specific settings (dev/staging/prod)
 - Configuration hierarchy: Env vars → .env → defaults
@@ -55,6 +56,7 @@ print(config.clickhouse.host)
 ```
 
 ### 2. **Dependency Injection** (`core/di.py`)
+
 - IoC container for service registration
 - Service locator pattern for legacy code
 - Lifetime management (transient, singleton)
@@ -117,6 +119,7 @@ logger.info("Processing data", request_id=get_request_id())
 **Purpose**: Extract data from NSE, BSE, and other sources.
 
 **Structure**:
+
 ```
 scrapers/
 ├── adapters.py           # EquityScraper, ReferenceDataScraper base classes
@@ -131,11 +134,13 @@ scrapers/
 ```
 
 **Key Classes**:
+
 - `EquityScraper`: Abstract adapter for equity data
 - `ReferenceDataScraper`: Abstract adapter for reference data
 - `ScraperWithRetry`: Decorator adding retry logic
 
 **Usage**:
+
 ```python
 from champion.scrapers.nse import NSEBhavcopyScraper
 from champion.core import get_config
@@ -149,16 +154,19 @@ df = scraper.scrape_date(date(2024, 1, 15))
 **Purpose**: Manage file-based data lake (Parquet, CSV).
 
 **Adapters**:
+
 - `ParquetDataSource` / `ParquetDataSink`
 - `CSVDataSource` / `CSVDataSink`
 
 **Utilities**:
+
 - `write_df()`: High-level write function
 - `coalesce_small_files()`: Merge small files
 - `cleanup_old_partitions()`: Data retention
 - `generate_dataset_metadata()`: Schema tracking
 
 **Usage**:
+
 ```python
 from champion.storage import ParquetDataSink
 from champion.core import get_config
@@ -173,14 +181,17 @@ sink.write(df, file_path="raw/equity_ohlc.parquet")
 **Purpose**: Load data into ClickHouse for OLAP analysis.
 
 **Adapters**:
+
 - `WarehouseSink`: Abstract warehouse interface
 - `ClickHouseSink`: ClickHouse implementation
 
 **Sub-modules**:
+
 - `clickhouse/`: ClickHouse-specific utilities
 - `models/`: DDL and data model definitions
 
 **Usage**:
+
 ```python
 from champion.warehouse import ClickHouseSink
 from champion.core import get_config
@@ -195,12 +206,14 @@ sink.write(df, table_name="raw_equity_ohlc")
 **Purpose**: Ensure data quality through comprehensive validation.
 
 **Features**:
+
 - JSON schema validation
 - Business logic validation (OHLC consistency)
 - Quarantine failed records
 - Streaming for memory efficiency
 
 **Usage**:
+
 ```python
 from champion.validation import ParquetValidator
 from pathlib import Path
@@ -217,11 +230,13 @@ result = validator.validate_file(
 **Purpose**: Transform raw data into analytics features.
 
 **Sub-modules**:
+
 - `indicators.py`: SMA, EMA, RSI, MACD, etc.
 - `portfolio.py`: Portfolio-level metrics
 - `risk.py`: VaR, Sharpe ratio, correlation
 
 **Usage**:
+
 ```python
 from champion.features import compute_indicators
 
@@ -236,6 +251,7 @@ df_with_features = compute_indicators(
 **Purpose**: Handle dividends, splits, bonus shares.
 
 **Features**:
+
 - Adjustment factor calculation
 - Price adjustment
 - Event tracking
@@ -245,6 +261,7 @@ df_with_features = compute_indicators(
 **Purpose**: Compose reusable workflows using Prefect.
 
 **Structure**:
+
 ```
 orchestration/
 ├── config.py              # Flow-specific configuration
@@ -258,11 +275,13 @@ orchestration/
 ```
 
 **Key Flows**:
+
 - `nse_bhavcopy_etl_flow`: NSE OHLC ingestion
 - `macro_indicators_flow`: Macro economic data
 - `index_constituent_etl_flow`: Index constituents
 
 **Usage**:
+
 ```python
 from champion.orchestration.flows import nse_bhavcopy_etl_flow
 
@@ -277,6 +296,7 @@ result = nse_bhavcopy_etl_flow(
 **Purpose**: User-facing command-line interface.
 
 **Command Structure**:
+
 ```
 champion
 ├── etl-index           # Index ETL
@@ -289,6 +309,7 @@ champion
 ```
 
 **Usage**:
+
 ```bash
 # Run equity ETL for yesterday
 poetry run champion etl-ohlc
@@ -322,6 +343,7 @@ External Data Sources (NSE, BSE)
 
 ### 1. **Adapter Pattern**
 Decouple domains from specific implementations:
+
 ```python
 from champion.core import DataSource
 from champion.storage import ParquetDataSource
@@ -332,6 +354,7 @@ df = source.read()
 
 ### 2. **Dependency Injection**
 Make components testable and configurable:
+
 ```python
 container = get_container()
 container.register(DataSink, lambda c: MockDataSink())  # For testing
@@ -340,6 +363,7 @@ loader = SomeLoader()  # Uses injected sink
 
 ### 3. **Strategy Pattern**
 Different compression/storage strategies:
+
 ```python
 sink = ParquetDataSink(
     base_path="data",
@@ -349,6 +373,7 @@ sink = ParquetDataSink(
 
 ### 4. **Observer Pattern**
 Track operation progress:
+
 ```python
 observer = MetricsObserver()
 observer.on_start(context)
@@ -358,6 +383,7 @@ observer.on_success(result)
 
 ### 5. **Repository Pattern**
 Abstract data access layer:
+
 ```python
 from champion.core import Repository
 
@@ -369,6 +395,7 @@ class EquityRepository(Repository[Equity]):
 ## Coupling Reduction
 
 ### Before (Tightly Coupled)
+
 ```python
 # scraper/nse.py
 from warehouse.loader.batch_loader import ClickHouseLoader
@@ -383,6 +410,7 @@ class NSEScraper:
 ```
 
 ### After (Loosely Coupled)
+
 ```python
 # scrapers/nse/bhavcopy.py
 from champion.core import DataSink, get_logger
@@ -400,12 +428,14 @@ class NSEBhavcopyScraper:
 ## Configuration Management
 
 ### Hierarchy
+
 1. **Environment Variables** (highest priority)
 2. **.env file** (shared defaults)
 3. **.env.{environment}** (environment-specific)
 4. **Built-in defaults** (lowest priority)
 
 ### Usage
+
 ```bash
 # Development (local)
 ENVIRONMENT=dev \
@@ -422,6 +452,7 @@ poetry run champion etl-ohlc
 ## Testing Strategy
 
 ### Unit Tests
+
 - Mock all external dependencies
 - Test interface implementations
 - Test business logic in isolation
@@ -437,6 +468,7 @@ def test_equity_scraper():
 ```
 
 ### Integration Tests
+
 - Test across domain boundaries
 - Use test containers (Docker)
 - Validate real data flows
@@ -453,6 +485,7 @@ def test_end_to_end_etl():
 ```
 
 ### Fixtures & Factories
+
 - Shared test data and factories
 - Located in `tests/conftest.py`
 
@@ -467,15 +500,18 @@ def test_indicators(sample_ohlc_data):
 ## Performance Considerations
 
 ### Memory Efficiency
+
 - Use Polars for zero-copy operations
 - Stream large datasets in batches
 - Implement cleanup policies
 
 ### Parallelization
+
 - Prefect flows support parallel task execution
 - Batch operations leverage vectorization
 
 ### Caching
+
 - Pluggable cache backends
 - TTL support for reference data
 

@@ -67,7 +67,7 @@ class ClickHouseSink(WarehouseSink):
         self.user = user
         self.password = password
         self.database = database
-        self.client = None
+        self.client: Any = None
 
     def connect(self) -> None:
         """Establish connection to ClickHouse."""
@@ -103,13 +103,14 @@ class ClickHouseSink(WarehouseSink):
             self.client.close()
             logger.info("ClickHouse connection closed")
 
-    def write(self, data: pl.DataFrame, table_name: str, **kwargs) -> dict[str, Any]:
+    def write(self, data: pl.DataFrame, **kwargs: Any) -> dict[str, Any]:
         """Write DataFrame to ClickHouse table.
 
         Args:
             data: Polars DataFrame to write
-            table_name: Target table name
-            **kwargs: Additional options (mode, etc)
+            **kwargs: Additional options:
+                - table_name (str): Target table name (required)
+                - mode (str): Insert mode
 
         Returns:
             Statistics: rows_written, bytes_written, duration_ms, etc
@@ -125,6 +126,9 @@ class ClickHouseSink(WarehouseSink):
             import time
 
             start = time.time()
+            table_name = kwargs.get("table_name")
+            if not table_name:
+                raise ValueError("table_name is required in kwargs")
 
             # Convert to list of dicts
             records = data.to_dicts()
@@ -161,14 +165,19 @@ class ClickHouseSink(WarehouseSink):
                 retryable=True,
             ) from e
 
-    def write_batch(self, batches: list[pl.DataFrame], table_name: str, **kwargs) -> dict[str, Any]:
-        """Write multiple batches to warehouse."""
+    def write_batch(self, batches: list[pl.DataFrame], **kwargs: Any) -> dict[str, Any]:
+        """Write multiple batches to warehouse.
+
+        Args:
+            batches: List of DataFrames to write
+            **kwargs: Options including table_name (required)
+        """
         total_rows = 0
         total_bytes = 0
         total_duration = 0
 
         for batch in batches:
-            stats = self.write(batch, table_name, **kwargs)
+            stats = self.write(batch, **kwargs)
             total_rows += stats.get("rows_written", 0)
             total_bytes += stats.get("bytes_written", 0)
             total_duration += stats.get("duration_ms", 0)

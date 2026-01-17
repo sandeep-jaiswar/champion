@@ -7,6 +7,7 @@ This guide helps developers understand and migrate to the new unified Champion a
 ## What Changed
 
 ### Before: Fragmented Structure
+
 ```
 champion/
 ├── src/champion/           # Main package (83 files)
@@ -25,6 +26,7 @@ champion/
 ```
 
 **Problems**:
+
 - ❌ No clear contracts between domains
 - ❌ Duplicate code (batch loaders in 2 places)
 - ❌ Hard to test (no dependency injection)
@@ -33,6 +35,7 @@ champion/
 - ❌ Mixed responsibilities
 
 ### After: Clean Architecture
+
 ```
 champion/
 ├── src/champion/
@@ -62,6 +65,7 @@ champion/
 ```
 
 **Benefits**:
+
 - ✅ Clear contracts (interfaces)
 - ✅ Loose coupling (adapters)
 - ✅ Easy testing (dependency injection)
@@ -85,12 +89,14 @@ Replace old imports with new ones:
 #### Configuration
 
 **Before**:
+
 ```python
 from champion.config import config
 from champion.orchestration.config import Config, StorageConfig
 ```
 
 **After**:
+
 ```python
 from champion.core import get_config, AppConfig
 
@@ -101,6 +107,7 @@ config = get_config()
 #### Logging
 
 **Before**:
+
 ```python
 import logging
 logger = logging.getLogger(__name__)
@@ -108,6 +115,7 @@ logger.info(f"Starting ETL for {date}")  # Plain strings
 ```
 
 **After**:
+
 ```python
 from champion.core import get_logger
 
@@ -118,6 +126,7 @@ logger.info("Starting ETL", date=date)  # Structured fields
 #### Error Handling
 
 **Before**:
+
 ```python
 try:
     result = scraper.scrape()
@@ -126,6 +135,7 @@ except Exception as e:
 ```
 
 **After**:
+
 ```python
 from champion.core import ValidationError, IntegrationError
 
@@ -142,6 +152,7 @@ except IntegrationError as e:
 #### Data Sources/Sinks
 
 **Before**:
+
 ```python
 from warehouse.loader.batch_loader import ClickHouseLoader
 
@@ -150,6 +161,7 @@ loader.load_parquet_files(table="raw_ohlc", source_path="data/")
 ```
 
 **After**:
+
 ```python
 from champion.warehouse import ClickHouseSink
 from champion.core import get_config
@@ -190,6 +202,7 @@ class YourScraper(EquityScraper):
 ### Phase 4: Update Tests
 
 **Before**:
+
 ```python
 import unittest
 from warehouse.loader.batch_loader import ClickHouseLoader
@@ -201,6 +214,7 @@ class TestLoader(unittest.TestCase):
 ```
 
 **After**:
+
 ```python
 from champion.warehouse import ClickHouseSink
 from champion.core import DataSink
@@ -217,6 +231,7 @@ def test_load(mock_clickhouse_sink: DataSink):
 ### Phase 5: Use Dependency Injection
 
 **Before**:
+
 ```python
 class NSEBhavcopyScraper:
     def __init__(self):
@@ -231,6 +246,7 @@ class NSEBhavcopyScraper:
 ```
 
 **After**:
+
 ```python
 from champion.core import DataSink, get_logger, get_container
 
@@ -264,6 +280,7 @@ scraper = NSEBhavcopyScraper(mock_sink)
 
 1. **Define the interface** (already done in `core/interfaces.py`)
 2. **Create adapter** in new domain:
+
    ```python
    # champion/scrapers/new_exchange/__init__.py
    from champion.scrapers import EquityScraper
@@ -273,7 +290,9 @@ scraper = NSEBhavcopyScraper(mock_sink)
            # Your implementation
            pass
    ```
+
 3. **Register in container** (if using DI):
+
    ```python
    from champion.core import get_container
    
@@ -283,7 +302,9 @@ scraper = NSEBhavcopyScraper(mock_sink)
        lambda c: NewExchangeScraper()
    )
    ```
+
 4. **Add CLI command**:
+
    ```python
    # champion/cli.py
    @app.command("etl-new-exchange")
@@ -300,6 +321,7 @@ scraper = NSEBhavcopyScraper(mock_sink)
 **Steps**:
 
 1. **Extend Validator interface**:
+
    ```python
    # champion/validation/custom_validator.py
    from champion.core import Validator
@@ -314,7 +336,9 @@ scraper = NSEBhavcopyScraper(mock_sink)
                "errors": errors,
            }
    ```
+
 2. **Use in workflows**:
+
    ```python
    validator = CustomValidator()
    result = validator.validate(df)
@@ -329,6 +353,7 @@ scraper = NSEBhavcopyScraper(mock_sink)
 **Steps**:
 
 1. **Create S3 adapter**:
+
    ```python
    # champion/storage/s3_adapter.py
    from champion.core import DataSink
@@ -341,12 +366,16 @@ scraper = NSEBhavcopyScraper(mock_sink)
            # Use boto3 to write to S3
            pass
    ```
+
 2. **Update configuration**:
+
    ```bash
    STORAGE_BACKEND=s3
    S3_BUCKET=my-bucket
    ```
+
 3. **Inject in code**:
+
    ```python
    from champion.core import get_container, DataSink
    
@@ -361,6 +390,7 @@ scraper = NSEBhavcopyScraper(mock_sink)
 **Steps**:
 
 1. **Check environment in code**:
+
    ```python
    from champion.core import get_config
    
@@ -372,7 +402,9 @@ scraper = NSEBhavcopyScraper(mock_sink)
        # Development settings
        batch_size = 10000
    ```
+
 2. **Or use configuration**:
+
    ```python
    # .env.prod
    CLICKHOUSE_HOST=warehouse.prod.internal
@@ -399,11 +431,13 @@ from champion.core import get_config, AppConfig
 ## Troubleshooting
 
 ### Issue: "Module not found"
+
 ```
 ModuleNotFoundError: No module named 'warehouse.loader'
 ```
 
 **Solution**: Update import
+
 ```python
 # Old (broken)
 from warehouse.loader.batch_loader import ClickHouseLoader
@@ -413,11 +447,13 @@ from champion.warehouse import ClickHouseSink
 ```
 
 ### Issue: "Circular import"
+
 ```
 ImportError: cannot import name 'X' from partially initialized module 'champion.Y'
 ```
 
 **Solution**: Use interfaces instead of concrete classes
+
 ```python
 # Bad (creates cycle)
 from champion.scrapers.nse.bhavcopy import NSEBhavcopyScraper
@@ -427,11 +463,13 @@ from champion.core import Scraper  # Abstract type
 ```
 
 ### Issue: "Config not loaded"
+
 ```
 AttributeError: 'NoneType' object has no attribute 'host'
 ```
 
 **Solution**: Ensure config is initialized
+
 ```python
 from champion.core import get_config
 
@@ -440,11 +478,13 @@ print(config.clickhouse.host)
 ```
 
 ### Issue: "Dependency not registered"
+
 ```
 ResolutionError: Service DataSource not registered
 ```
 
 **Solution**: Register the dependency
+
 ```python
 from champion.core import get_container
 from champion.storage import ParquetDataSource
@@ -458,12 +498,14 @@ source = container.resolve(DataSource)
 ## Performance Impact
 
 The new architecture has **no performance penalty**:
+
 - ✅ Interfaces are zero-cost abstractions
 - ✅ Dependency injection is compile-time or startup-time
 - ✅ Structured logging adds minimal overhead
 - ✅ Polars operations unchanged
 
 In fact, you'll see **improvements**:
+
 - 📈 Better caching due to unified configuration
 - 📈 Parallel execution in Prefect workflows
 - 📈 Memory efficiency through adapters
@@ -471,6 +513,7 @@ In fact, you'll see **improvements**:
 ## Questions & Support
 
 For migration help:
+
 1. Check [ARCHITECTURE.md](./ARCHITECTURE.md)
 2. Look at test examples in `tests/`
 3. Review adapter implementations in each domain

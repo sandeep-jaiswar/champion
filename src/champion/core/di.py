@@ -81,16 +81,18 @@ class Container:
             factory: Factory function or instance
             lifetime: 'transient' (new each time), 'singleton', or 'scoped'
         """
-        if not isinstance(factory, Callable):
+        if not callable(factory):
             # If instance provided, wrap it in factory
             instance = factory
 
-            def factory_fn(_):
-                return instance
-        else:
-            factory_fn = factory
+            def factory_fn(_: Any) -> T:
+                return instance  # type: ignore
 
-        descriptor = ServiceDescriptor(service_type, factory_fn, lifetime)
+            factory_fn_typed: Any = factory_fn  # Wrapper function for instance
+        else:
+            factory_fn_typed = factory  # type: ignore[assignment]
+
+        descriptor = ServiceDescriptor(service_type, factory_fn_typed, lifetime)
         self._services[service_type] = descriptor
 
     def resolve(self, service_type: type[T]) -> T:

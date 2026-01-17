@@ -55,9 +55,17 @@ class NSEConfig(BaseSettings):
         default="https://www.nseindia.com/api/holiday-master?type=trading",
         description="NSE trading calendar API",
     )
+    holiday_calendar_url: str = Field(
+        default="https://www.nseindia.com/api/holiday-master?type=trading",
+        description="NSE holiday calendar API (alias)",
+    )
     index_constituents_url: str = Field(
         default="https://www.nseindia.com/api/index-constituents?index={index_name}",
         description="NSE index constituents API",
+    )
+    ca_url: str = Field(
+        default="https://www.nseindia.com/api/corporates-corporateActions",
+        description="NSE corporate actions URL (alias)",
     )
 
     model_config = SettingsConfigDict(env_prefix="NSE_", extra="allow")
@@ -209,6 +217,11 @@ class ScraperConfig(BaseSettings):
         default=300,
         ge=30,
         description="Request timeout in seconds",
+    )
+    timeout: int = Field(
+        default=300,
+        ge=30,
+        description="HTTP request timeout in seconds (alias for request_timeout_seconds)",
     )
     user_agent: str = Field(
         default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",

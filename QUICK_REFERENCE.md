@@ -65,6 +65,7 @@ src/champion/
 ## Core Module Exports
 
 ### Configuration
+
 ```python
 from champion.core import get_config, AppConfig, Environment
 
@@ -74,6 +75,7 @@ if config.is_prod():
 ```
 
 ### Logging
+
 ```python
 from champion.core import get_logger, configure_logging, get_request_id
 
@@ -82,6 +84,7 @@ logger.info("Processing", request_id=get_request_id())
 ```
 
 ### Errors
+
 ```python
 from champion.core import (
     ChampionError,
@@ -98,6 +101,7 @@ except ValidationError as e:
 ```
 
 ### Dependency Injection
+
 ```python
 from champion.core import get_container, Container, ServiceLocator
 
@@ -107,6 +111,7 @@ source = container.resolve(DataSource)
 ```
 
 ### Interfaces
+
 ```python
 from champion.core import (
     DataSource,      # Read data
@@ -124,6 +129,7 @@ from champion.core import (
 ## Domain Module Exports
 
 ### Scrapers
+
 ```python
 from champion.scrapers import (
     EquityScraper,              # Abstract base
@@ -134,6 +140,7 @@ from champion.scrapers.nse import NSEBhavcopyScraper
 ```
 
 ### Storage
+
 ```python
 from champion.storage import (
     ParquetDataSource,
@@ -144,6 +151,7 @@ from champion.storage import (
 ```
 
 ### Warehouse
+
 ```python
 from champion.warehouse import (
     WarehouseSink,              # Abstract
@@ -152,6 +160,7 @@ from champion.warehouse import (
 ```
 
 ### Features
+
 ```python
 from champion.features import (
     compute_sma,
@@ -162,6 +171,7 @@ from champion.features import (
 ```
 
 ### Validation
+
 ```python
 from champion.validation import (
     validate_data,
@@ -172,6 +182,7 @@ from champion.validation import (
 ## Common Patterns
 
 ### Pattern 1: Simple Data Processing
+
 ```python
 from champion.core import get_logger, get_config
 from champion.scrapers import EquityScraper
@@ -194,6 +205,7 @@ logger.info("Complete", rows=len(data))
 ```
 
 ### Pattern 2: Using Dependency Injection
+
 ```python
 from champion.core import DataSink, get_logger
 
@@ -217,6 +229,7 @@ processor.process(df)
 ```
 
 ### Pattern 3: Error Handling
+
 ```python
 from champion.core import (
     get_logger,
@@ -245,6 +258,7 @@ except IntegrationError as e:
 ```
 
 ### Pattern 4: Configuration
+
 ```python
 from champion.core import get_config
 
@@ -264,6 +278,7 @@ else:
 ```
 
 ### Pattern 5: Registering Custom Implementations
+
 ```python
 from champion.core import get_container
 from champion.core import DataSink
@@ -312,16 +327,19 @@ poetry run mypy src/                                           # Type check
 ## Debugging Tips
 
 ### 1. Check Configuration
+
 ```bash
 poetry run champion show-config | grep -i clickhouse
 ```
 
 ### 2. Enable Debug Logging
+
 ```bash
 LOG_LEVEL=DEBUG poetry run champion etl-ohlc
 ```
 
 ### 3. List Available Services
+
 ```python
 from champion.core import get_container
 container = get_container()
@@ -329,6 +347,7 @@ print(container._services.keys())
 ```
 
 ### 4. Test Data Source
+
 ```python
 from champion.storage import ParquetDataSource
 source = ParquetDataSource("data/raw")
@@ -338,6 +357,7 @@ print(df.shape)
 ```
 
 ### 5. Check Imports
+
 ```bash
 cd src && python -c "import champion; print(champion.__version__)"
 ```

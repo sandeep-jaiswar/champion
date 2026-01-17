@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from datetime import date
+from typing import Any
 
 import polars as pl
 from tenacity import Retrying, stop_after_attempt, wait_exponential
@@ -147,29 +148,24 @@ class ScraperWithRetry:
         self.max_attempts = max_attempts
         self.backoff_factor = backoff_factor
 
-    def scrape(self, **kwargs) -> pl.DataFrame:
+    def scrape(self, **kwargs: Any) -> pl.DataFrame:
         """Call scraper with automatic retry."""
-        try:
-            for attempt in Retrying(
-                stop=stop_after_attempt(self.max_attempts),
-                wait=wait_exponential(multiplier=1, min=1, max=10),
-                reraise=True,
-            ):
-                with attempt:
-                    logger.info(
-                        "Scraping data",
-                        attempt=attempt.retry_state.attempt_number,
-                        kwargs=kwargs,
-                    )
-                    return self.scraper.scrape(**kwargs)
-        except Exception as e:
-            logger.error(
-                "Scrape failed after retries",
-                error=str(e),
-                attempts=self.max_attempts,
-            )
-            raise IntegrationError(
-                service="Scraper",
-                message=f"Failed after {self.max_attempts} attempts: {e}",
-                retryable=False,
-            ) from e
+        for attempt in Retrying(
+            stop=stop_after_attempt(self.max_attempts),
+            wait=wait_exponential(multiplier=1, min=1, max=10),
+            reraise=True,
+        ):
+            with attempt:
+                logger.info(
+                    "Scraping data",
+                    attempt=attempt.retry_state.attempt_number,
+                    kwargs=kwargs,
+                )
+                return self.scraper.scrape(**kwargs)
+
+        # This should never be reached due to reraise=True, but satisfy mypy
+        raise IntegrationError(
+            service="Scraper",
+            message=f"Failed after {self.max_attempts} attempts",
+            retryable=False,
+        )
