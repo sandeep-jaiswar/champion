@@ -732,8 +732,7 @@ def etl_scrape(
         console.print(f"[green]✓[/green] Successfully scraped {scraper_type}")
 
     except Exception as e:
-        if verbose:
-            logger.error("Scraper failed", scraper=scraper_type, error=str(e), exc_info=True)
+        logger.error("Scraper failed", scraper=scraper_type, error=str(e), exc_info=True)
         console.print(f"[red]✗ Scraper failed: {e}[/red]")
         raise typer.Exit(1) from e
 
@@ -919,8 +918,7 @@ def orchestrate_backfill(
         console.print(f"\n[bold]Backfill complete:[/bold] {successes} succeeded, {failures} failed")
 
     except Exception as e:
-        if verbose:
-            logger.error("Backfill failed", error=str(e), exc_info=True)
+        logger.error("Backfill failed", error=str(e), exc_info=True)
         console.print(f"[red]✗ Backfill failed: {e}[/red]")
         raise typer.Exit(1) from e
 
@@ -950,8 +948,7 @@ def validate_file(
         console.print("[green]✓[/green] File validated successfully")
 
     except Exception as e:
-        if verbose:
-            logger.error("Validation failed", error=str(e), exc_info=True)
+        logger.error("Validation failed", error=str(e), exc_info=True)
         console.print(f"[red]✗ Validation failed: {e}[/red]")
         raise typer.Exit(1) from e
 
@@ -1012,6 +1009,9 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Exit code (0 for success, 1 for error)
     """
+    # Initialize logging
+    configure_logging()
+    
     try:
         app()
         return 0
@@ -1027,5 +1027,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    configure_logging()
     raise SystemExit(main())
