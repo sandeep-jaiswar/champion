@@ -8,19 +8,18 @@ Adapters decouple scrapers from specific implementations, enabling:
 """
 
 from __future__ import annotations
+
 from abc import abstractmethod
-from datetime import date, datetime
-from typing import Any, Optional
+from datetime import date
 
 import polars as pl
 from tenacity import Retrying, stop_after_attempt, wait_exponential
 
 from champion.core import (
-    Scraper,
-    DataContext,
-    get_logger,
     IntegrationError,
+    Scraper,
     ValidationError,
+    get_logger,
 )
 
 logger = get_logger(__name__)
@@ -28,7 +27,7 @@ logger = get_logger(__name__)
 
 class EquityScraper(Scraper):
     """Base adapter for equity data scrapers.
-    
+
     Defines standard interface for scraping equity OHLC data from any source.
     Implementations: NSEEquityScraper, BSEEquityScraper
     """
@@ -36,10 +35,10 @@ class EquityScraper(Scraper):
     @abstractmethod
     def scrape_date(self, trade_date: date) -> pl.DataFrame:
         """Scrape equity data for a specific date.
-        
+
         Args:
             trade_date: The date to scrape
-            
+
         Returns:
             DataFrame with columns: symbol, date, open, high, low, close, volume
         """
@@ -49,15 +48,15 @@ class EquityScraper(Scraper):
         self,
         start_date: date,
         end_date: date,
-        symbols: Optional[list[str]] = None,
+        symbols: list[str] | None = None,
     ) -> pl.DataFrame:
         """Scrape equity data for a date range.
-        
+
         Args:
             start_date: Start date
             end_date: End date
             symbols: Optional list of symbols to filter
-            
+
         Returns:
             DataFrame with all data for the range
         """
@@ -110,7 +109,7 @@ class EquityScraper(Scraper):
 
 class ReferenceDataScraper(Scraper):
     """Base adapter for reference data (master data, calendars).
-    
+
     Implementations: SymbolMasterScraper, CorporateActionsScraper
     """
 
@@ -137,7 +136,7 @@ class ReferenceDataScraper(Scraper):
 
 class ScraperWithRetry:
     """Decorator for scrapers to add automatic retry logic.
-    
+
     Usage:
         scraper = ScraperWithRetry(NSEEquityScraper(), max_attempts=3)
         data = scraper.scrape_date(date(2024, 1, 1))
@@ -173,4 +172,4 @@ class ScraperWithRetry:
                 service="Scraper",
                 message=f"Failed after {self.max_attempts} attempts: {e}",
                 retryable=False,
-            )
+            ) from e

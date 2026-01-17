@@ -20,7 +20,7 @@ def demo_validation():
     # Initialize validator
     schema_dir = Path(__file__).parent.parent / "schemas" / "parquet"
     validator = ParquetValidator(schema_dir=schema_dir)
-    
+
     print(f"✓ Loaded schemas from: {schema_dir}")
     print(f"  Available schemas: {', '.join(validator.schemas.keys())}")
     print()
@@ -33,18 +33,18 @@ def demo_validation():
     print("-" * 80)
     print("Test 1: Validating VALID raw equity OHLC data")
     print("-" * 80)
-    
+
     result = validator.validate_file(
         file_path=sample_data_dir / "raw_equity_ohlc_valid.parquet",
         schema_name="raw_equity_ohlc",
-        quarantine_dir=quarantine_dir
+        quarantine_dir=quarantine_dir,
     )
-    
+
     print(f"Total rows:         {result.total_rows}")
     print(f"Valid rows:         {result.valid_rows}")
     print(f"Critical failures:  {result.critical_failures}")
     print(f"Warnings:           {result.warnings}")
-    
+
     if result.critical_failures == 0:
         print("✅ PASSED - All records are valid!")
     else:
@@ -55,45 +55,47 @@ def demo_validation():
     print("-" * 80)
     print("Test 2: Validating raw equity OHLC data WITH ERRORS")
     print("-" * 80)
-    
+
     result = validator.validate_file(
         file_path=sample_data_dir / "raw_equity_ohlc_with_errors.parquet",
         schema_name="raw_equity_ohlc",
-        quarantine_dir=quarantine_dir
+        quarantine_dir=quarantine_dir,
     )
-    
+
     print(f"Total rows:         {result.total_rows}")
     print(f"Valid rows:         {result.valid_rows}")
     print(f"Critical failures:  {result.critical_failures}")
     print(f"Warnings:           {result.warnings}")
-    
+
     if result.critical_failures > 0:
         print(f"\n⚠️  Found {result.critical_failures} validation errors:")
         for i, error in enumerate(result.error_details[:5], 1):
             print(f"   {i}. Row {error['row_index']}: {error['message']}")
-        
+
         if len(result.error_details) > 5:
             print(f"   ... and {len(result.error_details) - 5} more errors")
-        
-        print(f"\n📁 Failed records quarantined to: {quarantine_dir / 'raw_equity_ohlc_failures.parquet'}")
+
+        print(
+            f"\n📁 Failed records quarantined to: {quarantine_dir / 'raw_equity_ohlc_failures.parquet'}"
+        )
     print()
 
     # Test 3: Validate valid normalized OHLC data
     print("-" * 80)
     print("Test 3: Validating VALID normalized equity OHLC data")
     print("-" * 80)
-    
+
     result = validator.validate_file(
         file_path=sample_data_dir / "normalized_equity_ohlc_valid.parquet",
         schema_name="normalized_equity_ohlc",
-        quarantine_dir=quarantine_dir
+        quarantine_dir=quarantine_dir,
     )
-    
+
     print(f"Total rows:         {result.total_rows}")
     print(f"Valid rows:         {result.valid_rows}")
     print(f"Critical failures:  {result.critical_failures}")
     print(f"Warnings:           {result.warnings}")
-    
+
     if result.critical_failures == 0:
         print("✅ PASSED - All records are valid!")
     else:
@@ -104,27 +106,29 @@ def demo_validation():
     print("-" * 80)
     print("Test 4: Validating normalized equity OHLC data WITH ERRORS")
     print("-" * 80)
-    
+
     result = validator.validate_file(
         file_path=sample_data_dir / "normalized_equity_ohlc_with_errors.parquet",
         schema_name="normalized_equity_ohlc",
-        quarantine_dir=quarantine_dir
+        quarantine_dir=quarantine_dir,
     )
-    
+
     print(f"Total rows:         {result.total_rows}")
     print(f"Valid rows:         {result.valid_rows}")
     print(f"Critical failures:  {result.critical_failures}")
     print(f"Warnings:           {result.warnings}")
-    
+
     if result.critical_failures > 0:
         print(f"\n⚠️  Found {result.critical_failures} validation errors:")
         for i, error in enumerate(result.error_details[:5], 1):
             print(f"   {i}. Row {error['row_index']}: {error['message']}")
-        
+
         if len(result.error_details) > 5:
             print(f"   ... and {len(result.error_details) - 5} more errors")
-        
-        print(f"\n📁 Failed records quarantined to: {quarantine_dir / 'normalized_equity_ohlc_failures.parquet'}")
+
+        print(
+            f"\n📁 Failed records quarantined to: {quarantine_dir / 'normalized_equity_ohlc_failures.parquet'}"
+        )
     print()
 
     # Summary

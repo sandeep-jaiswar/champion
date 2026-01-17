@@ -5,7 +5,9 @@ at runtime. This makes testing easier and deployment configurations flexible.
 """
 
 from __future__ import annotations
-from typing import Any, Callable, Dict, Optional, TypeVar, Generic, cast
+
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -36,7 +38,7 @@ class ServiceDescriptor(Generic[T]):
         self.lifetime = lifetime  # transient, singleton, scoped
         self._instance: T | None = None
 
-    def create_instance(self, container: "Container") -> T:
+    def create_instance(self, container: Container) -> T:
         """Create service instance respecting lifetime."""
         if self.lifetime == "singleton" and self._instance is not None:
             return self._instance
@@ -51,20 +53,20 @@ class ServiceDescriptor(Generic[T]):
 
 class Container:
     """IoC container for dependency injection.
-    
+
     Usage:
         container = Container()
         container.register(DataSource, lambda c: FileDataSource())
         container.register(Validator, lambda c: JSONSchemaValidator())
-        
+
         # Later:
         source = container.resolve(DataSource)
         validator = container.resolve(Validator)
     """
 
     def __init__(self):
-        self._services: Dict[type, ServiceDescriptor[Any]] = {}
-        self._singletons: Dict[type, Any] = {}
+        self._services: dict[type, ServiceDescriptor[Any]] = {}
+        self._singletons: dict[type, Any] = {}
 
     def register(
         self,
@@ -73,7 +75,7 @@ class Container:
         lifetime: str = "transient",
     ) -> None:
         """Register a service in the container.
-        
+
         Args:
             service_type: Service interface/type
             factory: Factory function or instance
@@ -82,7 +84,9 @@ class Container:
         if not isinstance(factory, Callable):
             # If instance provided, wrap it in factory
             instance = factory
-            factory_fn = lambda _: instance
+
+            def factory_fn(_):
+                return instance
         else:
             factory_fn = factory
 
@@ -91,13 +95,13 @@ class Container:
 
     def resolve(self, service_type: type[T]) -> T:
         """Resolve service instance.
-        
+
         Args:
             service_type: Service type to resolve
-            
+
         Returns:
             Service instance
-            
+
         Raises:
             ResolutionError: If service not registered
         """
@@ -117,7 +121,7 @@ class Container:
 
 class ServiceLocator:
     """Global service locator (static accessor for container).
-    
+
     Use sparingly - prefer constructor injection when possible.
     Useful for:
         - Legacy code migration
@@ -125,7 +129,7 @@ class ServiceLocator:
         - Testing helpers
     """
 
-    _container: Optional[Container] = None
+    _container: Container | None = None
 
     @classmethod
     def set_container(cls, container: Container) -> None:

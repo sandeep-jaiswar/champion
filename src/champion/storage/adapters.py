@@ -4,12 +4,13 @@ Abstracts file storage operations (Parquet, CSV, etc) behind a consistent interf
 """
 
 from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import polars as pl
 
-from champion.core import DataSource, DataSink, get_logger, DataError
+from champion.core import DataError, DataSink, DataSource, get_logger
 
 logger = get_logger(__name__)
 
@@ -38,7 +39,7 @@ class ParquetDataSource(DataSource):
             logger.info(f"Reading Parquet: {target_path}")
             return pl.read_parquet(target_path, **kwargs)
         except Exception as e:
-            raise DataError(f"Failed to read Parquet: {e}")
+            raise DataError(f"Failed to read Parquet: {e}") from e
 
     def read_batch(self, batch_size: int = 10000) -> Any:
         """Read file in batches."""
@@ -72,7 +73,9 @@ class ParquetDataSink(DataSink):
         self.base_path.mkdir(parents=True, exist_ok=True)
         self.connected = True
 
-    def write(self, data: pl.DataFrame, file_path: Path | str | None = None, **kwargs) -> dict[str, Any]:
+    def write(
+        self, data: pl.DataFrame, file_path: Path | str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Write DataFrame to Parquet file."""
         if not self.connected:
             self.connect()
@@ -101,9 +104,11 @@ class ParquetDataSink(DataSink):
                 "file": str(target_path),
             }
         except Exception as e:
-            raise DataError(f"Failed to write Parquet: {e}")
+            raise DataError(f"Failed to write Parquet: {e}") from e
 
-    def write_batch(self, batches: list[pl.DataFrame], file_path: Path | str | None = None, **kwargs) -> dict[str, Any]:
+    def write_batch(
+        self, batches: list[pl.DataFrame], file_path: Path | str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Write batches to single or multiple files."""
         total_rows = 0
         total_bytes = 0
@@ -154,7 +159,7 @@ class CSVDataSource(DataSource):
             logger.info(f"Reading CSV: {target_path}")
             return pl.read_csv(target_path, **kwargs)
         except Exception as e:
-            raise DataError(f"Failed to read CSV: {e}")
+            raise DataError(f"Failed to read CSV: {e}") from e
 
     def read_batch(self, batch_size: int = 10000) -> Any:
         """Read file in batches."""
@@ -182,7 +187,9 @@ class CSVDataSink(DataSink):
         self.base_path.mkdir(parents=True, exist_ok=True)
         self.connected = True
 
-    def write(self, data: pl.DataFrame, file_path: Path | str | None = None, **kwargs) -> dict[str, Any]:
+    def write(
+        self, data: pl.DataFrame, file_path: Path | str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Write DataFrame to CSV file."""
         if not self.connected:
             self.connect()
@@ -203,9 +210,11 @@ class CSVDataSink(DataSink):
                 "file": str(target_path),
             }
         except Exception as e:
-            raise DataError(f"Failed to write CSV: {e}")
+            raise DataError(f"Failed to write CSV: {e}") from e
 
-    def write_batch(self, batches: list[pl.DataFrame], file_path: Path | str | None = None, **kwargs) -> dict[str, Any]:
+    def write_batch(
+        self, batches: list[pl.DataFrame], file_path: Path | str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Write batches to files."""
         total_rows = 0
         total_bytes = 0

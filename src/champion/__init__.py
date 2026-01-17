@@ -80,18 +80,18 @@ __version__ = "1.0.0"
 # Core exports
 from .core import (
     AppConfig,
+    ChampionError,
+    DataError,
     Environment,
+    IntegrationError,
+    ValidationError,
+    configure_logging,
     get_config,
-    reload_config,
     get_container,
     get_logger,
-    configure_logging,
     get_request_id,
+    reload_config,
     set_request_id,
-    ChampionError,
-    ValidationError,
-    DataError,
-    IntegrationError,
 )
 
 # Domain exports (wrapped to handle incomplete implementations)

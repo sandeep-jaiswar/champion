@@ -11,8 +11,9 @@ Configuration hierarchy:
 """
 
 from __future__ import annotations
-from pathlib import Path
+
 from enum import Enum
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -140,7 +141,7 @@ class ClickHouseConfig(BaseSettings):
     user: str = Field(default="champion_user", description="Database user")
     password: str = Field(default="champion_pass", description="Database password")
     database: str = Field(default="champion_market", description="Database name")
-    
+
     # Performance tuning
     connect_timeout: int = Field(default=10)
     send_timeout: int = Field(default=30)
@@ -319,7 +320,7 @@ class ObservabilityConfig(BaseSettings):
 
 class AppConfig(BaseSettings):
     """Master configuration for Champion platform.
-    
+
     All sub-configurations are included here for easy access:
         config.nse.bhavcopy_url
         config.clickhouse.host
@@ -374,7 +375,7 @@ config = AppConfig()
 
 def get_config() -> AppConfig:
     """Get the global application configuration.
-    
+
     Returns:
         AppConfig instance
     """
@@ -383,9 +384,9 @@ def get_config() -> AppConfig:
 
 def reload_config() -> AppConfig:
     """Reload configuration from environment.
-    
+
     Useful for testing or dynamic configuration changes.
-    
+
     Returns:
         New AppConfig instance
     """

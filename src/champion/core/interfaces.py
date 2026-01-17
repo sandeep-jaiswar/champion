@@ -8,11 +8,11 @@ This module establishes the core abstractions that enable:
 """
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar, Protocol, runtime_checkable
+from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 import polars as pl
 
@@ -24,7 +24,7 @@ TData = TypeVar("TData")
 @dataclass
 class DataContext:
     """Metadata about data being processed.
-    
+
     Attributes:
         source: Where data came from
         timestamp: When data was acquired
@@ -54,7 +54,7 @@ class Observer(Protocol):
 
 class DataSource(ABC):
     """Contract for reading data from any source.
-    
+
     Implementations:
         - CSVDataSource, ParquetDataSource
         - HTTPDataSource (for web scraping)
@@ -69,7 +69,7 @@ class DataSource(ABC):
     @abstractmethod
     def read(self, **kwargs) -> pl.DataFrame:
         """Read data from source.
-        
+
         Returns:
             Polars DataFrame with data
         """
@@ -77,7 +77,7 @@ class DataSource(ABC):
     @abstractmethod
     def read_batch(self, batch_size: int = 10000) -> Any:
         """Read data in batches for memory-efficient processing.
-        
+
         Yields:
             Batches of data (type depends on implementation)
         """
@@ -89,7 +89,7 @@ class DataSource(ABC):
 
 class DataSink(ABC):
     """Contract for writing data to any destination.
-    
+
     Implementations:
         - ParquetDataSink, CSVDataSink
         - ClickHouseDataSink
@@ -104,7 +104,7 @@ class DataSink(ABC):
     @abstractmethod
     def write(self, data: pl.DataFrame, **kwargs) -> dict[str, Any]:
         """Write data to sink.
-        
+
         Returns:
             Statistics (rows written, size, duration, etc.)
         """
@@ -120,7 +120,7 @@ class DataSink(ABC):
 
 class Transformer(ABC, Generic[TData]):
     """Contract for transforming data.
-    
+
     Examples:
         - NormalizeOHLCTransformer
         - ComputeIndicatorsTransformer
@@ -130,11 +130,11 @@ class Transformer(ABC, Generic[TData]):
     @abstractmethod
     def transform(self, data: TData, context: DataContext | None = None) -> TData:
         """Apply transformation to data.
-        
+
         Args:
             data: Input data
             context: Optional metadata about the data
-            
+
         Returns:
             Transformed data
         """
@@ -142,7 +142,7 @@ class Transformer(ABC, Generic[TData]):
 
 class Validator(ABC):
     """Contract for validating data quality.
-    
+
     Examples:
         - JSONSchemaValidator
         - BusinessLogicValidator
@@ -152,7 +152,7 @@ class Validator(ABC):
     @abstractmethod
     def validate(self, data: pl.DataFrame, **kwargs) -> dict[str, Any]:
         """Validate data and return result.
-        
+
         Returns:
             Dictionary with:
                 - valid_rows: Count of valid records
@@ -168,7 +168,7 @@ class Validator(ABC):
 
 class Scraper(ABC):
     """Contract for scraping data from external sources.
-    
+
     Examples:
         - NSEBhavcopyScraper
         - NSESymbolMasterScraper
@@ -178,7 +178,7 @@ class Scraper(ABC):
     @abstractmethod
     def scrape(self, **kwargs) -> pl.DataFrame:
         """Scrape data from source.
-        
+
         Returns:
             Polars DataFrame with scraped data
         """
@@ -190,7 +190,7 @@ class Scraper(ABC):
 
 class Repository(ABC, Generic[T]):
     """Contract for repository pattern (data access).
-    
+
     Provides abstraction over specific databases/storage.
     """
 
@@ -213,7 +213,7 @@ class Repository(ABC, Generic[T]):
 
 class CacheBackend(ABC):
     """Contract for caching layer.
-    
+
     Implementations:
         - RedisCache
         - LocalMemoryCache

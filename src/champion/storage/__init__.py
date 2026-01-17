@@ -10,7 +10,7 @@ All storage operations implement champion.core.DataSource/DataSink interfaces.
 - `retention.py`: Data retention and cleanup policies
 """
 
-from .adapters import ParquetDataSource, ParquetDataSink, CSVDataSource, CSVDataSink
+from .adapters import CSVDataSink, CSVDataSource, ParquetDataSink, ParquetDataSource
 from .parquet_io import coalesce_small_files, generate_dataset_metadata, write_df
 from .retention import calculate_partition_age, cleanup_old_partitions, get_dataset_statistics
 

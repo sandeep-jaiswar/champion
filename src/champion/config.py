@@ -8,9 +8,9 @@ Deprecated: Use `from champion.core import AppConfig, get_config` instead.
 
 from champion.core import (
     AppConfig,
+    Environment,
     get_config,
     reload_config,
-    Environment,
 )
 
 __all__ = [
