@@ -258,6 +258,7 @@ Core components implemented and operational:
 - ✅ MLflow Experiment Tracking (Pipeline metadata & metrics)
 - ✅ Prometheus Metrics (Real-time observability)
 - ✅ Feature Store (Technical indicators: SMA, EMA, RSI)
+- ✅ **REST API (14+ endpoints for external data access)**
 - ✅ **Index Membership Tracking (NIFTY50, BANKNIFTY, rebalance history)**
 - ✅ Trading Calendar Validation (Holiday checking, date calculations)
 
@@ -544,6 +545,82 @@ LIMIT 12
 ```
 
 See [docs/MACRO_DATA.md](./docs/MACRO_DATA.md) for detailed documentation on macro data integration, correlation analysis, and production considerations.
+
+---
+
+## REST API
+
+The platform provides a production-ready REST API for external data access:
+
+### Quick Start
+
+```bash
+# Start the API server
+champion api serve
+
+# Access interactive documentation
+open http://localhost:8000/docs
+```
+
+### Available Endpoints
+
+**OHLC Data:**
+
+```bash
+GET /api/v1/ohlc?symbol=INFY&from=2024-01-01&to=2024-12-31
+GET /api/v1/ohlc/{symbol}/latest
+GET /api/v1/ohlc/{symbol}/candles?interval=1d
+```
+
+**Technical Indicators:**
+
+```bash
+GET /api/v1/indicators/{symbol}/sma?period=20
+GET /api/v1/indicators/{symbol}/rsi?period=14
+GET /api/v1/indicators/{symbol}/ema?period=12
+```
+
+**Corporate Actions:**
+
+```bash
+GET /api/v1/corporate-actions?symbol=INFY
+GET /api/v1/corporate-actions/{symbol}/splits
+GET /api/v1/corporate-actions/{symbol}/dividends
+```
+
+**Index Data:**
+
+```bash
+GET /api/v1/indices
+GET /api/v1/indices/{index}/constituents
+GET /api/v1/indices/{index}/changes
+```
+
+### Authentication
+
+```bash
+# Get JWT token
+curl -X POST http://localhost:8000/api/v1/auth/token \
+  -d "username=demo&password=demo123"
+
+# Use token in requests
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8000/api/v1/ohlc?symbol=INFY
+```
+
+**Demo Credentials:** username=`demo`, password=`demo123`
+
+### Features
+
+- ✅ 14+ endpoints (OHLC, indicators, corporate actions, indices)
+- ✅ JWT authentication
+- ✅ Rate limiting (60 req/min)
+- ✅ Redis caching (5-min TTL)
+- ✅ OpenAPI/Swagger docs
+- ✅ Pagination support
+- ✅ CORS configuration
+
+See [src/champion/api/README.md](./src/champion/api/README.md) for complete API documentation and [examples/api/](./examples/api/) for usage examples.
 
 ---
 
