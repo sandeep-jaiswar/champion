@@ -89,6 +89,44 @@ circuit_breaker_state_transitions = Counter(
     ["source", "from_state", "to_state"],
 )
 
+# Business metrics
+stocks_ingested = Counter(
+    "champion_stocks_ingested_total",
+    "Total number of stocks ingested per run",
+    ["scraper", "date"],
+)
+
+corporate_actions_processed = Counter(
+    "champion_corporate_actions_processed_total",
+    "Total number of corporate action events processed",
+    ["action_type"],
+)
+
+validation_failure_rate = Gauge(
+    "champion_validation_failure_rate",
+    "Current validation failure rate (0-1)",
+    ["table"],
+)
+
+validation_failures = Counter(
+    "champion_validation_failures_total",
+    "Total number of validation failures",
+    ["table", "failure_type"],
+)
+
+validation_total = Counter(
+    "champion_validation_total",
+    "Total number of validation checks performed",
+    ["table"],
+)
+
+warehouse_load_latency = Histogram(
+    "champion_warehouse_load_latency_seconds",
+    "Time spent loading data into warehouse",
+    ["table", "layer"],
+    buckets=[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0],
+)
+
 
 def start_metrics_server(port: int = 9090) -> None:
     """Start Prometheus metrics HTTP server.
