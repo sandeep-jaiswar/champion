@@ -10,14 +10,14 @@ from champion.utils.circuit_breaker import CircuitBreaker
 # Global circuit breaker instances for each data source
 nse_breaker = CircuitBreaker(
     name="nse",
-    failure_threshold=config.circuit_breaker.nse_failure_threshold,
-    recovery_timeout=config.circuit_breaker.nse_recovery_timeout,
+    failure_threshold=config.circuit_breaker.failure_threshold,
+    recovery_timeout=config.circuit_breaker.recovery_timeout_seconds,
 )
 
 bse_breaker = CircuitBreaker(
     name="bse",
-    failure_threshold=config.circuit_breaker.bse_failure_threshold,
-    recovery_timeout=config.circuit_breaker.bse_recovery_timeout,
+    failure_threshold=config.circuit_breaker.failure_threshold,
+    recovery_timeout=config.circuit_breaker.recovery_timeout_seconds,
 )
 
 __all__ = ["nse_breaker", "bse_breaker"]

@@ -23,14 +23,11 @@ import argparse
 import logging
 import os
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
 
 try:
     import clickhouse_connect
-    import numpy as np
-    import pandas as pd
     import polars as pl
     from clickhouse_connect.driver import Client
 except ImportError as e:
@@ -53,9 +50,6 @@ class ClickHouseLoader:
         "raw_equity_ohlc": "raw",
         "normalized_equity_ohlc": "normalized",
         "features_equity_indicators": "features",
-        "trading_calendar": "reference",
-        "bulk_block_deals": "normalized",
-        "corporate_actions": "reference",
         "symbol_master": "reference",
     }
 
@@ -101,11 +95,11 @@ class ClickHouseLoader:
 
     def __init__(
         self,
-        host: str | None = None,
-        port: int | None = None,
-        user: str | None = None,
-        password: str | None = None,
-        database: str | None = None,
+        host: str = "localhost",
+        port: int = 8123,
+        user: str = "champion_user",
+        password: str = "champion_pass",
+        database: str = "champion_market",
     ):
         """
         Initialize ClickHouse loader.
@@ -117,80 +111,28 @@ class ClickHouseLoader:
             password: Database password
             database: Database name
         """
-        # Respect explicit args, otherwise fall back to environment variables
-        self.host = host or os.getenv("CLICKHOUSE_HOST", "localhost")
-        self.port = port or int(os.getenv("CLICKHOUSE_PORT", "8123"))
-        self.user = user or os.getenv("CLICKHOUSE_USER")
-        self.password = password or os.getenv("CLICKHOUSE_PASSWORD")
-        self.database = database or os.getenv("CLICKHOUSE_DATABASE")
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.database = database
         self.client: Client | None = None
-        self.native_client = None
 
     def connect(self) -> None:
         """Establish connection to ClickHouse."""
         try:
-            # If the configured port is the native ClickHouse TCP port (9000)
-            # prefer the native protocol client. Otherwise use the HTTP client.
-            if int(self.port) == 9000:
-                # Attempt to create a native driver client for inserts (clickhouse native TCP)
-                logger.info(f"Attempting native ClickHouse driver for {self.host}:{self.port}")
-                try:
-                    # Defer import to here so dependency is optional
-                    from clickhouse_driver import Client as NativeClient
-
-                    self.native_client = NativeClient(
-                        host=self.host,
-                        port=self.port,
-                        user=self.user,
-                        password=self.password,
-                        database=self.database,
-                    )
-                    logger.info("Native ClickHouse driver client created")
-                except Exception as exc:
-                    logger.debug(f"Native ClickHouse driver unavailable: {exc}")
-                    self.native_client = None
-
-                # Also try to create an HTTP client for metadata queries (system.columns)
-                try:
-                    self.client = clickhouse_connect.get_client(
-                        host=self.host,
-                        port=8123,
-                        username=self.user,
-                        password=self.password,
-                        database=self.database,
-                    )
-                    logger.info(f"HTTP ClickHouse client for metadata at {self.host}:8123 created")
-                except Exception:
-                    # If HTTP client cannot be created, leave as None and rely on fallbacks
-                    logger.debug(
-                        "HTTP metadata client could not be created; some metadata queries may fail"
-                    )
-            else:
-                # Default to HTTP client (clickhouse-connect helper)
-                logger.info(f"Using HTTP ClickHouse client for {self.host}:{self.port}")
-                self.client = clickhouse_connect.get_client(
-                    host=self.host,
-                    port=self.port,
-                    username=self.user,
-                    password=self.password,
-                    database=self.database,
-                )
-
+            self.client = clickhouse_connect.get_client(
+                host=self.host,
+                port=self.port,
+                username=self.user,
+                password=self.password,
+                database=self.database,
+            )
             logger.info(f"Connected to ClickHouse at {self.host}:{self.port}")
 
             # Test connection
-            # Some client variants return results directly, others via a list of lines.
-            try:
-                resp = self.client.command("SELECT 1")
-                logger.debug(f"Connection test response: {resp}")
-            except Exception:
-                # Older/native clients may expose a ping or simple query method
-                try:
-                    # Attempt a lightweight query
-                    self.client.query("SELECT 1")
-                except Exception:
-                    # If test fails, still allow upward error handling
-                    raise
+            _ = self.client.command("SELECT 1")
+            logger.info("Connection test successful")
 
         except Exception as e:
             logger.error(f"Failed to connect to ClickHouse: {e}")
@@ -246,10 +188,8 @@ class ClickHouseLoader:
             try:
                 logger.info(f"Loading file: {file_path.name}")
 
-                # Read Parquet file (disable hive partition inference to avoid
-                # merging partition schema with file schema which can cause
-                # duplicate-field errors on some files)
-                df = pl.read_parquet(file_path, hive_partitioning=False)
+                # Read Parquet file
+                df = pl.read_parquet(file_path)
                 rows = len(df)
 
                 logger.info(f"Read {rows:,} rows from {file_path.name}")
@@ -322,304 +262,18 @@ class ClickHouseLoader:
         # Convert to pandas for clickhouse-connect compatibility
         pdf = df.to_pandas()
 
-        # Debug: log pandas dtypes and sample types to help diagnose insertion issues
-        try:
-            logger.debug(f"Pandas dtypes: {pdf.dtypes.to_dict()}")
-            if len(pdf) > 0:
-                sample = pdf.head(1).to_dict(orient="records")[0]
-                sample_types = {k: type(v).__name__ for k, v in sample.items()}
-                logger.debug(f"Pandas sample types: {sample_types}")
-        except Exception:
-            pass
-
         total_rows = len(pdf)
         rows_inserted = 0
 
-        # Insert in batches. Convert each pandas batch to list-of-dicts (native python types)
-        # to avoid issues with numpy scalars and ensure clickhouse-connect serializes values correctly.
+        # Insert in batches
         for i in range(0, total_rows, batch_size):
             batch = pdf.iloc[i : i + batch_size]
 
             try:
-                # Replace NaNs with None for ClickHouse NULLs
-                batch_clean = batch.where(pd.notnull(batch), None)
-
-                # Convert each row to native python types to avoid serialization issues
-                # (numpy scalars, pandas timestamps, etc.) and then use insert_df.
-                def _normalize_value(v):
-                    try:
-                        # numpy scalar -> native python
-                        if isinstance(v, np.generic):
-                            return v.item()
-                    except Exception:
-                        pass
-                    try:
-                        # pandas Timestamp -> python datetime
-                        import pandas as _pd
-
-                        if isinstance(v, _pd.Timestamp):
-                            return v.to_pydatetime()
-                        # pandas NA / missing -> None
-                        try:
-                            if _pd.isna(v):
-                                return None
-                        except Exception:
-                            pass
-                    except Exception:
-                        pass
-                    # numpy/pandas NA types or float NaN -> None
-                    try:
-                        if isinstance(v, float) and np.isnan(v):
-                            return None
-                    except Exception:
-                        pass
-                    return v
-
-                # Convert to list-of-dicts, normalize values, then back to pandas DataFrame
-                rows = batch_clean.to_dict(orient="records")
-                normalized_rows = [{k: _normalize_value(v) for k, v in r.items()} for r in rows]
-                # Insert using list-of-dicts to avoid pandas/clickhouse-connect dtype edge cases
-                # Align row dicts to the ClickHouse table column order to avoid
-                # "Insert data column count does not match column names" errors.
-                if normalized_rows:
-                    try:
-                        # Fetch table columns in order from system.columns
-                        cols_q = (
-                            "SELECT name, type FROM system.columns "
-                            f"WHERE database = '{self.database}' AND table = '{table}' "
-                            "ORDER BY position FORMAT JSON"
-                        )
-                        cols_json = self.client.command(cols_q)
-                        import json
-
-                        # clickhouse-connect may return a list of lines; join if so
-                        if isinstance(cols_json, list):
-                            cols_json = "".join(cols_json)
-
-                        cols_obj = json.loads(cols_json)
-
-                        data = cols_obj.get("data", [])
-                        columns = []
-                        column_types = []
-                        for r in data:
-                            # r may be dict like {"name": ..., "type": ...}
-                            if isinstance(r, dict) and "name" in r:
-                                columns.append(r["name"])
-                                column_types.append(r.get("type"))
-                            elif isinstance(r, list | tuple) and len(r) > 1:
-                                columns.append(r[0])
-                                column_types.append(r[1])
-
-                        if not columns:
-                            # Fallback: use keys from first row
-                            columns = list(normalized_rows[0].keys())
-
-                    except Exception as exc:
-                        logger.debug(f"Failed to fetch table columns for {table}: {exc}")
-                        # If anything fails, fall back to using keys from first row
-                        columns = list(normalized_rows[0].keys())
-
-                    # Align each row to the column order, filling missing with None
-                    aligned_rows = [
-                        {col: row.get(col, None) for col in columns} for row in normalized_rows
-                    ]
-
-                    # If ClickHouse column type is non-Nullable, replace None with a
-                    # sensible default for that column type to avoid insertion errors.
-                    def _default_for_type(typ: str):
-                        if typ is None:
-                            return None
-                        t = typ.lower()
-                        # For complex container types, return sensible empty container defaults
-                        if "map" in t or t.startswith("map("):
-                            return {}
-                        if "array" in t or t.startswith("array("):
-                            return []
-                        if "date" in t and "time" not in t:
-                            # ClickHouse Date will be sent as integer days-since-epoch
-                            return 0
-                        if "datetime" in t or "timestamp" in t or "time" in t:
-                            # DateTime/DateTime64 will be sent as milliseconds since epoch
-                            return 0
-                        if "int" in t or "uint" in t or "float" in t or "decimal" in t:
-                            return 0
-                        # default for strings
-                        return ""
-
-                    # Build tuples in column order, coercing defaults for non-nullable types
-                    aligned_tuples = []
-                    for row in aligned_rows:
-                        tup = []
-                        for col_idx, col in enumerate(columns):
-                            val = row.get(col, None)
-                            col_type = (
-                                column_types[col_idx] if col_idx < len(column_types) else None
-                            )
-                            if (
-                                val is None
-                                and col_type
-                                and not (col_type.lower().startswith("nullable("))
-                            ):
-                                val = _default_for_type(col_type)
-                            tup.append(val)
-                        aligned_tuples.append(tuple(tup))
-
-                    # Coerce values to types expected by ClickHouse to avoid runtime
-                    # serialization errors (e.g., inserting int into String column)
-                    def _coerce_value(val, typ):
-                        if val is None:
-                            return None
-                        if typ is None:
-                            return val
-                        t = typ.lower()
-                        try:
-                            # Handle pandas NA and numpy nan/NA
-                            import pandas as _pd
-
-                            try:
-                                if _pd.isna(val):
-                                    return None
-                            except Exception:
-                                pass
-                            # Handle Map and Array container types first to avoid
-                            # matching 'string' inside e.g. 'array(string)'
-                            if "map" in t or t.startswith("map("):
-                                # Expect a dict-like object for Map columns
-                                if isinstance(val, str):
-                                    try:
-                                        import json
-
-                                        return json.loads(val)
-                                    except Exception:
-                                        return {}
-                                if isinstance(val, dict):
-                                    return val
-                                return {}
-                            if "array" in t or t.startswith("array("):
-                                # Expect list/tuple for Array columns
-                                if isinstance(val, str):
-                                    try:
-                                        import json
-
-                                        parsed = json.loads(val)
-                                        return (
-                                            list(parsed)
-                                            if isinstance(parsed, list | tuple)
-                                            else [parsed]
-                                        )
-                                    except Exception:
-                                        return []
-                                if isinstance(val, list | tuple):
-                                    return list(val)
-                                return []
-                            if "string" in t or "varchar" in t or "text" in t:
-                                return str(val)
-                            if "int" in t or "uint" in t:
-                                try:
-                                    return int(val)
-                                except Exception:
-                                    return _default_for_type(typ)
-                            if "float" in t or "decimal" in t:
-                                return float(val)
-                            if "date" in t and "time" not in t:
-                                # convert to days since epoch (int)
-                                from datetime import date as _date
-
-                                if isinstance(val, int):
-                                    # YYYYMMDD -> convert to days since epoch
-                                    v = int(val)
-                                    if v > 10000000:
-                                        s = str(v)
-                                        try:
-                                            d = datetime.strptime(s, "%Y%m%d").date()
-                                            return (d - _date(1970, 1, 1)).days
-                                        except Exception:
-                                            return _default_for_type(typ)
-                                    return int(val)
-                                # numpy integer types
-                                if isinstance(val, np.integer):
-                                    return int(val)
-                                if isinstance(val, _date):
-                                    return (val - _date(1970, 1, 1)).days
-                                if isinstance(val, datetime):
-                                    return (val.date() - _date(1970, 1, 1)).days
-                                try:
-                                    # parse string date
-                                    s = str(val).strip()
-                                    if s == "":
-                                        return _default_for_type(typ)
-                                    d = datetime.strptime(s, "%Y-%m-%d").date()
-                                    return (d - _date(1970, 1, 1)).days
-                                except Exception:
-                                    return _default_for_type(typ)
-                            if "datetime" in t or "timestamp" in t or "time" in t:
-                                # convert to milliseconds since epoch (int)
-                                if isinstance(val, datetime):
-                                    return int(val.timestamp() * 1000)
-                                try:
-                                    # pandas Timestamp or string
-                                    s = str(val).strip()
-                                    if s == "":
-                                        return _default_for_type(typ)
-                                    return int(datetime.fromisoformat(s).timestamp() * 1000)
-                                except Exception:
-                                    try:
-                                        # numeric epoch (seconds or ms)
-                                        v = int(val)
-                                        # heuristics: if > 1e12 assume ms, if >1e9 assume seconds
-                                        if v > 1_000_000_000_000:
-                                            return v
-                                        if v > 1_000_000_000:
-                                            return v * 1000
-                                        return v * 1000
-                                    except Exception:
-                                        return _default_for_type(typ)
-                        except Exception:
-                            return val
-                        return val
-
-                    # Apply coercion
-                    coerced_tuples = []
-                    for tup in aligned_tuples:
-                        coerced = []
-                        for idx, v in enumerate(tup):
-                            typ = column_types[idx] if idx < len(column_types) else None
-                            coerced.append(_coerce_value(v, typ))
-                        coerced_tuples.append(tuple(coerced))
-
-                    aligned_tuples = coerced_tuples
-
-                    logger.info(f"Inserting into {table} with columns={columns}")
-                    logger.info(
-                        f"Sample aligned row (tuple): {aligned_tuples[0] if aligned_tuples else None}"
-                    )
-
-                    try:
-                        # If a native client exists, use it for bulk inserts (native TCP)
-                        if self.native_client is not None:
-                            try:
-                                # clickhouse_driver accepts execute with data as list of tuples
-                                insert_stmt = f"INSERT INTO {self.database}.{table} ({', '.join(columns)}) VALUES"
-                                self.native_client.execute(insert_stmt, aligned_tuples)
-                            except Exception as exc:
-                                logger.error(f"Native ClickHouse insert failed: {repr(exc)}")
-                                raise
-                        else:
-                            # For HTTP client, prefer list-of-dicts to preserve complex types
-                            try:
-                                aligned_dicts = [
-                                    dict(zip(columns, tup, strict=False)) for tup in aligned_tuples
-                                ]
-                                self.client.insert(table=table, data=aligned_dicts)
-                            except Exception:
-                                # Fallback to previous behaviour if list-of-dicts fails
-                                self.client.insert(
-                                    table=table, data=aligned_tuples, column_names=columns
-                                )
-                    except Exception as exc:
-                        logger.error(f"ClickHouse insert failed: {repr(exc)}")
-                        raise
-                rows_inserted += len(batch_clean)
+                self.client.insert_df(
+                    table=table, df=batch, settings={"async_insert": 0, "wait_for_async_insert": 0}
+                )
+                rows_inserted += len(batch)
 
                 if rows_inserted % (batch_size * 10) == 0:
                     logger.info(f"Progress: {rows_inserted:,} / {total_rows:,} rows")
@@ -660,16 +314,6 @@ class ClickHouseLoader:
                 df = df.rename(rename_map)
                 logger.info(f"Applied column name mappings: {len(rename_map)} columns renamed")
 
-        # Add missing instrumentation columns used by ClickHouse tables
-        # e.g., add `event_time` if missing to satisfy schema requirements
-        if "event_time" not in df.columns:
-            try:
-                df = df.with_columns(pl.lit(datetime.utcnow()).alias("event_time"))
-                logger.debug("Added missing column 'event_time' with current timestamp")
-            except Exception:
-                # If polars conversion fails, skip and let validation detect missing column
-                logger.debug("Failed to add 'event_time' column via polars; validation may fail")
-
         # Validate required columns based on table
         self._validate_schema(df, table)
 
@@ -695,19 +339,7 @@ class ClickHouseLoader:
         ]
         for col in date_cols:
             if col in df.columns:
-                # If dates are encoded as integers (YYYYMMDD), convert to Date
-                if df[col].dtype in [pl.Int64, pl.Int32]:
-                    try:
-                        df = df.with_columns(
-                            pl.col(col)
-                            .cast(pl.Utf8)
-                            .str.strptime(pl.Date, format="%Y%m%d")
-                            .alias(col)
-                        )
-                    except (pl.ComputeError, ValueError) as e:
-                        logger.warning(f"Failed to parse integer date column {col}: {e}")
-                        pass
-                elif df[col].dtype == pl.Utf8:
+                if df[col].dtype == pl.Utf8:
                     # Parse string dates
                     try:
                         df = df.with_columns(
@@ -769,62 +401,29 @@ class ClickHouseLoader:
         Returns:
             Dictionary with verification results
         """
-        # Implementation omitted for brevity in this file excerpt
-        return {}
-
-    def insert_polars_dataframe(
-        self,
-        table: str,
-        df: pl.DataFrame,
-        batch_size: int = 100000,
-        dry_run: bool = False,
-    ) -> int:
-        """
-        Insert a Polars DataFrame directly into a ClickHouse table.
-
-        This is a convenience wrapper used by ETL flows to stream parsed data
-        into ClickHouse without writing Parquet first.
-        """
-        if table not in self.SUPPORTED_TABLES:
-            raise ValueError(f"Unsupported table: {table}")
-
-        # Validate input
-        if not isinstance(df, pl.DataFrame):
-            raise ValueError("df must be a Polars DataFrame")
-
-        rows = len(df)
-        if rows == 0:
-            logger.info(f"insert_polars_dataframe_skipped_empty table={table}")
-            return 0
-
-        if dry_run:
-            logger.info(f"insert_polars_dataframe_dry_run table={table} rows={rows}")
-            return 0
-
-        # Ensure connection (with retry)
         if not self.client:
-            try:
-                self.connect()
-            except Exception as e:
-                logger.error(f"clickhouse_connect_failed table={table} error={e}")
-                raise
+            raise RuntimeError("Not connected to ClickHouse")
 
-        # Delegate to existing insert routine with simple retry
-        attempts = 3
-        for attempt in range(1, attempts + 1):
-            try:
-                rows_inserted = self._insert_dataframe(df=df, table=table, batch_size=batch_size)
-                logger.info(f"insert_polars_dataframe_complete table={table} rows={rows_inserted}")
-                return rows_inserted
-            except Exception as e:
-                logger.warning(
-                    f"insert_polars_dataframe_attempt_failed table={table} attempt={attempt} error={e}"
-                )
-                if attempt < attempts:
-                    time.sleep(1 * attempt)
-                    continue
-                logger.error(f"insert_polars_dataframe_failed table={table} error={e}")
-                raise
+        # Get row count
+        result = self.client.command(f"SELECT count() FROM {self.database}.{table}")
+        actual_rows = int(result)
+
+        # Get sample data
+        sample_query = f"SELECT * FROM {self.database}.{table} LIMIT 5"
+        sample = self.client.query(sample_query)
+
+        verification = {
+            "table": table,
+            "row_count": actual_rows,
+            "sample_rows": len(sample.result_rows),
+        }
+
+        if expected_rows is not None:
+            verification["expected_rows"] = expected_rows
+            verification["match"] = actual_rows == expected_rows
+
+        logger.info(f"Verification: {verification}")
+        return verification
 
 
 def main():
@@ -859,20 +458,20 @@ def main():
 
     parser.add_argument(
         "--user",
-        default=os.getenv("CLICKHOUSE_USER"),
-        help="ClickHouse user (from CLICKHOUSE_USER env)",
+        default=os.getenv("CLICKHOUSE_USER", "champion_user"),
+        help="ClickHouse user (default: champion_user)",
     )
 
     parser.add_argument(
         "--password",
-        default=os.getenv("CLICKHOUSE_PASSWORD"),
-        help="ClickHouse password (from CLICKHOUSE_PASSWORD env)",
+        default=os.getenv("CLICKHOUSE_PASSWORD", "champion_pass"),
+        help="ClickHouse password",
     )
 
     parser.add_argument(
         "--database",
-        default=os.getenv("CLICKHOUSE_DATABASE"),
-        help="ClickHouse database (from CLICKHOUSE_DATABASE env)",
+        default=os.getenv("CLICKHOUSE_DATABASE", "champion_market"),
+        help="ClickHouse database (default: champion_market)",
     )
 
     parser.add_argument(

@@ -1,8 +1,13 @@
-"""
-Technical indicators and feature engineering module.
+"""Feature engineering and analytics layer.
 
-This module provides functions for computing technical indicators
-from normalized OHLC data using Polars for efficient computation.
+Transforms raw market data into derived features and technical indicators.
+Implements the champion.core.Transformer interface.
+
+## Submodules
+
+- `indicators.py`: Technical indicator calculations (SMA, EMA, RSI, etc)
+- `portfolio.py`: Portfolio-level analytics
+- `risk.py`: Risk metrics and measurements
 """
 
 from .indicators import compute_ema, compute_features, compute_rsi, compute_sma

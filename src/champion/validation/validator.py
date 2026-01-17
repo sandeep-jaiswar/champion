@@ -170,7 +170,7 @@ class ParquetValidator:
         Returns:
             List of error details for OHLC violations
         """
-        errors = []
+        errors: list[dict[str, Any]] = []
 
         # Check if required columns exist
         required_cols = ["high", "low"]
@@ -292,7 +292,7 @@ class ParquetValidator:
         failed_df = df[failed_indices]
 
         # Add error information
-        error_map = {}
+        error_map: dict[int, list[str]] = {}
         for error in result.error_details:
             idx = error["row_index"]
             if idx not in error_map:

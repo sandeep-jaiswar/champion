@@ -549,12 +549,12 @@ TYPE minmax GRANULARITY 1;
 CREATE TABLE IF NOT EXISTS default.quarterly_financials
 (
     -- Envelope fields (metadata)
-    event_id            String,
-    event_time          DateTime64(3, 'UTC'),
-    ingest_time         DateTime64(3, 'UTC'),
-    source              LowCardinality(String),
-    schema_version      LowCardinality(String),
-    entity_id           String,
+    event_id            String DEFAULT '',
+    event_time          DateTime64(3, 'UTC') DEFAULT now(),
+    ingest_time         DateTime64(3, 'UTC') DEFAULT now(),
+    source              LowCardinality(String) DEFAULT '',
+    schema_version      LowCardinality(String) DEFAULT '',
+    entity_id           String DEFAULT '',
     
     -- Company identifiers
     symbol              String DEFAULT '',
@@ -605,7 +605,8 @@ CREATE TABLE IF NOT EXISTS default.quarterly_financials
     quarter             Int64 DEFAULT toQuarter(period_end_date)
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY (year, quarter)
+-- Changed partitioning to symbol for faster symbol-scoped queries and smaller partitions
+PARTITION BY (symbol, year, quarter)
 ORDER BY (symbol, period_end_date, statement_type, event_time)
 TTL period_end_date + INTERVAL 10 YEAR
 SETTINGS 

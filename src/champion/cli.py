@@ -316,6 +316,270 @@ def etl_combined_equity(
         raise
 
 
+@app.command("etl-quarterly-financials")
+def etl_quarterly_financials(
+    start_date: str | None = typer.Option(None, help="Start date YYYY-MM-DD for range run"),
+    end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD for range run"),
+    symbol: str | None = typer.Option(None, help="Optional symbol to query (e.g., TCS)"),
+    issuer: str | None = typer.Option(None, help="Optional issuer name for symbol queries"),
+    filter_audited: bool = typer.Option(
+        False, help="Only download documents for rows where audited='Audited'"
+    ),
+    load_to_clickhouse: bool = typer.Option(
+        False, help="Load results into ClickHouse after download"
+    ),
+):
+    """Run quarterly financials ETL flow."""
+    try:
+        from champion.orchestration.flows.quarterly_financial_flow import QuarterlyResultsScraper
+
+        if start_date and end_date:
+            sd = validate_date_format(start_date)
+            ed = validate_date_format(end_date)
+        else:
+            sd = date.today()
+            ed = date.today()
+
+        master_df = QuarterlyResultsScraper().get_master(
+            from_date=sd.strftime("%d-%m-%Y"),
+            to_date=ed.strftime("%d-%m-%Y"),
+            symbol=symbol,
+            issuer=issuer,
+            filter_audited=filter_audited,
+        )
+        scraper = QuarterlyResultsScraper()
+        # normalize dataframe and write canonical parquet
+        norm_df = scraper.normalize_master_dataframe(master_df)
+        # download documents and capture saved file paths
+        saved_files = scraper.download_documents(master=master_df)
+
+        # Parse downloaded XBRL/XML files into rows (if any) so we can optionally
+        # insert parsed facts directly into ClickHouse without relying only on Parquet.
+        parsed_rows = []
+        try:
+            # local import to avoid adding heavy deps at module import time
+            import polars as pl
+
+            from champion.parsers.xbrl_parser import parse_xbrl_file
+
+            for p in saved_files:
+                try:
+                    if str(p).lower().endswith(".xml"):
+                        rec = parse_xbrl_file(Path(p))
+                        parsed_rows.append(rec)
+                except Exception:
+                    # be tolerant; we still proceed with Parquet write/load
+                    typer.secho(f"Failed to parse XBRL: {p}", fg=typer.colors.YELLOW)
+        except Exception:
+            # parser missing or failed import; skip parsed insert
+            parsed_rows = []
+        # Optionally write Parquet and upload master rows into ClickHouse in batch
+        if load_to_clickhouse:
+            try:
+                import pandas as pd
+                import polars as pl
+
+                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+
+                # Normalize/master -> Parquet column mapping to match ClickHouse schema
+                today = date.today().isoformat()
+                # Canonical path: include date partition; when `--symbol` provided
+                # write directly under a symbol subfolder so loader can target
+                # the exact file produced by this run and avoid cross-writes.
+                base = Path("data/lake/raw/quarterly_financials") / f"date={today}"
+                base.mkdir(parents=True, exist_ok=True)
+
+                # Work on a pandas copy to rename and coerce types
+                # use normalized dataframe if available
+                pdf = norm_df.copy() if norm_df is not None else master_df.copy()
+
+                # Common mappings from NSE master to ClickHouse schema
+                rename_map = {
+                    "companyName": "company_name",
+                    "financialYear": "year",
+                    "filingDate": "filing_date",
+                    "fromDate": "period_start",
+                    "toDate": "period_end_date",
+                    "period": "period_type",
+                    "isin": "cin",
+                }
+
+                # Only rename columns that exist
+                existing_rename = {k: v for k, v in rename_map.items() if k in pdf.columns}
+                if existing_rename:
+                    pdf = pdf.rename(columns=existing_rename)
+
+                # Coerce year to integer when possible
+                if "year" in pdf.columns:
+                    try:
+                        pdf["year"] = (
+                            pdf["year"]
+                            .astype(str)
+                            .str.extract(r"(\d{4})")[0]
+                            .astype(float)
+                            .astype("Int64")
+                        )
+                    except Exception:
+                        pass
+
+                # Try to derive quarter from period_type or fromDate/toDate if available
+                if "quarter" not in pdf.columns:
+                    qseries = None
+                    if "period_type" in pdf.columns:
+                        try:
+                            qseries = pdf["period_type"].astype(str).str.extract(r"Q([1-4])")[0]
+                        except Exception:
+                            qseries = None
+                    if qseries is None or qseries.isnull().all():
+                        # Try parsing period_end_date month to quarter
+                        if "period_end_date" in pdf.columns:
+                            try:
+                                pdf["period_end_date"] = pd.to_datetime(
+                                    pdf["period_end_date"], errors="coerce"
+                                )
+                                qseries = pdf["period_end_date"].dt.quarter
+                            except Exception:
+                                qseries = None
+                    if qseries is not None:
+                        try:
+                            pdf["quarter"] = qseries.astype("Int64")
+                        except Exception:
+                            pass
+
+                # Ensure company_name exists
+                if "company_name" not in pdf.columns:
+                    if "companyName" in master_df.columns:
+                        pdf["company_name"] = master_df["companyName"]
+                    else:
+                        pdf["company_name"] = None
+
+                # Convert to Polars and write Parquet
+                try:
+                    pldf = pl.from_pandas(pdf)
+                except Exception:
+                    pldf = pl.DataFrame(pdf)
+
+                # If a single symbol was requested, write into a dedicated
+                # symbol subfolder and only include rows for that symbol.
+                written = 0
+                if symbol:
+                    safe_sym = str(symbol)
+                    out_dir = base / f"symbol={safe_sym}"
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    out_path = out_dir / "quarterly_financials.parquet"
+                    try:
+                        sub_pdf = pdf[pdf.get("symbol") == symbol]
+                        try:
+                            pldf_sub = pl.from_pandas(sub_pdf)
+                        except Exception:
+                            pldf_sub = pl.DataFrame(sub_pdf)
+                        pldf_sub.write_parquet(out_path)
+                        written = 1
+                    except Exception:
+                        try:
+                            import pyarrow as pa
+                            import pyarrow.parquet as pq
+
+                            table = pa.Table.from_pandas(sub_pdf)
+                            pq.write_table(table, out_path)
+                            written = 1
+                        except Exception:
+                            sub_pdf.to_parquet(out_path)
+                            written = 1
+                else:
+                    # Write one folder per distinct symbol found in the dataframe
+                    try:
+                        syms = pldf.select("symbol").unique().to_series().to_list()
+                    except Exception:
+                        syms = (
+                            pdf.get("symbol").dropna().unique().tolist()
+                            if "symbol" in pdf.columns
+                            else []
+                        )
+
+                    for sym in syms:
+                        safe_sym = str(sym) if sym is not None else ""
+                        out_dir = base / f"symbol={safe_sym}"
+                        out_dir.mkdir(parents=True, exist_ok=True)
+                        out_path = out_dir / "quarterly_financials.parquet"
+                        try:
+                            sub = pldf.filter(pl.col("symbol") == sym)
+                            sub.write_parquet(out_path)
+                            written += 1
+                        except Exception:
+                            pdf_sub = pdf[pdf.get("symbol") == sym]
+                            try:
+                                import pyarrow as pa  # optional, may raise if missing
+                                import pyarrow.parquet as pq
+
+                                table = pa.Table.from_pandas(pdf_sub)
+                                pq.write_table(table, out_path)
+                                written += 1
+                            except Exception:
+                                try:
+                                    pdf_sub.to_parquet(out_path)
+                                    written += 1
+                                except Exception:
+                                    pass
+
+                typer.echo(f"Wrote {written} Parquet file(s) under: {base}")
+
+                # Load Parquet files into ClickHouse using existing loader (batch mode)
+                loader = ClickHouseLoader()
+                dry_run = bool(os.environ.get("CLICKHOUSE_DRY"))
+                # Target the staging table by default to keep production safe
+                target_table = "quarterly_financials_raw"
+                # If we wrote a single symbol file, point loader at that symbol folder
+                source_path = str(base)
+                if symbol:
+                    source_path = str(base / f"symbol={symbol}")
+
+                if dry_run:
+                    stats = loader.load_parquet_files(
+                        table=target_table, source_path=source_path, dry_run=True
+                    )
+                else:
+                    loader.connect()
+                    stats = loader.load_parquet_files(
+                        table=target_table, source_path=source_path, dry_run=False
+                    )
+                    # If we parsed XBRL files above, try inserting them directly
+                    try:
+                        if parsed_rows:
+                            try:
+                                import polars as pl
+
+                                pldf = pl.from_dicts(parsed_rows)
+                            except Exception:
+                                pldf = None
+                            if pldf is not None and len(pldf) > 0:
+                                # Insert parsed facts into canonical table
+                                loader.insert_polars_dataframe(
+                                    table="quarterly_financials", df=pldf, dry_run=dry_run
+                                )
+                    except Exception as e:
+                        typer.secho(
+                            f"ClickHouse insert of parsed XBRL failed: {e}", fg=typer.colors.RED
+                        )
+                    loader.disconnect()
+                typer.echo(f"ClickHouse load result: {stats}")
+            except Exception as e:
+                typer.secho(f"ClickHouse load failed: {e}", fg=typer.colors.RED)
+                raise typer.Exit(1) from e
+    except (ImportError, ModuleNotFoundError) as e:
+        typer.secho(
+            f"quarterly financials ETL failed to start: {e}. Did tasks migrate to champion.*?",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(1) from e
+    except Exception as e:
+        typer.secho(
+            f"quarterly financials ETL execution failed: {e}",
+            fg=typer.colors.RED,
+        )
+        raise
+
+
 @app.command("show-config")
 def show_config():
     """Print current configuration values."""
