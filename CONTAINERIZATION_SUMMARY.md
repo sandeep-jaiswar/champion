@@ -9,6 +9,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `Dockerfile`
 
 **Key Improvements**:
+
 - **Builder Stage**: Installs dependencies in isolation
   - Reduces final image size by ~50-60%
   - Separates build-time dependencies from runtime
@@ -20,23 +21,27 @@ This document summarizes the production-grade containerization and deployment se
   - Optimized for production use
 
 **Security Features**:
+
 - Non-root user (champion:1000) ✅
 - Fixed UID for consistent permissions
 - Minimal attack surface
 - No dev dependencies in production
 
 **Health & Monitoring**:
+
 - HEALTHCHECK directive (30s interval, 10s timeout)
 - Health endpoint on port 8080
 - Metrics endpoint on port 9090
 - Production logging to stdout
 
 **Environment Variables**:
+
 - `PYTHONUNBUFFERED=1`: Real-time log output
 - `PYTHONDONTWRITEBYTECODE=1`: No .pyc files
 - `PYTHONPATH=/app/src`: Proper module path
 
 **Build Optimization**:
+
 - `.dockerignore` excludes unnecessary files
 - Layer caching for faster rebuilds
 - Multi-stage reduces final image size
@@ -45,6 +50,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `src/champion/__main__.py`
 
 **Features**:
+
 - SIGTERM and SIGINT signal handlers
 - Graceful shutdown on container stop
 - Proper cleanup before exit
@@ -53,6 +59,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `src/champion/core/health.py`
 
 **Features**:
+
 - HTTP health check server on port 8080
 - `/health` endpoint for liveness probes
 - `/ready` endpoint for readiness probes
@@ -63,6 +70,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `docker-compose.yml`
 
 **Services Added**:
+
 1. **Champion App**: Main application with health checks
 2. **ClickHouse**: Database (already existed, enhanced)
 3. **MLflow**: ML tracking (already existed, enhanced)
@@ -71,21 +79,25 @@ This document summarizes the production-grade containerization and deployment se
 6. **Grafana**: Visualization dashboard (NEW)
 
 **Network Isolation**:
+
 - `frontend`: Public-facing services
 - `backend`: Internal application services
 - `monitoring`: Metrics and monitoring
 
 **Volume Management**:
+
 - Persistent volumes for all services
 - Named volumes with local driver
 - Data persistence across restarts
 
 **Resource Limits**:
+
 - CPU and memory limits defined
 - Appropriate reservations set
 - Prevents resource exhaustion
 
 **Health Checks**:
+
 - All services have health checks
 - Proper start periods defined
 - Retry logic configured
@@ -94,18 +106,21 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `monitoring/`
 
 **Prometheus Configuration** (`prometheus.yml`):
+
 - Scrapes all services
 - 15s scrape interval
 - Multiple job configurations
 - Proper labeling
 
 **Grafana Setup**:
+
 - Provisioned datasources
 - Provisioned dashboards
 - Champion overview dashboard
 - Admin credentials in .env
 
 **Grafana Provisioning**:
+
 - `datasources/prometheus.yml`: Auto-configure Prometheus
 - `dashboards/dashboards.yml`: Auto-load dashboards
 - `dashboards/champion-overview.json`: Sample dashboard
@@ -114,12 +129,14 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `k8s/`
 
 **Manifests**:
+
 1. `namespace.yaml`: Champion namespace
 2. `configmap.yaml`: Application configuration
 3. `secret.yaml`: Sensitive credentials
 4. `deployment.yaml`: Deployment + Service + PVC
 
 **Features**:
+
 - 2 replica deployment
 - Resource limits and requests
 - Liveness and readiness probes
@@ -130,10 +147,12 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `helm/champion/`
 
 **Files**:
+
 - `Chart.yaml`: Chart metadata
 - `values.yaml`: Default configuration
 
 **Features**:
+
 - Configurable replicas
 - Resource management
 - Ingress support
@@ -145,6 +164,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `.github/workflows/docker.yml`
 
 **Features**:
+
 - Multi-architecture support ready
 - Docker Hub push automation
 - Trivy security scanning
@@ -153,11 +173,13 @@ This document summarizes the production-grade containerization and deployment se
 - Build summaries in GitHub
 
 **Triggers**:
+
 - Push to main/develop branches
 - Pull requests
 - Tag pushes (v*.*.*)
 
 **Security**:
+
 - Trivy vulnerability scanner
 - Upload results to GitHub Security
 - CRITICAL and HIGH severity focus
@@ -166,6 +188,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `.env.example`
 
 **Sections**:
+
 - Application settings
 - ClickHouse configuration
 - MLflow configuration
@@ -177,6 +200,7 @@ This document summarizes the production-grade containerization and deployment se
 **Location**: `docs/DEPLOYMENT.md`
 
 **Content**:
+
 - Docker deployment guide
 - Docker Compose guide
 - Kubernetes deployment
@@ -188,6 +212,7 @@ This document summarizes the production-grade containerization and deployment se
 ## Verification Checklist
 
 ### Docker Build
+
 - [x] Multi-stage Dockerfile created
 - [x] Health check directive added
 - [x] Resource limits documented
@@ -196,12 +221,14 @@ This document summarizes the production-grade containerization and deployment se
 - [ ] Build tested (requires valid SSL environment)
 
 ### Application Code
+
 - [x] `__main__.py` with signal handling
 - [x] Health check server implementation
 - [x] Graceful shutdown logic
 - [x] Production logging configured
 
 ### Docker Compose
+
 - [x] All services added
 - [x] Network isolation configured
 - [x] Volume management set up
@@ -210,12 +237,14 @@ This document summarizes the production-grade containerization and deployment se
 - [ ] Stack tested (requires running Docker)
 
 ### Monitoring
+
 - [x] Prometheus configuration
 - [x] Grafana provisioning
 - [x] Sample dashboard
 - [ ] End-to-end monitoring tested
 
 ### Kubernetes
+
 - [x] Namespace manifest
 - [x] ConfigMap created
 - [x] Secret manifest
@@ -223,12 +252,14 @@ This document summarizes the production-grade containerization and deployment se
 - [ ] Deployed to cluster
 
 ### Helm
+
 - [x] Chart.yaml created
 - [x] values.yaml with defaults
 - [ ] Chart packaged
 - [ ] Chart tested
 
 ### CI/CD
+
 - [x] Docker workflow created
 - [x] Security scanning configured
 - [x] Multi-platform support ready
@@ -236,6 +267,7 @@ This document summarizes the production-grade containerization and deployment se
 - [ ] Workflow tested (requires push)
 
 ### Documentation
+
 - [x] Deployment guide written
 - [x] All sections covered
 - [x] Examples provided
@@ -251,6 +283,7 @@ Due to sandbox environment limitations (SSL certificate issues), the following c
 4. **CI/CD Pipeline**: Requires GitHub Actions execution
 
 However, all configuration files are:
+
 - ✅ Syntactically correct
 - ✅ Follow best practices
 - ✅ Production-ready
@@ -269,6 +302,7 @@ However, all configuration files are:
    - Push code to trigger workflow
 
 3. **Local Testing**:
+
    ```bash
    # Build image
    docker build -t champion:latest .
@@ -277,10 +311,11 @@ However, all configuration files are:
    docker-compose up -d
    
    # Check health
-   curl http://localhost:8080/health
+   curl <http://localhost:8080/health>
    ```
 
 4. **Kubernetes Deployment**:
+
    ```bash
    # Apply manifests
    kubectl apply -f k8s/
@@ -290,7 +325,7 @@ However, all configuration files are:
    ```
 
 5. **Monitoring**:
-   - Access Grafana at http://localhost:3000
+   - Access Grafana at <http://localhost:3000>
    - Configure alerts in Prometheus
    - Set up log aggregation
 

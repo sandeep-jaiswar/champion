@@ -5,6 +5,7 @@ This document provides a quick start guide for the production-grade containeriza
 ## ✅ What's Included
 
 ### Core Features
+
 - ✅ Multi-stage Docker build for optimized images
 - ✅ Health check endpoint (`/health` and `/ready`)
 - ✅ Graceful shutdown (SIGTERM/SIGINT handling)
@@ -13,6 +14,7 @@ This document provides a quick start guide for the production-grade containeriza
 - ✅ Resource limits and reservations
 
 ### Infrastructure
+
 - ✅ Docker Compose with 6 services:
   - Champion Application
   - ClickHouse (Database)
@@ -22,18 +24,21 @@ This document provides a quick start guide for the production-grade containeriza
   - Grafana (Visualization)
 
 ### Deployment Options
+
 - ✅ Docker & Docker Compose
 - ✅ Kubernetes manifests
 - ✅ Helm chart
 - ✅ CI/CD with GitHub Actions
 
 ### Monitoring & Observability
+
 - ✅ Prometheus metrics collection
 - ✅ Grafana dashboards
 - ✅ Health check endpoints
 - ✅ Structured logging
 
 ### Security
+
 - ✅ Non-root container user
 - ✅ Trivy security scanning in CI
 - ✅ No default passwords (placeholders provided)
@@ -62,15 +67,15 @@ docker build -t champion:latest .
 docker-compose up -d
 
 # 4. Verify health
-curl http://localhost:8080/health
+curl <http://localhost:8080/health>
 
 # 5. Access services
-# - Champion: http://localhost:8080
-# - Grafana: http://localhost:3000 (admin/[your-password])
-# - Prometheus: http://localhost:9091
-# - MLflow: http://localhost:5000
-# - Prefect: http://localhost:4200
-# - ClickHouse: http://localhost:8123
+# - Champion: <http://localhost:8080>
+# - Grafana: <http://localhost:3000> (admin/[your-password])
+# - Prometheus: <http://localhost:9091>
+# - MLflow: <http://localhost:5000>
+# - Prefect: <http://localhost:4200>
+# - ClickHouse: <http://localhost:8123>
 
 # 6. View logs
 docker-compose logs -f champion
@@ -96,7 +101,7 @@ kubectl get services -n champion
 kubectl port-forward -n champion service/champion-service 8080:8080
 
 # 5. Verify health
-curl http://localhost:8080/health
+curl <http://localhost:8080/health>
 ```
 
 ### 4. Helm Deployment
@@ -127,6 +132,7 @@ Run the verification script to check your setup:
 ```
 
 This will check:
+
 - ✓ All required files exist
 - ✓ Configuration syntax is valid
 - ✓ No security issues
@@ -149,15 +155,18 @@ Before deploying to production:
 ## 📊 Monitoring
 
 ### Health Checks
-- **Liveness**: `GET http://localhost:8080/health`
-- **Readiness**: `GET http://localhost:8080/ready`
+
+- **Liveness**: `GET <http://localhost:8080/health`>
+- **Readiness**: `GET <http://localhost:8080/ready`>
 
 ### Metrics
-- **Application**: http://localhost:9090/metrics
-- **Prometheus**: http://localhost:9091
-- **Grafana**: http://localhost:3000
+
+- **Application**: <http://localhost:9090/metrics>
+- **Prometheus**: <http://localhost:9091>
+- **Grafana**: <http://localhost:3000>
 
 ### Logs
+
 ```bash
 # Docker Compose
 docker-compose logs -f champion
@@ -172,6 +181,7 @@ docker-compose logs -f [service-name]
 ## 🛠 Troubleshooting
 
 ### Container Won't Start
+
 ```bash
 # Check logs
 docker logs champion-app
@@ -184,15 +194,17 @@ docker run -it --rm champion:latest /bin/bash
 ```
 
 ### Health Check Failing
+
 ```bash
 # Test from inside container
-docker exec champion-app curl http://localhost:8080/health
+docker exec champion-app curl <http://localhost:8080/health>
 
 # Check if port is listening
 docker exec champion-app netstat -tlnp | grep 8080
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Check ClickHouse is running
 docker-compose ps clickhouse
@@ -205,6 +217,7 @@ docker network inspect champion_backend
 ```
 
 ### Resource Issues
+
 ```bash
 # Check resource usage
 docker stats
@@ -234,6 +247,7 @@ The `.github/workflows/docker.yml` workflow automatically:
 ### Required Secrets
 
 Configure in GitHub repository settings:
+
 - `DOCKERHUB_USERNAME`: Your Docker Hub username
 - `DOCKERHUB_TOKEN`: Docker Hub access token
 
@@ -263,6 +277,7 @@ docker push yourusername/champion:latest
 ## 📞 Support
 
 For issues or questions:
+
 - Check [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed guides
 - Review [CONTAINERIZATION_SUMMARY.md](CONTAINERIZATION_SUMMARY.md) for implementation details
 - Open an issue on GitHub

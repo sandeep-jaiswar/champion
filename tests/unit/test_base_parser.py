@@ -5,6 +5,7 @@ from pathlib import Path
 
 import polars as pl
 import pytest
+
 from champion.parsers.base_parser import Parser
 
 # Test constants

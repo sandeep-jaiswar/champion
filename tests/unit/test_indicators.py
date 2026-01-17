@@ -8,6 +8,7 @@ from datetime import date, timedelta
 
 import polars as pl
 import pytest
+
 from champion.features.indicators import compute_ema, compute_features, compute_rsi, compute_sma
 
 

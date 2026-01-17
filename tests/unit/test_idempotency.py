@@ -4,6 +4,7 @@ import json
 import shutil
 
 import pytest
+
 from champion.utils.idempotency import (
     check_idempotency_marker,
     create_idempotency_marker,

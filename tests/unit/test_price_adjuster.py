@@ -4,6 +4,7 @@ from datetime import date
 
 import polars as pl
 import pytest
+
 from champion.corporate_actions.price_adjuster import (
     apply_ca_adjustments,
     apply_ca_adjustments_simple,

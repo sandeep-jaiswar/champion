@@ -5,6 +5,7 @@ import shutil
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
+
 from champion.storage.parquet_io import (
     coalesce_small_files,
     generate_dataset_metadata,

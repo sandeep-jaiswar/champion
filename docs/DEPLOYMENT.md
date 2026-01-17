@@ -51,10 +51,10 @@ docker run -d \
 docker ps
 
 # Check health endpoint
-curl http://localhost:8080/health
+curl <http://localhost:8080/health>
 
 # Check readiness endpoint
-curl http://localhost:8080/ready
+curl <http://localhost:8080/ready>
 ```
 
 ## Docker Compose Deployment
@@ -62,12 +62,14 @@ curl http://localhost:8080/ready
 ### Prerequisites
 
 1. Copy environment file:
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 2. Create required directories:
+
    ```bash
    mkdir -p data logs
    ```
@@ -87,12 +89,12 @@ docker-compose ps
 
 ### Available Services
 
-- **Champion App**: http://localhost:8080 (health), http://localhost:9090 (metrics)
-- **ClickHouse**: http://localhost:8123 (HTTP), localhost:9000 (native)
-- **MLflow**: http://localhost:5000
-- **Prefect**: http://localhost:4200
-- **Prometheus**: http://localhost:9091
-- **Grafana**: http://localhost:3000 (admin/admin)
+- **Champion App**: <http://localhost:8080> (health), <http://localhost:9090> (metrics)
+- **ClickHouse**: <http://localhost:8123> (HTTP), localhost:9000 (native)
+- **MLflow**: <http://localhost:5000>
+- **Prefect**: <http://localhost:4200>
+- **Prometheus**: <http://localhost:9091>
+- **Grafana**: <http://localhost:3000> (admin/admin)
 
 ### Stopping Services
 
@@ -139,7 +141,7 @@ kubectl logs -f deployment/champion-app -n champion
 kubectl port-forward -n champion service/champion-service 8080:8080 9090:9090
 
 # Access health check
-curl http://localhost:8080/health
+curl <http://localhost:8080/health>
 ```
 
 ## Helm Deployment
@@ -191,9 +193,13 @@ ingress:
   enabled: true
   className: nginx
   hosts:
+
     - host: champion.example.com
+
       paths:
+
         - path: /
+
           pathType: Prefix
 ```
 
@@ -337,7 +343,7 @@ docker run -it --rm champion:latest /bin/bash
 
 ```bash
 # Test health endpoint from inside container
-docker exec champion curl http://localhost:8080/health
+docker exec champion curl <http://localhost:8080/health>
 
 # Check if application is listening
 docker exec champion netstat -tlnp
@@ -350,13 +356,13 @@ docker exec champion netstat -tlnp
 docker stats champion
 
 # Check application metrics
-curl http://localhost:9090/metrics
+curl <http://localhost:9090/metrics>
 ```
 
 ## Additional Resources
 
-- [Docker Documentation](https://docs.docker.com/)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Helm Documentation](https://helm.sh/docs/)
-- [Prometheus Documentation](https://prometheus.io/docs/)
-- [Grafana Documentation](https://grafana.com/docs/)
+- [Docker Documentation](<https://docs.docker.com/>)
+- [Kubernetes Documentation](<https://kubernetes.io/docs/>)
+- [Helm Documentation](<https://helm.sh/docs/>)
+- [Prometheus Documentation](<https://prometheus.io/docs/>)
+- [Grafana Documentation](<https://grafana.com/docs/>)

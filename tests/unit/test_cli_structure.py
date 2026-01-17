@@ -43,7 +43,7 @@ def test_cli_has_expected_commands():
 
     # Extract commands
     commands = re.findall(r'@(\w+_app)\.command\(["\']([^"\']+)["\']', code)
-    
+
     # Group commands
     groups = {}
     for app, cmd in commands:

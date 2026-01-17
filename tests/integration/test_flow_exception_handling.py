@@ -4,6 +4,7 @@ from datetime import date
 from unittest.mock import Mock, patch
 
 import pytest
+
 from champion.orchestration.flows.flows import (
     normalize_polars,
     parse_polars_raw,
