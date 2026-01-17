@@ -436,6 +436,7 @@ if random.random() < 0.1:  # Sample 10%
 ### 6. Sensitive Data
 
 Never log sensitive information:
+
 - Passwords or API keys
 - Personal identifiable information (PII)
 - Financial account numbers
@@ -488,6 +489,7 @@ logs_dropped = Counter(
 ### Health Checks
 
 Monitor:
+
 - Filebeat/Promtail status
 - Logstash/Loki ingestion rate
 - Elasticsearch/Loki storage usage
@@ -507,6 +509,7 @@ Monitor:
 ### High Cardinality
 
 If experiencing performance issues:
+
 1. Limit number of labels/fields
 2. Use log sampling
 3. Increase retention deletion frequency
@@ -515,6 +518,7 @@ If experiencing performance issues:
 ### Disk Space
 
 Monitor and manage disk usage:
+
 1. Set appropriate retention policies
 2. Use log compression
 3. Archive old logs to cold storage

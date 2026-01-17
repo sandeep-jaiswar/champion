@@ -59,8 +59,8 @@ services:
 
 ### 2. Access Dashboards
 
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (default credentials: admin/admin)
+- **Prometheus**: <http://localhost:9090>
+- **Grafana**: <http://localhost:3000> (default credentials: admin/admin)
 
 ### 3. Configure Application Metrics
 
@@ -112,6 +112,7 @@ start_metrics_server(port=9090)
 **Purpose**: Monitor overall pipeline execution and health
 
 **Key Panels**:
+
 - Successful/Failed flow rates
 - Average flow duration
 - Parquet write operations
@@ -120,6 +121,7 @@ start_metrics_server(port=9090)
 - Rows parsed rate
 
 **Use Cases**:
+
 - Identify pipeline bottlenecks
 - Monitor flow success rates
 - Track data processing throughput
@@ -129,6 +131,7 @@ start_metrics_server(port=9090)
 **Purpose**: Track data quality and validation metrics
 
 **Key Panels**:
+
 - Validation failure rate by table
 - Stocks ingested rate
 - Corporate actions processed
@@ -138,6 +141,7 @@ start_metrics_server(port=9090)
 - Validation failure trends
 
 **Use Cases**:
+
 - Monitor data quality issues
 - Track validation failures
 - Identify data anomalies
@@ -148,6 +152,7 @@ start_metrics_server(port=9090)
 **Purpose**: Monitor circuit breaker states and failures
 
 **Key Panels**:
+
 - Current circuit breaker states
 - State history timeline
 - Failure rate by source
@@ -156,6 +161,7 @@ start_metrics_server(port=9090)
 - State transition summary table
 
 **Use Cases**:
+
 - Detect service availability issues
 - Track recovery attempts
 - Analyze failure patterns
@@ -166,6 +172,7 @@ start_metrics_server(port=9090)
 **Purpose**: Monitor system resource usage and performance
 
 **Key Panels**:
+
 - CPU usage (with 1.7 core threshold)
 - Memory usage (with 3GB/3.5GB thresholds)
 - Warehouse load latency (p50, p95)
@@ -173,6 +180,7 @@ start_metrics_server(port=9090)
 - Throughput metrics (rows/sec, loads/sec, writes/sec, files/sec)
 
 **Use Cases**:
+
 - Identify resource constraints
 - Optimize performance
 - Plan capacity upgrades
@@ -183,6 +191,7 @@ start_metrics_server(port=9090)
 **Purpose**: Track errors and failure trends over time
 
 **Key Panels**:
+
 - Error rates by component
 - Pipeline failure rate
 - Hourly failure counts (Parquet, ClickHouse, Validation, Circuit Breaker)
@@ -191,6 +200,7 @@ start_metrics_server(port=9090)
 - 24-hour error summary table
 
 **Use Cases**:
+
 - Identify error patterns
 - Track failure trends
 - Prioritize fixes
@@ -291,10 +301,13 @@ validation_failure_rate.labels(table="test_table").set(0.15)
 
 1. Edit `alert_rules.yml`
 2. Reload Prometheus configuration:
+
    ```bash
    curl -X POST http://localhost:9090/-/reload
    ```
+
    Or restart Prometheus:
+
    ```bash
    docker-compose restart prometheus
    ```
@@ -304,6 +317,7 @@ validation_failure_rate.labels(table="test_table").set(0.15)
 ### Metric Naming
 
 Follow Prometheus naming conventions:
+
 - Use `_total` suffix for counters
 - Use base units (seconds, bytes, not milliseconds, megabytes)
 - Use meaningful labels
@@ -340,7 +354,7 @@ Follow Prometheus naming conventions:
 ### Metrics Not Appearing
 
 1. **Check metrics endpoint**: `curl http://localhost:9090/metrics`
-2. **Verify Prometheus targets**: http://localhost:9090/targets
+2. **Verify Prometheus targets**: <http://localhost:9090/targets>
 3. **Check application logs** for errors
 4. **Verify network connectivity** between services
 
@@ -353,8 +367,8 @@ Follow Prometheus naming conventions:
 
 ### Alerts Not Firing
 
-1. **Verify alert rules syntax**: http://localhost:9090/rules
-2. **Check alert evaluation**: http://localhost:9090/alerts
+1. **Verify alert rules syntax**: <http://localhost:9090/rules>
+2. **Check alert evaluation**: <http://localhost:9090/alerts>
 3. **Verify metric values** match alert conditions
 4. **Check Alertmanager connectivity** (if configured)
 
@@ -427,6 +441,7 @@ See [docs/LOG_AGGREGATION_SETUP.md](../docs/LOG_AGGREGATION_SETUP.md) for detail
 ### Backup
 
 Regularly backup:
+
 - Grafana dashboards (export JSON)
 - Prometheus configuration
 - Alert rules
@@ -435,6 +450,7 @@ Regularly backup:
 ### Updates
 
 Keep components updated:
+
 - Monitor security advisories
 - Test updates in staging
 - Update docker images in `docker-compose.yml`
@@ -451,6 +467,7 @@ Keep components updated:
 ## Support
 
 For issues or questions:
+
 1. Check this README and linked documentation
 2. Review Prometheus/Grafana logs
 3. Search GitHub issues

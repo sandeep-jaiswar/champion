@@ -446,27 +446,32 @@ def test_circuit_breaker_state_metric():
 ### Prometheus Query Examples
 
 #### Check current validation failure rate
+
 ```promql
 champion_validation_failure_rate{table="raw_equity_ohlc"}
 ```
 
 #### Calculate average warehouse load time
+
 ```promql
 rate(champion_warehouse_load_latency_seconds_sum[5m]) / 
 rate(champion_warehouse_load_latency_seconds_count[5m])
 ```
 
 #### Find highest error rate by table
+
 ```promql
 topk(5, rate(champion_validation_failures_total[5m]))
 ```
 
 #### Count stocks ingested in last hour
+
 ```promql
 sum(increase(champion_stocks_ingested_total[1h]))
 ```
 
 #### Check if circuit breaker is open
+
 ```promql
 circuit_breaker_state == 2
 ```
@@ -475,12 +480,13 @@ circuit_breaker_state == 2
 
 Use Grafana's Explore feature to build and test queries:
 
-1. Go to http://localhost:3000
+1. Go to <http://localhost:3000>
 2. Click "Explore" (compass icon)
 3. Select "Prometheus" datasource
 4. Enter query and click "Run query"
 
 Example queries:
+
 - `rate(champion_stocks_ingested_total[5m])`
 - `histogram_quantile(0.95, rate(champion_warehouse_load_latency_seconds_bucket[5m]))`
 - `sum(rate(champion_corporate_actions_processed_total[5m])) by (action_type)`
@@ -597,8 +603,8 @@ def load_with_retry(table: str, data):
 
 ## Next Steps
 
-1. **Review Dashboards**: Visit http://localhost:3000 and explore the dashboards
-2. **Check Alerts**: Visit http://localhost:9090/alerts to see alert status
+1. **Review Dashboards**: Visit <http://localhost:3000> and explore the dashboards
+2. **Check Alerts**: Visit <http://localhost:9090/alerts> to see alert status
 3. **Instrument Your Code**: Add metrics and trace IDs to your operations
 4. **Test Alerts**: Run alert tests to verify configuration
 5. **Query Metrics**: Practice PromQL queries in Prometheus and Grafana
