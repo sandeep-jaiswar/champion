@@ -1,10 +1,64 @@
-"""Structured logging utilities."""
+"""Structured logging utilities with trace ID support."""
 
 import logging
 import sys
+import uuid
+from contextvars import ContextVar
+from typing import Any
 
 import structlog
 from structlog.typing import FilteringBoundLogger, Processor
+
+# Context variable to store trace ID across async operations
+_trace_id_var: ContextVar[str | None] = ContextVar("trace_id", default=None)
+
+
+def set_trace_id(trace_id: str | None = None) -> str:
+    """Set trace ID for the current context.
+
+    Args:
+        trace_id: Optional trace ID. If not provided, generates a new UUID.
+
+    Returns:
+        The trace ID that was set
+    """
+    if trace_id is None:
+        trace_id = str(uuid.uuid4())
+    _trace_id_var.set(trace_id)
+    return trace_id
+
+
+def get_trace_id() -> str | None:
+    """Get the current trace ID from context.
+
+    Returns:
+        Current trace ID or None if not set
+    """
+    return _trace_id_var.get()
+
+
+def clear_trace_id() -> None:
+    """Clear the trace ID from the current context."""
+    _trace_id_var.set(None)
+
+
+def add_trace_id(
+    logger: logging.Logger, method_name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
+    """Processor to add trace ID to log records.
+
+    Args:
+        logger: Logger instance
+        method_name: Logging method name
+        event_dict: Event dictionary
+
+    Returns:
+        Updated event dictionary with trace_id
+    """
+    trace_id = get_trace_id()
+    if trace_id is not None:
+        event_dict["trace_id"] = trace_id
+    return event_dict
 
 
 def get_logger(name: str) -> FilteringBoundLogger:
@@ -45,6 +99,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
 
     processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
+        add_trace_id,  # Add trace ID to all log records
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.dev.set_exc_info,
