@@ -57,6 +57,8 @@ class ClickHouseLoader:
         "bulk_block_deals": "normalized",
         "corporate_actions": "reference",
         "symbol_master": "reference",
+        "quarterly_financials": "reference",
+        "quarterly_financials_raw": "reference",
     }
 
     # Column name mapping: Parquet column -> ClickHouse column
@@ -96,6 +98,28 @@ class ClickHouseLoader:
         },
         "features_equity_indicators": {
             # Features table uses normalized names, no mapping needed yet
+        },
+        "quarterly_financials": {
+            # Common alternate names from NSE master / ETL parquet -> ClickHouse column
+            # Keep this conservative: rename obvious fields so inserts align to schema
+            "symbol": "symbol",
+            "company_name": "company_name",
+            "cin": "cin",
+            "period_end_date": "period_end_date",
+            "period_type": "period_type",
+            "statement_type": "statement_type",
+            "filing_date": "filing_date",
+            "revenue": "revenue",
+            "operating_profit": "operating_profit",
+            "net_profit": "net_profit",
+            "total_assets": "total_assets",
+            "total_liabilities": "total_liabilities",
+            "eps": "eps",
+            # ETL-level fields that sometimes exist — we'll pack any extras into `metadata`
+            "period_start": "period_start",
+            "audited": "audited",
+            "consolidated": "consolidated",
+            "xbrl": "xbrl",
         },
     }
 
@@ -149,22 +173,27 @@ class ClickHouseLoader:
                 except Exception as exc:
                     logger.debug(f"Native ClickHouse driver unavailable: {exc}")
                     self.native_client = None
-
-                # Also try to create an HTTP client for metadata queries (system.columns)
-                try:
-                    self.client = clickhouse_connect.get_client(
-                        host=self.host,
-                        port=8123,
-                        username=self.user,
-                        password=self.password,
-                        database=self.database,
-                    )
-                    logger.info(f"HTTP ClickHouse client for metadata at {self.host}:8123 created")
-                except Exception:
-                    # If HTTP client cannot be created, leave as None and rely on fallbacks
-                    logger.debug(
-                        "HTTP metadata client could not be created; some metadata queries may fail"
-                    )
+                # If native client created successfully, prefer it and avoid attempting
+                # an HTTP connection that may require different auth. Metadata queries
+                # will fall back to using row keys if HTTP is unavailable.
+                if self.native_client is not None:
+                    logger.info("Using native ClickHouse client; skipping HTTP metadata client")
+                else:
+                    # Try to create an HTTP client for metadata queries (system.columns)
+                    try:
+                        self.client = clickhouse_connect.get_client(
+                            host=self.host,
+                            port=8123,
+                            username=self.user,
+                            password=self.password,
+                            database=self.database,
+                        )
+                        logger.info(f"HTTP ClickHouse client for metadata at {self.host}:8123 created")
+                    except Exception:
+                        # If HTTP client cannot be created, leave as None and rely on fallbacks
+                        logger.debug(
+                            "HTTP metadata client could not be created; some metadata queries may fail"
+                        )
             else:
                 # Default to HTTP client (clickhouse-connect helper)
                 logger.info(f"Using HTTP ClickHouse client for {self.host}:{self.port}")
@@ -178,19 +207,32 @@ class ClickHouseLoader:
 
             logger.info(f"Connected to ClickHouse at {self.host}:{self.port}")
 
-            # Test connection
-            # Some client variants return results directly, others via a list of lines.
+            # Test connection using the available client
             try:
-                resp = self.client.command("SELECT 1")
-                logger.debug(f"Connection test response: {resp}")
+                if self.native_client is not None:
+                    # native_client.execute returns rows; just run a lightweight query
+                    try:
+                        self.native_client.execute("SELECT 1")
+                        logger.debug("Native client connection test succeeded")
+                    except Exception:
+                        logger.debug("Native client connection test failed; continuing")
+                elif self.client is not None:
+                    # Some client variants return results directly, others via a list of lines.
+                    try:
+                        resp = self.client.command("SELECT 1")
+                        logger.debug(f"Connection test response: {resp}")
+                    except Exception:
+                        try:
+                            # Attempt a lightweight query via alternate method
+                            self.client.query("SELECT 1")
+                        except Exception:
+                            raise
+                else:
+                    # No client could be created; raise to notify caller
+                    raise RuntimeError("No ClickHouse client available")
             except Exception:
-                # Older/native clients may expose a ping or simple query method
-                try:
-                    # Attempt a lightweight query
-                    self.client.query("SELECT 1")
-                except Exception:
-                    # If test fails, still allow upward error handling
-                    raise
+                # Allow upper layers to handle connection failures
+                raise
 
         except Exception as e:
             logger.error(f"Failed to connect to ClickHouse: {e}")
@@ -384,35 +426,108 @@ class ClickHouseLoader:
                 if normalized_rows:
                     try:
                         # Fetch table columns in order from system.columns
-                        cols_q = (
-                            "SELECT name, type FROM system.columns "
-                            f"WHERE database = '{self.database}' AND table = '{table}' "
-                            "ORDER BY position FORMAT JSON"
-                        )
-                        cols_json = self.client.command(cols_q)
                         import json
 
-                        # clickhouse-connect may return a list of lines; join if so
-                        if isinstance(cols_json, list):
-                            cols_json = "".join(cols_json)
-
-                        cols_obj = json.loads(cols_json)
-
-                        data = cols_obj.get("data", [])
+                        # Try to fetch table columns using whichever client is available.
                         columns = []
                         column_types = []
-                        for r in data:
-                            # r may be dict like {"name": ..., "type": ...}
-                            if isinstance(r, dict) and "name" in r:
-                                columns.append(r["name"])
-                                column_types.append(r.get("type"))
-                            elif isinstance(r, list | tuple) and len(r) > 1:
-                                columns.append(r[0])
-                                column_types.append(r[1])
+                        try:
+                            if self.client is not None:
+                                cols_q = (
+                                    "SELECT name, type FROM system.columns "
+                                    f"WHERE database = '{self.database}' AND table = '{table}' "
+                                    "ORDER BY position FORMAT JSON"
+                                )
+                                cols_json = self.client.command(cols_q)
+                                # clickhouse-connect may return a list of lines; join if so
+                                if isinstance(cols_json, list):
+                                    cols_json = "".join(cols_json)
+                                cols_obj = json.loads(cols_json)
+                                data = cols_obj.get("data", [])
+                                for r in data:
+                                    if isinstance(r, dict) and "name" in r:
+                                        columns.append(r["name"])
+                                        column_types.append(r.get("type"))
+                                    elif isinstance(r, (list, tuple)) and len(r) > 1:
+                                        columns.append(r[0])
+                                        column_types.append(r[1])
+                            elif self.native_client is not None:
+                                # clickhouse_driver native client returns list of tuples
+                                desc_rows = self.native_client.execute(
+                                    f"SELECT name, type FROM system.columns WHERE database = '{self.database}' AND table = '{table}' ORDER BY position"
+                                )
+                                for r in desc_rows:
+                                    if isinstance(r, dict) and "name" in r:
+                                        columns.append(r["name"])
+                                        column_types.append(r.get("type"))
+                                    elif isinstance(r, (list, tuple)) and len(r) > 1:
+                                        columns.append(r[0])
+                                        column_types.append(r[1])
+                            else:
+                                raise RuntimeError("No metadata client available to fetch table columns")
+                        except Exception as exc:
+                            logger.debug(f"Failed to fetch table columns for {table}: {exc}")
+                            # Fall back to using keys from first row if metadata lookup fails
+                            columns = list(normalized_rows[0].keys())
 
                         if not columns:
                             # Fallback: use keys from first row
                             columns = list(normalized_rows[0].keys())
+
+                        # Pack any extra fields (present in Parquet/CSV but not in table columns)
+                        # into the `metadata` Map column to avoid data loss. Also coerce
+                        # `consolidated` -> `statement_type` when helpful.
+                        try:
+                            import json as _json
+
+                            table_cols_set = set(columns)
+                            # Determine extra columns present in the input rows
+                            extras = set()
+                            if normalized_rows:
+                                extras = set(normalized_rows[0].keys()) - table_cols_set
+
+                            if extras and ("metadata" in table_cols_set or True):
+                                for row in normalized_rows:
+                                    # Initialize metadata from existing column if present
+                                    metadata_val = {}
+                                    if "metadata" in row and row.get("metadata"):
+                                        try:
+                                            if isinstance(row["metadata"], str):
+                                                metadata_val = _json.loads(row["metadata"]) if row["metadata"] else {}
+                                            elif isinstance(row["metadata"], dict):
+                                                metadata_val = row["metadata"]
+                                        except Exception:
+                                            metadata_val = {"metadata_raw": str(row.get("metadata"))}
+
+                                    # Move extras into metadata (stringify values)
+                                    for extra in list(extras):
+                                        if extra in row:
+                                            v = row.pop(extra)
+                                            # skip empty placeholders
+                                            if v is None or (isinstance(v, str) and v.strip() == ""):
+                                                continue
+                                            try:
+                                                metadata_val[extra] = v if isinstance(v, str) else str(v)
+                                            except Exception:
+                                                metadata_val[extra] = str(v)
+
+                                    # If `consolidated` exists and statement_type missing, set it
+                                    if "consolidated" in metadata_val and ("statement_type" not in row or not row.get("statement_type")):
+                                        c = metadata_val.get("consolidated")
+                                        if isinstance(c, bool):
+                                            row["statement_type"] = "CONSOLIDATED" if c else "STANDALONE"
+                                        else:
+                                            sval = str(c).strip().lower()
+                                            if sval in ("true", "yes", "1"):
+                                                row["statement_type"] = "CONSOLIDATED"
+                                            elif sval in ("false", "no", "0"):
+                                                row["statement_type"] = "STANDALONE"
+
+                                    # Assign back metadata as a dict (clickhouse-connect will serialize)
+                                    row["metadata"] = metadata_val
+                        except Exception:
+                            # Be tolerant: if metadata packing fails, continue with original rows
+                            logger.debug("Failed to pack extras into metadata; continuing without packing")
 
                     except Exception as exc:
                         logger.debug(f"Failed to fetch table columns for {table}: {exc}")
@@ -428,7 +543,9 @@ class ClickHouseLoader:
                     # sensible default for that column type to avoid insertion errors.
                     def _default_for_type(typ: str):
                         if typ is None:
-                            return None
+                            # Unknown type: return empty-string default to avoid
+                            # sending explicit None for non-nullable columns.
+                            return ""
                         t = typ.lower()
                         # For complex container types, return sensible empty container defaults
                         if "map" in t or t.startswith("map("):
@@ -458,7 +575,7 @@ class ClickHouseLoader:
                             if (
                                 val is None
                                 and col_type
-                                and not (col_type.lower().startswith("nullable("))
+                                and "nullable(" not in col_type.lower()
                             ):
                                 val = _default_for_type(col_type)
                             tup.append(val)
@@ -607,9 +724,182 @@ class ClickHouseLoader:
                         else:
                             # For HTTP client, prefer list-of-dicts to preserve complex types
                             try:
-                                aligned_dicts = [
-                                    dict(zip(columns, tup, strict=False)) for tup in aligned_tuples
-                                ]
+                                # Build list-of-dicts from coerced tuples and sanitize values
+                                aligned_dicts = [dict(zip(columns, tup)) for tup in aligned_tuples]
+
+                                # Log sample aligned dict (sanitized) at INFO for diagnostics
+                                try:
+                                    logger.info("Sanitized aligned dict sample for insert: %s", aligned_dicts[0] if aligned_dicts else None)
+                                except Exception:
+                                    pass
+
+                                # Ensure non-Nullable columns have sensible defaults and
+                                # `metadata` is a Map(String,String) without None values.
+                                # Build a column->type map for robust lookups
+                                col_type_map = {columns[i]: column_types[i] if i < len(column_types) else None for i in range(len(columns))}
+
+                                def _deep_stringify(obj):
+                                    """Recursively convert metadata to a dict[str,str] where all values
+                                    are strings. Nested dicts/lists are JSON-dumped; None/NA -> "".
+                                    """
+                                    import json as _json
+                                    import pandas as _pd
+                                    import numpy as _np
+
+                                    def _is_missing(x):
+                                        try:
+                                            if x is None:
+                                                return True
+                                            try:
+                                                if _pd.isna(x):
+                                                    return True
+                                            except Exception:
+                                                pass
+                                            if isinstance(x, float) and _np.isnan(x):
+                                                return True
+                                        except Exception:
+                                            pass
+                                        return False
+
+                                    # Primitive missing -> empty string
+                                    if _is_missing(obj):
+                                        return ""
+
+                                    # If it's a dict, produce a flat dict[str,str]
+                                    if isinstance(obj, dict):
+                                        out = {}
+                                        for k, v in obj.items():
+                                            key = str(k)
+                                            if _is_missing(v):
+                                                out[key] = ""
+                                            elif isinstance(v, dict):
+                                                # Dump nested dict as JSON string to ensure Map(String,String)
+                                                try:
+                                                    # sanitize nested None values
+                                                    sanitized = {str(kk): ("" if _is_missing(vv) else vv) for kk, vv in v.items()}
+                                                    out[key] = _json.dumps(sanitized, ensure_ascii=False)
+                                                except Exception:
+                                                    out[key] = str(v)
+                                            elif isinstance(v, (list, tuple)):
+                                                try:
+                                                    lst = ["" if _is_missing(i) else i for i in v]
+                                                    out[key] = _json.dumps(lst, ensure_ascii=False)
+                                                except Exception:
+                                                    out[key] = str(v)
+                                            else:
+                                                out[key] = str(v)
+                                        return out
+
+                                    # Lists/tuples -> JSON string
+                                    if isinstance(obj, (list, tuple)):
+                                        try:
+                                            lst = ["" if _is_missing(i) else i for i in obj]
+                                            return _json.dumps(lst, ensure_ascii=False)
+                                        except Exception:
+                                            return str(obj)
+
+                                    # Fallback: stringify
+                                    return str(obj)
+
+                                for row in aligned_dicts:
+                                    now_ms = int(datetime.utcnow().timestamp() * 1000)
+
+                                    # If envelope timestamps are missing, set current epoch ms
+                                    if "event_time" in row and row.get("event_time") is None:
+                                        row["event_time"] = now_ms
+                                    if "ingest_time" in row and row.get("ingest_time") is None:
+                                        row["ingest_time"] = now_ms
+
+                                    # Ensure every row has all columns present. Use type-aware defaults
+                                    # so list-of-dicts have a consistent key set for clickhouse-connect.
+                                    for col in columns:
+                                        val = row.get(col, None)
+                                        typ = col_type_map.get(col)
+                                        if val is None:
+                                            # Coerce missing/nonetype to a sensible default (avoid explicit None)
+                                            if typ and "nullable(" not in (typ or "").lower():
+                                                row[col] = _default_for_type(typ)
+                                            else:
+                                                # keep None for nullable columns
+                                                row[col] = None
+
+                                    # Normalize and sanitize metadata to Map(String,String)
+                                    if "metadata" in row:
+                                        m = row.get("metadata")
+                                        try:
+                                            # Use the aggressive deep-stringify helper defined above
+                                            if isinstance(m, str):
+                                                import json as _json
+
+                                                parsed = _json.loads(m) if m else {}
+                                                row["metadata"] = _deep_stringify(parsed)
+                                            else:
+                                                row["metadata"] = _deep_stringify(m)
+                                        except Exception:
+                                            # Fallback: coerce to a safe string-based dict
+                                            row["metadata"] = {"metadata_raw": str(m) if m is not None else ""}
+
+                                    # If ClickHouse expects a plain String for metadata (not Map),
+                                    # serialize the dict as JSON to avoid Map serialization errors.
+                                    try:
+                                        if "metadata" in columns:
+                                            meta_idx = columns.index("metadata")
+                                            meta_typ = (
+                                                column_types[meta_idx]
+                                                if meta_idx < len(column_types)
+                                                else None
+                                            )
+                                            if meta_typ and (
+                                                "string" in meta_typ.lower()
+                                                or "varchar" in meta_typ.lower()
+                                                or "text" in meta_typ.lower()
+                                            ):
+                                                import json as _json
+
+                                                if isinstance(row.get("metadata"), dict):
+                                                    row["metadata"] = _json.dumps(
+                                                        {k: ("" if v is None else str(v)) for k, v in row["metadata"].items()},
+                                                        ensure_ascii=False,
+                                                    )
+                                                else:
+                                                    row["metadata"] = str(row.get("metadata", ""))
+                                    except Exception:
+                                        # tolerant fallback: leave metadata as-is
+                                        pass
+
+                                # Pre-insert validation: ensure no non-Nullable column has None
+                                # and `metadata` (Map(String,String)) contains only string values.
+                                offenses: list[tuple[int, str, object]] = []
+                                meta_idx = None
+                                meta_typ = None
+                                if "metadata" in columns:
+                                    meta_idx = columns.index("metadata")
+                                    if meta_idx < len(column_types):
+                                        meta_typ = column_types[meta_idx]
+
+                                for ridx, r in enumerate(aligned_dicts):
+                                    for col in columns:
+                                        typ = col_type_map.get(col)
+                                        val = r.get(col)
+                                        if val is None and typ and "nullable(" not in (typ or "").lower():
+                                            offenses.append((ridx, col, val))
+                                    # Validate metadata map values when expected to be Map(String,String)
+                                    if meta_idx is not None and meta_typ and ("map" in (meta_typ or "").lower()):
+                                        mval = r.get("metadata")
+                                        if not isinstance(mval, dict):
+                                            offenses.append((ridx, "metadata", mval))
+                                        else:
+                                            for mk, mv in mval.items():
+                                                if mv is None or not isinstance(mv, str):
+                                                    offenses.append((ridx, f"metadata.{mk}", mv))
+
+                                if offenses:
+                                    # Log a concise sample of offending rows and raise a clear error
+                                    logger.error("Pre-insert validation failed: offending values found in non-nullable columns or metadata")
+                                    for off in offenses[:10]:
+                                        logger.error("Offense sample - row=%s column=%s value=%s", off[0], off[1], off[2])
+                                    raise ValueError("Pre-insert validation failed: non-nullable columns contain None or metadata contains invalid values")
+
                                 self.client.insert(table=table, data=aligned_dicts)
                             except Exception:
                                 # Fallback to previous behaviour if list-of-dicts fails
@@ -649,12 +939,23 @@ class ClickHouseLoader:
         if table in self.COLUMN_MAPPINGS and len(self.COLUMN_MAPPINGS[table]) > 0:
             mapping = self.COLUMN_MAPPINGS[table]
 
-            # Only rename columns that exist in the DataFrame
-            rename_map = {}
+            # Only rename columns that exist in the DataFrame. Match mapping
+            # keys against DataFrame columns in a case-insensitive manner so
+            # common variations (e.g., 'Symbol' vs 'symbol') are handled.
+            df_cols_lower = {col.lower(): col for col in df.columns}
+            rename_map: dict[str, str] = {}
             for source_col, target_col in mapping.items():
+                # Exact match preferred
                 if source_col in df.columns:
                     rename_map[source_col] = target_col
                     logger.debug(f"Mapping column: {source_col} -> {target_col}")
+                else:
+                    # Case-insensitive fallback
+                    lc = source_col.lower()
+                    if lc in df_cols_lower:
+                        actual_col = df_cols_lower[lc]
+                        rename_map[actual_col] = target_col
+                        logger.debug(f"Mapping column (case-insensitive): {actual_col} -> {target_col}")
 
             if rename_map:
                 df = df.rename(rename_map)
