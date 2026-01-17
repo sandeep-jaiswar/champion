@@ -66,6 +66,9 @@ def main() -> NoReturn:
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         sys.exit(1)
+    
+    # Should never reach here, but for type checking
+    sys.exit(0)
 
 
 if __name__ == "__main__":

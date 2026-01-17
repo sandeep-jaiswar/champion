@@ -12,12 +12,12 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.corporate_actions.ca_processor import (
     CorporateActionsProcessor,
     compute_adjustment_factors,
 )
 from champion.corporate_actions.price_adjuster import apply_adjustments
+
 from tests.fixtures.sample_data import create_sample_corporate_actions, create_sample_ohlc_data
 
 

@@ -4,7 +4,7 @@ import logging
 import sys
 import uuid
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from structlog.typing import FilteringBoundLogger, Processor
@@ -104,7 +104,7 @@ def configure_logging(log_level: str = "INFO", log_format: str = "json") -> None
 
     processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
-        add_trace_id,  # Add trace ID to all log records
+        cast(Processor, add_trace_id),  # Add trace ID to all log records
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
         structlog.dev.set_exc_info,

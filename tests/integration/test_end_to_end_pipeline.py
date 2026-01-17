@@ -12,11 +12,11 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.corporate_actions.ca_processor import compute_adjustment_factors
 from champion.corporate_actions.price_adjuster import apply_adjustments
 from champion.features.indicators import compute_features
 from champion.storage.parquet_io import write_df
+
 from tests.fixtures.sample_data import (
     create_sample_corporate_actions,
     create_sample_nse_bhavcopy_data,

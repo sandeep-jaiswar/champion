@@ -4,7 +4,6 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
-
 from champion.utils.circuit_breaker import CircuitBreaker, CircuitBreakerOpen, CircuitState
 
 

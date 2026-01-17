@@ -166,9 +166,9 @@ class TestIngestionPipeline:
 
         # Verify data types are preserved
         for col in sample_ohlc_data.columns:
-            assert df_read[col].dtype == sample_ohlc_data[col].dtype, (
-                f"Data type mismatch for {col}"
-            )
+            assert (
+                df_read[col].dtype == sample_ohlc_data[col].dtype
+            ), f"Data type mismatch for {col}"
 
     def test_end_to_end_ingestion_flow(self, sample_nse_data, test_data_dir):
         """Test complete ingestion pipeline from NSE data to Parquet."""

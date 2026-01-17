@@ -12,8 +12,8 @@ from datetime import date
 
 import polars as pl
 import pytest
-
 from champion.features.indicators import compute_ema, compute_features, compute_rsi, compute_sma
+
 from tests.fixtures.sample_data import create_sample_ohlc_data
 
 
