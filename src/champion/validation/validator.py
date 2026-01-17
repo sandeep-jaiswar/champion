@@ -940,8 +940,7 @@ class ParquetValidator:
 
         # If is_trading_day is True but volume is 0 (and close != prev_close), flag as warning
         violations = df.with_row_index("__idx__").filter(
-            (pl.col("is_trading_day") == True)  # noqa: E712
-            & (pl.col("volume") == 0)
+            pl.col("is_trading_day") & (pl.col("volume") == 0)
         )
 
         for row in violations.iter_rows(named=True):
