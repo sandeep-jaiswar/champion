@@ -132,7 +132,10 @@ def test_volume_consistency_violation(validator):
 
     result = validator.validate_dataframe(df, "test_ohlc")
     assert result.critical_failures > 0
-    assert any("volume" in e["field"].lower() and "trades" in e["field"].lower() for e in result.error_details)
+    assert any(
+        "volume" in e["field"].lower() and "trades" in e["field"].lower()
+        for e in result.error_details
+    )
 
 
 def test_turnover_consistency_warning(validator):
@@ -223,7 +226,10 @@ def test_freshness_check(validator):
 
     result = validator.validate_dataframe(df, "test_ohlc")
     # Should have warning for stale data
-    assert any("stale" in e["message"].lower() or "delay" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "stale" in e["message"].lower() or "delay" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_timestamp_validation(validator):
@@ -248,7 +254,10 @@ def test_timestamp_validation(validator):
 
     result = validator.validate_dataframe(df, "test_ohlc")
     assert result.critical_failures > 0
-    assert any("timestamp" in e["message"].lower() or "future" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "timestamp" in e["message"].lower() or "future" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_negative_price_validation(validator):
@@ -269,7 +278,10 @@ def test_negative_price_validation(validator):
 
     result = validator.validate_dataframe(df, "test_ohlc")
     assert result.critical_failures > 0
-    assert any("negative" in e["message"].lower() and "price" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "negative" in e["message"].lower() and "price" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_negative_volume_validation(validator):
@@ -290,7 +302,10 @@ def test_negative_volume_validation(validator):
 
     result = validator.validate_dataframe(df, "test_ohlc")
     assert result.critical_failures > 0
-    assert any("negative" in e["message"].lower() and "volume" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "negative" in e["message"].lower() and "volume" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_date_range_validation(validator):
@@ -312,7 +327,10 @@ def test_date_range_validation(validator):
 
     result = validator.validate_dataframe(df, "normalized_test_ohlc")
     assert result.critical_failures > 0
-    assert any("date" in e["message"].lower() and "range" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "date" in e["message"].lower() and "range" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_trading_day_completeness(validator):
@@ -334,7 +352,10 @@ def test_trading_day_completeness(validator):
 
     result = validator.validate_dataframe(df, "normalized_test_ohlc")
     # Should have warning for trading day with zero volume
-    assert any("trading day" in e["message"].lower() and "volume" in e["message"].lower() for e in result.error_details)
+    assert any(
+        "trading day" in e["message"].lower() and "volume" in e["message"].lower()
+        for e in result.error_details
+    )
 
 
 def test_price_continuity_after_ca(validator):

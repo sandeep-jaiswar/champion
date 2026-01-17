@@ -389,7 +389,10 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "critical",
                     "field": "close,high,low",
-                    "message": f"Close ({row['close']}) outside range [low={row['low']}, high={row['high']}]",
+                    "message": (
+                        f"Close ({row['close']}) outside range "
+                        f"[low={row['low']}, high={row['high']}]"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -424,7 +427,10 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "critical",
                     "field": "open,high,low",
-                    "message": f"Open ({row['open']}) outside range [low={row['low']}, high={row['high']}]",
+                    "message": (
+                        f"Open ({row['open']}) outside range "
+                        f"[low={row['low']}, high={row['high']}]"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -493,9 +499,21 @@ class ParquetValidator:
         errors: list[dict[str, Any]] = []
         
         # Map column names
-        volume_col = "volume" if "volume" in df.columns else "TtlTradgVol" if "TtlTradgVol" in df.columns else None
-        turnover_col = "turnover" if "turnover" in df.columns else "TtlTrfVal" if "TtlTrfVal" in df.columns else None
-        close_col = "close" if "close" in df.columns else "ClsPric" if "ClsPric" in df.columns else None
+        volume_col = (
+            "volume" if "volume" in df.columns
+            else "TtlTradgVol" if "TtlTradgVol" in df.columns
+            else None
+        )
+        turnover_col = (
+            "turnover" if "turnover" in df.columns
+            else "TtlTrfVal" if "TtlTrfVal" in df.columns
+            else None
+        )
+        close_col = (
+            "close" if "close" in df.columns
+            else "ClsPric" if "ClsPric" in df.columns
+            else None
+        )
 
         if not all([volume_col, turnover_col, close_col]):
             return errors
@@ -527,7 +545,11 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "warning",
                     "field": f"{turnover_col},{volume_col}",
-                    "message": f"Turnover deviation: {row['deviation_pct']:.1f}% (actual={row[turnover_col]}, expected≈{row['expected_turnover']:.2f})",
+                    "message": (
+                        f"Turnover deviation: {row['deviation_pct']:.1f}% "
+                        f"(actual={row[turnover_col]}, "
+                        f"expected≈{row['expected_turnover']:.2f})"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -546,8 +568,16 @@ class ParquetValidator:
         """
         errors: list[dict[str, Any]] = []
         
-        close_col = "close" if "close" in df.columns else "ClsPric" if "ClsPric" in df.columns else None
-        prev_close_col = "prev_close" if "prev_close" in df.columns else "PrvsClsgPric" if "PrvsClsgPric" in df.columns else None
+        close_col = (
+            "close" if "close" in df.columns
+            else "ClsPric" if "ClsPric" in df.columns
+            else None
+        )
+        prev_close_col = (
+            "prev_close" if "prev_close" in df.columns
+            else "PrvsClsgPric" if "PrvsClsgPric" in df.columns
+            else None
+        )
 
         if not all([close_col, prev_close_col]):
             return errors
@@ -574,7 +604,10 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "warning",
                     "field": close_col,
-                    "message": f"Price change {row['change_pct']:.1f}% exceeds threshold {self.max_price_change_pct}%",
+                    "message": (
+                        f"Price change {row['change_pct']:.1f}% exceeds "
+                        f"threshold {self.max_price_change_pct}%"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -609,7 +642,10 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "critical",
                     "field": "adjustment_factor",
-                    "message": f"Invalid adjustment factor: {row['adjustment_factor']} (must be > 0)",
+                    "message": (
+                        f"Invalid adjustment factor: {row['adjustment_factor']} "
+                        f"(must be > 0)"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -700,7 +736,10 @@ class ParquetValidator:
                     "row_index": row["__idx__"],
                     "error_type": "warning",
                     "field": "ingest_time,event_time",
-                    "message": f"Data stale: {delay_hours:.1f} hours delay (threshold: {self.max_freshness_hours}h)",
+                    "message": (
+                        f"Data stale: {delay_hours:.1f} hours delay "
+                        f"(threshold: {self.max_freshness_hours}h)"
+                    ),
                     "validator": "business_logic",
                     "record": dict(row),
                 }
@@ -916,7 +955,10 @@ class ParquetValidator:
                         "row_index": row["__idx__"],
                         "error_type": "critical",
                         "field": date_col,
-                        "message": f"Date out of range: {row[date_col]} (valid: {min_date}-{max_date})",
+                        "message": (
+                            f"Date out of range: {row[date_col]} "
+                            f"(valid: {min_date}-{max_date})"
+                        ),
                         "validator": "business_logic",
                         "record": dict(row),
                     }

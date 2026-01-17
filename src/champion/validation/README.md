@@ -135,14 +135,14 @@ Beyond JSON schema validation, the validator applies **15+ domain-specific busin
 
 ### Data Quality Validations (8 rules)
 
-8. **Duplicate Detection**: Unique records by `(symbol/instrument_id, date)`
-9. **Data Freshness**: `ingest_time - event_time < max_hours` (default: 48h)
-10. **Timestamp Validation**: Timestamps are positive and not in future
-11. **Missing Critical Data**: Required OHLC fields are not null
-12. **Non-negative Prices**: All price fields >= 0
-13. **Non-negative Volume**: All volume fields >= 0
-14. **Date Range**: Trade dates within reasonable range (1990-present)
-15. **Trading Day Completeness**: Trading days have volume > 0
+1. **Duplicate Detection**: Unique records by `(symbol/instrument_id, date)`
+2. **Data Freshness**: `ingest_time - event_time < max_hours` (default: 48h)
+3. **Timestamp Validation**: Timestamps are positive and not in future
+4. **Missing Critical Data**: Required OHLC fields are not null
+5. **Non-negative Prices**: All price fields >= 0
+6. **Non-negative Volume**: All volume fields >= 0
+7. **Date Range**: Trade dates within reasonable range (1990-present)
+8. **Trading Day Completeness**: Trading days have volume > 0
 
 ### Custom Validators (16+)
 
@@ -256,7 +256,7 @@ chart_data = reporter.generate_trend_chart_data(days=30)
 
 ### Sample Report Output
 
-```
+```text
 ================================================================================
 Validation Report - 2024-01-17
 ================================================================================

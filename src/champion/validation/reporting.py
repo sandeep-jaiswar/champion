@@ -343,7 +343,11 @@ class ValidationReporter:
         if report.trends:
             lines.append("Trends:")
             for trend in report.trends:
-                symbol = "📈" if trend.trend == "increasing" else "📉" if trend.trend == "decreasing" else "➡️"
+                symbol = (
+                    "📈" if trend.trend == "increasing"
+                    else "📉" if trend.trend == "decreasing"
+                    else "➡️"
+                )
                 anomaly_flag = " ⚠️ ANOMALY" if trend.is_anomaly else ""
                 lines.append(
                     f"  {symbol} {trend.metric_name}: {trend.current_value:.4f} "
