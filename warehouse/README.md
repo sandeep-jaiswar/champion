@@ -48,7 +48,7 @@ SHOW TABLES;
 pip install polars clickhouse-connect
 
 # Generate sample Parquet files
-python warehouse/loader/generate_sample_data.py
+python -m champion.warehouse.clickhouse.generate_sample_data
 ```
 
 This creates sample data in:
@@ -61,19 +61,19 @@ This creates sample data in:
 
 ```bash
 # Load raw equity OHLC data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --verify
 
 # Load normalized equity OHLC data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/ \
     --verify
 
 # Load features equity indicators data
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table features_equity_indicators \
     --source data/lake/features/equity_indicators/ \
     --verify
@@ -169,7 +169,7 @@ The features layer uses more developer-friendly names:
 
 #### Column Name Mapping
 
-The batch loader (`warehouse/loader/batch_loader.py`) includes a mapping layer that can translate between naming conventions. See `COLUMN_MAPPINGS` constant for supported mappings. This allows loading Parquet files that use either NSE names or normalized names.
+The batch loader (`champion.warehouse.clickhouse.batch_loader`) includes a mapping layer that can translate between naming conventions. See `COLUMN_MAPPINGS` constant for supported mappings. This allows loading Parquet files that use either NSE names or normalized names.
 
 ### Deduplication Strategy and Sort Keys
 
@@ -227,7 +227,7 @@ With the current schema design:
 ### Usage
 
 ```bash
-python -m warehouse.loader.batch_loader [OPTIONS]
+python -m champion.warehouse.clickhouse.batch_loader [OPTIONS]
 
 Required:
   --table TABLE          Target table (raw_equity_ohlc, normalized_equity_ohlc, features_equity_indicators)
@@ -250,7 +250,7 @@ Optional:
 #### Load single date partition
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/date=2024-01-15/
 ```
@@ -258,7 +258,7 @@ python -m warehouse.loader.batch_loader \
 #### Load entire dataset
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/ \
     --batch-size 50000 \
@@ -268,7 +268,7 @@ python -m warehouse.loader.batch_loader \
 #### Dry run (validate only)
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table features_equity_indicators \
     --source data/lake/features/equity_indicators/ \
     --dry-run \
@@ -282,7 +282,7 @@ export CLICKHOUSE_HOST=clickhouse.example.com
 export CLICKHOUSE_USER=champion_user
 export CLICKHOUSE_PASSWORD=secure_password
 
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/
 ```

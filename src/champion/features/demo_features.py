@@ -155,7 +155,7 @@ def main():
     print()
     logger.info("=== Demonstration Complete ===")
     logger.info("Features are ready to be loaded into ClickHouse using:")
-    logger.info("  python -m warehouse.loader.batch_loader \\")
+    logger.info("  python -m champion.warehouse.clickhouse.batch_loader \\")
     logger.info("    --table features_equity_indicators \\")
     logger.info(f"    --source {output_path}")
 

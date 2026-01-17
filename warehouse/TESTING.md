@@ -95,7 +95,7 @@ ls -lh data/lake/features/equity_indicators/*/*/*/*/
 #### 5a. Load Raw Data
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --verify \
@@ -110,7 +110,7 @@ Expected output:
 #### 5b. Load Normalized Data
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table normalized_equity_ohlc \
     --source data/lake/normalized/equity_ohlc/ \
     --verify \
@@ -125,7 +125,7 @@ Expected output:
 #### 5c. Load Features Data
 
 ```bash
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table features_equity_indicators \
     --source data/lake/features/equity_indicators/ \
     --verify \
@@ -334,7 +334,7 @@ pip install polars clickhouse-connect
 
 ```bash
 # Run in dry-run mode to see errors
-python -m warehouse.loader.batch_loader \
+python -m champion.warehouse.clickhouse.batch_loader \
     --table raw_equity_ohlc \
     --source data/lake/raw/equity_ohlc/ \
     --dry-run \

@@ -5,7 +5,7 @@ This module provides utilities to load Parquet data from the data lake
 into ClickHouse tables. Supports all three layers: raw, normalized, and features.
 
 Usage:
-    python -m warehouse.loader.batch_loader \\
+    python -m champion.warehouse.clickhouse.batch_loader \\
         --table raw_equity_ohlc \\
         --source data/lake/raw/equity_ohlc/date=2024-01-15/ \\
         --host localhost \\
