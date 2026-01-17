@@ -39,22 +39,26 @@ scrape_configs:
           component: 'database'
 
   # MLflow metrics (if exposed)
-  - job_name: 'mlflow'
-    static_configs:
-      - targets: ['mlflow:5000']
-        labels:
-          service: 'mlflow'
-          component: 'ml-tracking'
-    metrics_path: '/metrics'
+  # Note: MLflow does not expose Prometheus metrics by default
+  # You need to configure a metrics exporter or use MLflow's built-in metrics
+  # - job_name: 'mlflow'
+  #   static_configs:
+  #     - targets: ['mlflow:5000']
+  #       labels:
+  #         service: 'mlflow'
+  #         component: 'ml-tracking'
+  #   metrics_path: '/metrics'
 
   # Prefect metrics (if exposed)
-  - job_name: 'prefect'
-    static_configs:
-      - targets: ['prefect:4200']
-        labels:
-          service: 'prefect'
-          component: 'orchestration'
-    metrics_path: '/metrics'
+  # Note: Prefect does not expose Prometheus metrics by default
+  # You need to configure a metrics exporter for Prefect
+  # - job_name: 'prefect'
+  #   static_configs:
+  #     - targets: ['prefect:4200']
+  #       labels:
+  #         service: 'prefect'
+  #         component: 'orchestration'
+  #   metrics_path: '/metrics'
 
   # Grafana self-monitoring
   - job_name: 'grafana'

@@ -82,16 +82,20 @@ config:
     apiUrl: http://prefect-service:4200/api
 
 # Secrets (should be overridden in production)
+# WARNING: Never use default passwords in production!
+# Generate secure passwords using: openssl rand -base64 32
 secrets:
   clickhouse:
     user: champion_user
-    password: champion_pass
+    password: REPLACE_WITH_SECURE_PASSWORD
 
 # Persistence
 persistence:
   enabled: true
   storageClass: standard
-  accessMode: ReadWriteMany
+  # Using ReadWriteOnce for compatibility with most storage classes
+  # Change to ReadWriteMany if using NFS or cloud file systems
+  accessMode: ReadWriteOnce
   size: 100Gi
 
 # Health checks

@@ -49,6 +49,13 @@ def main() -> NoReturn:
     logger.info("Champion application starting...")
     logger.info("Signal handlers registered (SIGTERM, SIGINT)")
     
+    # Start health check server for container orchestration
+    from champion.core.health import start_health_server
+    try:
+        start_health_server(host="0.0.0.0", port=8080)
+    except Exception as e:
+        logger.warning(f"Failed to start health check server: {e}")
+    
     try:
         # Run the Typer CLI app
         app()

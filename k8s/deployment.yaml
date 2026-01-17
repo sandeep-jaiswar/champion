@@ -100,7 +100,9 @@ metadata:
   namespace: champion
 spec:
   accessModes:
-    - ReadWriteMany
+    # Using ReadWriteOnce for compatibility with most storage classes
+    # Change to ReadWriteMany if using NFS or cloud file systems
+    - ReadWriteOnce
   resources:
     requests:
       storage: 100Gi
