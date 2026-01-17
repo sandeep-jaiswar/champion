@@ -4,11 +4,11 @@ Provides structured logging with tracing capabilities.
 """
 
 from __future__ import annotations
+
 import logging
 import sys
 import uuid
 from contextvars import ContextVar
-from typing import Optional
 
 import structlog
 
@@ -34,10 +34,10 @@ def get_request_id() -> str:
 
 def get_logger(name: str) -> structlog.BoundLogger:
     """Get structured logger instance.
-    
+
     Args:
         name: Logger name (usually __name__)
-        
+
     Returns:
         Structlog bound logger with request context
     """
@@ -51,10 +51,10 @@ def get_logger(name: str) -> structlog.BoundLogger:
 def configure_logging(
     level: str = "INFO",
     format: str = "json",
-    handlers: Optional[list] = None,
+    handlers: list | None = None,
 ) -> None:
     """Configure logging for Champion platform.
-    
+
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         format: Output format (json, console)

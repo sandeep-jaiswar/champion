@@ -20,6 +20,7 @@ from typing import Any
 try:
     import mlflow
 except Exception:  # pragma: no cover - fallback when mlflow isn't installed (tests/dev env)
+
     class _MLFlowShim:
         def set_tracking_uri(self, *args, **kwargs):
             return None
@@ -29,7 +30,7 @@ except Exception:  # pragma: no cover - fallback when mlflow isn't installed (te
 
         def log_metric(self, *args, **kwargs):
             return None
-        
+
         from contextlib import contextmanager
 
         @contextmanager
@@ -39,10 +40,12 @@ except Exception:  # pragma: no cover - fallback when mlflow isn't installed (te
     mlflow = _MLFlowShim()
 import polars as pl
 import structlog
+
 try:
     from prefect import flow, task
     from prefect.tasks import task_input_hash
 except Exception:  # pragma: no cover - provide lightweight fallbacks for testing
+
     def task(*_args, **_kwargs):
         def _decorator(func):
             return func
@@ -57,6 +60,7 @@ except Exception:  # pragma: no cover - provide lightweight fallbacks for testin
 
     def task_input_hash(*_args, **_kwargs):
         return None
+
 
 from champion.config import config
 from champion.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
@@ -215,7 +219,8 @@ def scrape_bhavcopy(trade_date: date) -> str:
                                     / f"day={day:02d}"
                                 )
                                 expected_output_file = (
-                                    partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                                    partition_path
+                                    / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
                                 )
                                 partition_path.mkdir(parents=True, exist_ok=True)
                                 create_idempotency_marker(
@@ -236,7 +241,7 @@ def scrape_bhavcopy(trade_date: date) -> str:
                     except Exception:
                         # Propagate underlying scraper exceptions to callers/tests
                         raise
-                elif isinstance(e, (ConnectionError, TimeoutError)):
+                elif isinstance(e, ConnectionError | TimeoutError):
                     # Network-related errors are retryable, fallback to direct download
                     logger.warning(
                         "scraper_network_error_fallback_to_direct", error=str(e), retryable=True
@@ -281,7 +286,9 @@ def scrape_bhavcopy(trade_date: date) -> str:
                         return str(local_path)
                 else:
                     # Other errors, fallback to direct file download (older interface)
-                    logger.warning("scraper_error_fallback_to_direct", error=str(e), retryable=False)
+                    logger.warning(
+                        "scraper_error_fallback_to_direct", error=str(e), retryable=False
+                    )
                     if not scraper.download_file(url, str(local_path)):
                         # Treat download failures (e.g., 404) as non-fatal: create idempotency marker and continue
                         try:
@@ -344,6 +351,7 @@ def scrape_bhavcopy(trade_date: date) -> str:
             retryable=True,
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"bhavcopy_scrape_network_failed retryable=True trade_date={trade_date} error={e}"
         )
@@ -353,6 +361,7 @@ def scrape_bhavcopy(trade_date: date) -> str:
             "bhavcopy_scrape_file_failed", trade_date=str(trade_date), error=str(e), retryable=True
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"bhavcopy_scrape_file_failed retryable=True trade_date={trade_date} error={e}"
         )
@@ -365,6 +374,7 @@ def scrape_bhavcopy(trade_date: date) -> str:
             retryable=False,
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"bhavcopy_scrape_validation_failed retryable=False trade_date={trade_date} error={e}"
         )
@@ -374,6 +384,7 @@ def scrape_bhavcopy(trade_date: date) -> str:
             "bhavcopy_scrape_fatal_error", trade_date=str(trade_date), error=str(e), retryable=False
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"bhavcopy_scrape_fatal_error retryable=False trade_date={trade_date} error={e}"
         )
@@ -433,6 +444,7 @@ def parse_polars_raw(csv_file_path: str, trade_date: date) -> pl.DataFrame:
             retryable=True,
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"polars_parse_file_failed retryable=True csv_file_path={csv_file_path} error={e}"
         )
@@ -446,6 +458,7 @@ def parse_polars_raw(csv_file_path: str, trade_date: date) -> pl.DataFrame:
             retryable=False,
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"polars_parse_validation_failed retryable=False csv_file_path={csv_file_path} error={e}"
         )
@@ -455,6 +468,7 @@ def parse_polars_raw(csv_file_path: str, trade_date: date) -> pl.DataFrame:
             "polars_parse_fatal_error", csv_file_path=csv_file_path, error=str(e), retryable=False
         )
         import logging
+
         logging.getLogger(__name__).error(
             f"polars_parse_fatal_error retryable=False csv_file_path={csv_file_path} error={e}"
         )
@@ -632,11 +646,15 @@ def normalize_polars(df: pl.DataFrame) -> pl.DataFrame:
     except ValueError as e:
         logger.error("normalization_validation_failed", error=str(e), retryable=False)
         import logging
-        logging.getLogger(__name__).error(f"normalization_validation_failed retryable=False error={e}")
+
+        logging.getLogger(__name__).error(
+            f"normalization_validation_failed retryable=False error={e}"
+        )
         raise
     except Exception as e:
         logger.critical("normalization_fatal_error", error=str(e), retryable=False)
         import logging
+
         logging.getLogger(__name__).error(f"normalization_fatal_error retryable=False error={e}")
         raise RuntimeError(f"Fatal error during normalization: {e}") from e
 
@@ -774,6 +792,7 @@ def write_parquet(
     except OSError as e:
         logger.error("parquet_write_io_failed", error=str(e), retryable=True)
         import logging
+
         logging.getLogger(__name__).error(f"parquet_write_io_failed retryable=True error={e}")
         # Track failure in Prometheus
         metrics.parquet_write_failed.labels(table="normalized_equity_ohlc").inc()
@@ -781,7 +800,10 @@ def write_parquet(
     except ValueError as e:
         logger.error("parquet_write_validation_failed", error=str(e), retryable=False)
         import logging
-        logging.getLogger(__name__).error(f"parquet_write_validation_failed retryable=False error={e}")
+
+        logging.getLogger(__name__).error(
+            f"parquet_write_validation_failed retryable=False error={e}"
+        )
         # Log validation failure metrics
         mlflow.log_metric("validation_pass_rate", 0.0)
         mlflow.log_metric("validation_failures", 1)
@@ -791,6 +813,7 @@ def write_parquet(
     except Exception as e:
         logger.critical("parquet_write_fatal_error", error=str(e), retryable=False)
         import logging
+
         logging.getLogger(__name__).error(f"parquet_write_fatal_error retryable=False error={e}")
         # Track failure in Prometheus
         metrics.parquet_write_failed.labels(table="normalized_equity_ohlc").inc()
@@ -1116,6 +1139,7 @@ def nse_bhavcopy_etl_flow(
             )
 
             import logging
+
             logging.getLogger(__name__).error(
                 f"etl_flow_network_failed retryable=True trade_date={trade_date} error={e}"
             )
@@ -1143,6 +1167,7 @@ def nse_bhavcopy_etl_flow(
             )
 
             import logging
+
             logging.getLogger(__name__).error(
                 f"etl_flow_file_failed retryable=True trade_date={trade_date} error={e}"
             )
@@ -1170,6 +1195,7 @@ def nse_bhavcopy_etl_flow(
             )
 
             import logging
+
             logging.getLogger(__name__).error(
                 f"etl_flow_validation_failed retryable=False trade_date={trade_date} error={e}"
             )
@@ -1197,6 +1223,7 @@ def nse_bhavcopy_etl_flow(
             )
 
             import logging
+
             logging.getLogger(__name__).critical(
                 f"etl_flow_fatal_error FATAL retryable=False trade_date={trade_date} error={e}"
             )

@@ -9,14 +9,17 @@ from pathlib import Path
 
 import polars as pl
 import structlog
+
 try:
     from prefect import task
 except Exception:  # pragma: no cover - fallback for environments without prefect
+
     def task(*_args, **_kwargs):
         def _decorator(func):
             return func
 
         return _decorator
+
 
 from champion.parsers.polars_bse_parser import PolarsBseParser
 from champion.scrapers.nse.bse_bhavcopy import BseBhavcopyScraper

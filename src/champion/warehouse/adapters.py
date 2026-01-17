@@ -5,20 +5,20 @@ Enables easy switching between different warehouse backends.
 """
 
 from __future__ import annotations
+
 from abc import abstractmethod
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import polars as pl
 
-from champion.core import DataSink, get_logger, IntegrationError, DataError
+from champion.core import DataError, DataSink, IntegrationError, get_logger
 
 logger = get_logger(__name__)
 
 
 class WarehouseSink(DataSink):
     """Base adapter for writing data to warehouse.
-    
+
     Implementations: ClickHouseSink, SnowflakeSink, BigQuerySink
     """
 
@@ -45,7 +45,7 @@ class WarehouseSink(DataSink):
 
 class ClickHouseSink(WarehouseSink):
     """ClickHouse warehouse adapter.
-    
+
     Writes data to ClickHouse with:
     - Batch optimization
     - Partition management
@@ -95,7 +95,7 @@ class ClickHouseSink(WarehouseSink):
                 service="ClickHouse",
                 message=f"Failed to connect: {e}",
                 retryable=True,
-            )
+            ) from e
 
     def disconnect(self) -> None:
         """Close connection to ClickHouse."""
@@ -105,12 +105,12 @@ class ClickHouseSink(WarehouseSink):
 
     def write(self, data: pl.DataFrame, table_name: str, **kwargs) -> dict[str, Any]:
         """Write DataFrame to ClickHouse table.
-        
+
         Args:
             data: Polars DataFrame to write
             table_name: Target table name
             **kwargs: Additional options (mode, etc)
-            
+
         Returns:
             Statistics: rows_written, bytes_written, duration_ms, etc
         """
@@ -159,7 +159,7 @@ class ClickHouseSink(WarehouseSink):
             raise DataError(
                 message=f"Failed to write to {table_name}: {e}",
                 retryable=True,
-            )
+            ) from e
 
     def write_batch(self, batches: list[pl.DataFrame], table_name: str, **kwargs) -> dict[str, Any]:
         """Write multiple batches to warehouse."""
@@ -185,7 +185,7 @@ class ClickHouseSink(WarehouseSink):
         try:
             self.client.query(f"SHOW TABLES FROM {self.database} LIKE '{table_name}'")
             return True
-        except:
+        except Exception:
             return False
 
     def create_table_if_not_exists(self, table_name: str, schema: dict) -> None:

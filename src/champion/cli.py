@@ -315,14 +315,19 @@ def etl_combined_equity(
         )
         raise
 
+
 @app.command("etl-quarterly-financials")
 def etl_quarterly_financials(
     start_date: str | None = typer.Option(None, help="Start date YYYY-MM-DD for range run"),
     end_date: str | None = typer.Option(None, help="End date YYYY-MM-DD for range run"),
     symbol: str | None = typer.Option(None, help="Optional symbol to query (e.g., TCS)"),
     issuer: str | None = typer.Option(None, help="Optional issuer name for symbol queries"),
-    filter_audited: bool = typer.Option(False, help="Only download documents for rows where audited='Audited'"),
-    load_to_clickhouse: bool = typer.Option(False, help="Load results into ClickHouse after download"),
+    filter_audited: bool = typer.Option(
+        False, help="Only download documents for rows where audited='Audited'"
+    ),
+    load_to_clickhouse: bool = typer.Option(
+        False, help="Load results into ClickHouse after download"
+    ),
 ):
     """Run quarterly financials ETL flow."""
     try:
@@ -353,12 +358,13 @@ def etl_quarterly_financials(
         parsed_rows = []
         try:
             # local import to avoid adding heavy deps at module import time
-            from champion.parsers.xbrl_parser import parse_xbrl_file
             import polars as pl
+
+            from champion.parsers.xbrl_parser import parse_xbrl_file
 
             for p in saved_files:
                 try:
-                    if str(p).lower().endswith('.xml'):
+                    if str(p).lower().endswith(".xml"):
                         rec = parse_xbrl_file(Path(p))
                         parsed_rows.append(rec)
                 except Exception:
@@ -370,8 +376,10 @@ def etl_quarterly_financials(
         # Optionally write Parquet and upload master rows into ClickHouse in batch
         if load_to_clickhouse:
             try:
-                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+                import pandas as pd
                 import polars as pl
+
+                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
                 # Normalize/master -> Parquet column mapping to match ClickHouse schema
                 today = date.today().isoformat()
@@ -404,7 +412,13 @@ def etl_quarterly_financials(
                 # Coerce year to integer when possible
                 if "year" in pdf.columns:
                     try:
-                        pdf["year"] = pdf["year"].astype(str).str.extract(r"(\d{4})")[0].astype(float).astype("Int64")
+                        pdf["year"] = (
+                            pdf["year"]
+                            .astype(str)
+                            .str.extract(r"(\d{4})")[0]
+                            .astype(float)
+                            .astype("Int64")
+                        )
                     except Exception:
                         pass
 
@@ -420,7 +434,9 @@ def etl_quarterly_financials(
                         # Try parsing period_end_date month to quarter
                         if "period_end_date" in pdf.columns:
                             try:
-                                pdf["period_end_date"] = pd.to_datetime(pdf["period_end_date"], errors="coerce")
+                                pdf["period_end_date"] = pd.to_datetime(
+                                    pdf["period_end_date"], errors="coerce"
+                                )
                                 qseries = pdf["period_end_date"].dt.quarter
                             except Exception:
                                 qseries = None
@@ -475,7 +491,11 @@ def etl_quarterly_financials(
                     try:
                         syms = pldf.select("symbol").unique().to_series().to_list()
                     except Exception:
-                        syms = pdf.get("symbol").dropna().unique().tolist() if "symbol" in pdf.columns else []
+                        syms = (
+                            pdf.get("symbol").dropna().unique().tolist()
+                            if "symbol" in pdf.columns
+                            else []
+                        )
 
                     for sym in syms:
                         safe_sym = str(sym) if sym is not None else ""
@@ -515,10 +535,14 @@ def etl_quarterly_financials(
                     source_path = str(base / f"symbol={symbol}")
 
                 if dry_run:
-                    stats = loader.load_parquet_files(table=target_table, source_path=source_path, dry_run=True)
+                    stats = loader.load_parquet_files(
+                        table=target_table, source_path=source_path, dry_run=True
+                    )
                 else:
                     loader.connect()
-                    stats = loader.load_parquet_files(table=target_table, source_path=source_path, dry_run=False)
+                    stats = loader.load_parquet_files(
+                        table=target_table, source_path=source_path, dry_run=False
+                    )
                     # If we parsed XBRL files above, try inserting them directly
                     try:
                         if parsed_rows:
@@ -530,9 +554,13 @@ def etl_quarterly_financials(
                                 pldf = None
                             if pldf is not None and len(pldf) > 0:
                                 # Insert parsed facts into canonical table
-                                loader.insert_polars_dataframe(table='quarterly_financials', df=pldf, dry_run=dry_run)
+                                loader.insert_polars_dataframe(
+                                    table="quarterly_financials", df=pldf, dry_run=dry_run
+                                )
                     except Exception as e:
-                        typer.secho(f"ClickHouse insert of parsed XBRL failed: {e}", fg=typer.colors.RED)
+                        typer.secho(
+                            f"ClickHouse insert of parsed XBRL failed: {e}", fg=typer.colors.RED
+                        )
                     loader.disconnect()
                 typer.echo(f"ClickHouse load result: {stats}")
             except Exception as e:

@@ -10,7 +10,7 @@ All warehouse operations implement champion.core.DataSink interface.
 - `models/`: Data models for warehouse tables
 """
 
-from .adapters import WarehouseSink, ClickHouseSink
+from .adapters import ClickHouseSink, WarehouseSink
 
 __all__ = [
     "WarehouseSink",

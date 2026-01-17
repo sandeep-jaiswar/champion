@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import List, Optional
 import os
 import time
+from pathlib import Path
+from urllib.parse import quote_plus
+
 import httpx
 import pandas as pd
-from urllib.parse import quote_plus
 
 from champion.utils.logger import get_logger
 
@@ -33,7 +33,7 @@ class QuarterlyResultsScraper:
         "?index=equities&from_date={from_date}&to_date={to_date}&period={period}&csv=true"
     )
 
-    def __init__(self, user_agent: Optional[str] = None) -> None:
+    def __init__(self, user_agent: str | None = None) -> None:
         self.user_agent = (
             user_agent
             or "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36"
@@ -44,9 +44,9 @@ class QuarterlyResultsScraper:
         from_date: str,
         to_date: str,
         period: str = "Quarterly",
-        out_dir: Optional[Path] = None,
-        symbol: Optional[str] = None,
-        issuer: Optional[str] = None,
+        out_dir: Path | None = None,
+        symbol: str | None = None,
+        issuer: str | None = None,
         filter_audited: bool = False,
         retries: int = 0,
         backoff: float = 1.0,
@@ -113,14 +113,18 @@ class QuarterlyResultsScraper:
         # Parse response depending on content type
         content_type = r.headers.get("content-type", "")
         df: pd.DataFrame
-        if not is_csv or "application/json" in content_type or content_type.startswith("application/"):
+        if (
+            not is_csv
+            or "application/json" in content_type
+            or content_type.startswith("application/")
+        ):
             # Try parsing JSON response
             try:
                 j = r.json()
                 if isinstance(j, dict):
                     # try common keys
                     for k in ("data", "results", "rows", "result"):
-                        if k in j and isinstance(j[k], (list,)):
+                        if k in j and isinstance(j[k], list):
                             j = j[k]
                             break
                     else:
@@ -166,7 +170,7 @@ class QuarterlyResultsScraper:
 
         return df
 
-    def _candidate_urls_from_row(self, row: pd.Series) -> List[str]:
+    def _candidate_urls_from_row(self, row: pd.Series) -> list[str]:
         # Be flexible with column names (case-insensitive, compact variants)
         if row is None:
             return []
@@ -217,7 +221,7 @@ class QuarterlyResultsScraper:
 
         return []
 
-    def download_documents(self, master: pd.DataFrame, out_dir: Optional[Path] = None) -> List[Path]:
+    def download_documents(self, master: pd.DataFrame, out_dir: Path | None = None) -> list[Path]:
         """Download referenced documents from the master DataFrame into `out_dir`.
 
         If `out_dir` is not provided defaults to `data/quarterly_documents/`.
@@ -227,7 +231,7 @@ class QuarterlyResultsScraper:
         else:
             out_path = Path("data/quarterly_documents")
         out_path.mkdir(parents=True, exist_ok=True)
-        saved: List[Path] = []
+        saved: list[Path] = []
         headers = {"User-Agent": self.user_agent}
         with httpx.Client(timeout=30.0, headers=headers) as client:
             for idx, row in master.iterrows():
@@ -255,12 +259,21 @@ class QuarterlyResultsScraper:
                                     attempt += 1
                                     if attempt >= max_attempts:
                                         # give up on this URL and move on
-                                        logger.warning("download_give_up", url=url, attempts=attempt, error=str(e))
+                                        logger.warning(
+                                            "download_give_up",
+                                            url=url,
+                                            attempts=attempt,
+                                            error=str(e),
+                                        )
                                         raise
-                                    logger.warning("download_retry", url=url, attempt=attempt, error=str(e))
+                                    logger.warning(
+                                        "download_retry", url=url, attempt=attempt, error=str(e)
+                                    )
                                     time.sleep(0.5 * attempt)
                         except Exception as e:
-                            logger.exception("download_exception", index=int(idx), url=url, error=str(e))
+                            logger.exception(
+                                "download_exception", index=int(idx), url=url, error=str(e)
+                            )
                             continue
                         # choose extension
                         ext = None
@@ -289,7 +302,9 @@ class QuarterlyResultsScraper:
                         except Exception:
                             sym_val = "unknown"
                         # sanitize symbol/company for filesystem
-                        safe_sym = "".join(c if (c.isalnum() or c in ("-", "_")) else "_" for c in sym_val)[:64]
+                        safe_sym = "".join(
+                            c if (c.isalnum() or c in ("-", "_")) else "_" for c in sym_val
+                        )[:64]
                         fn = out_path / f"{safe_sym}_{idx}_{Path(url).name}"
                         # ensure extension
                         if not fn.suffix:
@@ -298,7 +313,9 @@ class QuarterlyResultsScraper:
                         saved.append(fn)
                         logger.info("download_saved", path=str(fn), url=url)
                     except Exception as e:
-                        logger.exception("download_exception", index=int(idx), url=url, error=str(e))
+                        logger.exception(
+                            "download_exception", index=int(idx), url=url, error=str(e)
+                        )
         return saved
 
     def normalize_master_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -346,7 +363,9 @@ class QuarterlyResultsScraper:
         for dtcol in ("exchdisstime", "broadCastDate"):
             if dtcol in pdf.columns:
                 try:
-                    pdf[dtcol] = pd.to_datetime(pdf[dtcol], errors="coerce").dt.strftime("%Y-%m-%d %H:%M:%S")
+                    pdf[dtcol] = pd.to_datetime(pdf[dtcol], errors="coerce").dt.strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
                 except Exception:
                     pdf[dtcol] = None
 
@@ -359,7 +378,9 @@ class QuarterlyResultsScraper:
                         pdf["quarter"] = pd.to_numeric(q, errors="coerce").fillna(0).astype(int)
                 if "quarter" not in pdf.columns or pdf["quarter"].isnull().all():
                     if "period_end_date" in pdf.columns:
-                        pdf["period_end_date"] = pd.to_datetime(pdf["period_end_date"], errors="coerce")
+                        pdf["period_end_date"] = pd.to_datetime(
+                            pdf["period_end_date"], errors="coerce"
+                        )
                         pdf["quarter"] = pdf["period_end_date"].dt.quarter.fillna(0).astype(int)
             except Exception:
                 pass
@@ -371,9 +392,9 @@ def get_master(
     start_date,
     end_date,
     period: str = "Quarterly",
-    out_dir: Optional[Path] = None,
-    symbol: Optional[str] = None,
-    issuer: Optional[str] = None,
+    out_dir: Path | None = None,
+    symbol: str | None = None,
+    issuer: str | None = None,
     filter_audited: bool = False,
     retries: int = 3,
     backoff: float = 1.0,
@@ -405,4 +426,3 @@ def get_master(
         retries=retries,
         backoff=backoff,
     )
-

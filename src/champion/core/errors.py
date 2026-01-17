@@ -4,12 +4,11 @@ Provides domain-specific exceptions with recovery strategies.
 """
 
 from __future__ import annotations
-from typing import Optional
 
 
 class ChampionError(Exception):
     """Base exception for all Champion platform errors.
-    
+
     Attributes:
         message: Human-readable error description
         code: Machine-readable error code for logging/monitoring
@@ -22,7 +21,7 @@ class ChampionError(Exception):
         message: str,
         code: str = "INTERNAL_ERROR",
         retryable: bool = False,
-        recovery_hint: Optional[str] = None,
+        recovery_hint: str | None = None,
     ):
         self.message = message
         self.code = code
@@ -39,7 +38,7 @@ class ChampionError(Exception):
 
 class ValidationError(ChampionError):
     """Raised when data validation fails.
-    
+
     Examples:
         - JSON schema violation
         - Data type mismatch
@@ -49,8 +48,8 @@ class ValidationError(ChampionError):
     def __init__(
         self,
         message: str,
-        details: Optional[dict] = None,
-        recovery_hint: Optional[str] = None,
+        details: dict | None = None,
+        recovery_hint: str | None = None,
     ):
         super().__init__(
             message,
@@ -63,7 +62,7 @@ class ValidationError(ChampionError):
 
 class DataError(ChampionError):
     """Raised on data processing failures.
-    
+
     Examples:
         - Read/write failures
         - Encoding issues
@@ -74,7 +73,7 @@ class DataError(ChampionError):
         self,
         message: str,
         retryable: bool = True,
-        recovery_hint: Optional[str] = None,
+        recovery_hint: str | None = None,
     ):
         super().__init__(
             message,
@@ -86,7 +85,7 @@ class DataError(ChampionError):
 
 class IntegrationError(ChampionError):
     """Raised on external integration failures.
-    
+
     Examples:
         - HTTP request failures
         - Database connection errors
@@ -98,7 +97,7 @@ class IntegrationError(ChampionError):
         service: str,
         message: str,
         retryable: bool = True,
-        recovery_hint: Optional[str] = None,
+        recovery_hint: str | None = None,
     ):
         super().__init__(
             f"{service}: {message}",
@@ -112,7 +111,7 @@ class IntegrationError(ChampionError):
 class ConfigError(ChampionError):
     """Raised on configuration errors."""
 
-    def __init__(self, message: str, recovery_hint: Optional[str] = None):
+    def __init__(self, message: str, recovery_hint: str | None = None):
         super().__init__(
             message,
             code="CONFIG_ERROR",
