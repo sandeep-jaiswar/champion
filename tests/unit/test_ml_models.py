@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from champion.ml.alerts import AlertGenerator, AlertSeverity, AlertType
 from champion.ml.backtesting import Backtester
 from champion.ml.models.anomaly_detector import AutoencoderDetector, IsolationForestDetector

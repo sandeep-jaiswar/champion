@@ -1,19 +1,16 @@
 """Integration tests for ML pipeline."""
 
-from datetime import date, timedelta
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-
 from champion.ml import (
-    LSTMPricePredictor,
-    IsolationForestDetector,
-    PortfolioOptimizer,
-    Backtester,
-    PredictionServer,
     AlertGenerator,
+    Backtester,
+    IsolationForestDetector,
+    LSTMPricePredictor,
+    PortfolioOptimizer,
+    PredictionServer,
 )
 
 

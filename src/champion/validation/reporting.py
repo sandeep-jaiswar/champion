@@ -14,10 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import polars as pl
 import structlog
-
-from champion.validation.validator import ValidationResult
 
 logger = structlog.get_logger()
 
@@ -133,7 +130,7 @@ class ValidationReporter:
         failure_rate = total_failures / total_rows if total_rows > 0 else 0.0
 
         schemas = list(set(e["schema_name"] for e in date_entries))
-        
+
         # Collect all rules applied
         all_rules = set()
         for e in date_entries:
@@ -185,7 +182,7 @@ class ValidationReporter:
         # Load previous period (same length as current)
         all_entries = self.load_audit_log(days=60)
         current_date = current_entries[0]["timestamp"][:10]
-        
+
         # Calculate metrics for current period
         current_total_rows = sum(e["total_rows"] for e in current_entries)
         current_failures = sum(e["failed_rows"] for e in current_entries)
@@ -316,7 +313,7 @@ class ValidationReporter:
         lines.append(f"Validation Report - {report.report_date}")
         lines.append("=" * 80)
         lines.append("")
-        
+
         # Summary
         lines.append("Summary:")
         lines.append(f"  Total Validations:    {report.total_validations}")
@@ -363,7 +360,7 @@ class ValidationReporter:
             lines.append("")
 
         lines.append("=" * 80)
-        
+
         return "\n".join(lines)
 
     def save_report(self, report: ValidationReport, output_dir: Path) -> Path:

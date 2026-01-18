@@ -1,10 +1,11 @@
 """Core validation utilities for Parquet datasets."""
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import polars as pl
 import structlog
@@ -28,7 +29,7 @@ class ValidationResult:
 
 class ParquetValidator:
     """Validates Parquet files against JSON schemas with comprehensive business rules.
-    
+
     Features:
     - Schema validation (JSON Schema Draft 7)
     - 15+ business logic validation rules
@@ -80,7 +81,7 @@ class ParquetValidator:
         self, name: str, validator_func: Callable[[pl.DataFrame], list[dict[str, Any]]]
     ) -> None:
         """Register a custom validation function.
-        
+
         Args:
             name: Name of the custom validator
             validator_func: Function that takes a DataFrame and returns list of error dicts
@@ -448,14 +449,14 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         # Check for volume field (could be 'volume' or 'TtlTradgVol')
         volume_col = None
         if "volume" in df.columns:
             volume_col = "volume"
         elif "TtlTradgVol" in df.columns:
             volume_col = "TtlTradgVol"
-        
+
         # Check for trades field (could be 'trades' or 'TtlNbOfTxsExctd')
         trades_col = None
         if "trades" in df.columns:
@@ -497,7 +498,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         # Map column names
         volume_col = (
             "volume" if "volume" in df.columns
@@ -567,7 +568,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         close_col = (
             "close" if "close" in df.columns
             else "ClsPric" if "ClsPric" in df.columns
@@ -625,7 +626,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         if "adjustment_factor" not in df.columns or "adjustment_date" not in df.columns:
             return errors
 
@@ -664,14 +665,14 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         # Determine uniqueness keys based on schema
         key_cols = []
         if "entity_id" in df.columns or "instrument_id" in df.columns:
             key_cols.append("entity_id" if "entity_id" in df.columns else "instrument_id")
         elif "symbol" in df.columns:
             key_cols.append("symbol")
-        
+
         if "trade_date" in df.columns:
             key_cols.append("trade_date")
         elif "TradDt" in df.columns:
@@ -690,7 +691,7 @@ class ParquetValidator:
             dup_groups = duplicates.group_by(key_cols).agg(
                 pl.col("__idx__").alias("indices")
             )
-            
+
             for row in dup_groups.iter_rows(named=True):
                 key_str = ", ".join([f"{k}={row[k]}" for k in key_cols])
                 indices = row["indices"]
@@ -717,7 +718,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         if "event_time" not in df.columns or "ingest_time" not in df.columns:
             return errors
 
@@ -757,7 +758,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         # Check event_time and ingest_time are positive and not in future
         timestamp_cols = []
         if "event_time" in df.columns:
@@ -805,7 +806,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         # Define critical fields by schema type
         critical_fields = []
         if "ohlc" in schema_name:
@@ -846,7 +847,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         price_cols = [
             col
             for col in df.columns
@@ -889,7 +890,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         volume_cols = [
             col for col in df.columns if any(v in col.lower() for v in ["vol", "volume", "qty"])
         ]
@@ -928,7 +929,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         date_col = None
         if "trade_date" in df.columns:
             date_col = "trade_date"
@@ -976,7 +977,7 @@ class ParquetValidator:
             List of error details for violations
         """
         errors: list[dict[str, Any]] = []
-        
+
         if "is_trading_day" not in df.columns or "volume" not in df.columns:
             return errors
 
@@ -1122,7 +1123,7 @@ class ParquetValidator:
             "rules_applied": result.validation_rules_applied,
             "failure_rate": len(failed_indices) / result.total_rows if result.total_rows > 0 else 0,
         }
-        
+
         with open(audit_log_file, "a") as f:
             f.write(json.dumps(audit_entry) + "\n")
 

@@ -7,8 +7,6 @@ from typing import Any
 import pandas as pd
 import structlog
 
-from champion.ml.models.lstm_predictor import LSTMPricePredictor
-
 logger = structlog.get_logger()
 
 

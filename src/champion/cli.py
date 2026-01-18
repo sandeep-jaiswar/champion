@@ -1034,7 +1034,7 @@ def api_serve(
     workers: int = typer.Option(1, help="Number of worker processes"),
 ):
     """Start the REST API server.
-    
+
     [bold]Examples:[/bold]
         champion api serve
         champion api serve --port 8080
@@ -1043,9 +1043,9 @@ def api_serve(
     """
     try:
         import uvicorn
-        
+
         console.print(f"[green]Starting Champion API server on {host}:{port}[/green]")
-        
+
         uvicorn.run(
             "champion.api.main:app",
             host=host,

@@ -189,7 +189,7 @@ class PortfolioOptimizer:
 
             # Create results dictionary
             results = {
-                "weights": dict(zip(self.asset_names, self.optimal_weights)),
+                "weights": dict(zip(self.asset_names, self.optimal_weights, strict=False)),
                 "expected_return": float(portfolio_return),
                 "volatility": float(portfolio_vol),
                 "sharpe_ratio": float(sharpe),
@@ -338,7 +338,7 @@ class PortfolioOptimizer:
                 tracker.log_metric(f"sector_exposure_{sector}", weight)
 
             results = {
-                "weights": dict(zip(self.asset_names, self.optimal_weights)),
+                "weights": dict(zip(self.asset_names, self.optimal_weights, strict=False)),
                 "expected_return": float(portfolio_return),
                 "volatility": float(portfolio_vol),
                 "sharpe_ratio": float(sharpe),

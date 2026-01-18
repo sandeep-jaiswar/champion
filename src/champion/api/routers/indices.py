@@ -20,32 +20,32 @@ async def get_index_constituents(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get constituents of an index.
-    
+
     Args:
         index: Index name (e.g., NIFTY50, SENSEX, NIFTY500)
         as_of_date: Optional date for historical constituents
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Index constituent data
-        
+
     Example:
         GET /api/v1/indices/NIFTY50/constituents
     """
     try:
         # Build where clause
         where_clauses = [f"index_name = '{index.upper()}'"]
-        
+
         if as_of_date:
             where_clauses.append(f"effective_date <= '{as_of_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         # Query index constituents table
         # Note: This assumes an index_constituents table exists
         query = f"""
-        SELECT 
+        SELECT
             index_name,
             symbol,
             company_name,
@@ -56,10 +56,10 @@ async def get_index_constituents(
         ORDER BY weightage DESC NULLS LAST, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Format constituents
         constituents = []
         for row in rows:
@@ -70,7 +70,7 @@ async def get_index_constituents(
                 "weightage": float(row[3]) if row[3] is not None else None,
                 "effective_date": str(row[4]),
             })
-        
+
         return JSONResponse(
             content={
                 "index": index.upper(),
@@ -79,7 +79,7 @@ async def get_index_constituents(
                 "count": len(constituents),
             }
         )
-        
+
     except Exception as e:
         # If table doesn't exist, return placeholder data
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():
@@ -106,37 +106,37 @@ async def get_index_changes(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get historical changes to index constituents.
-    
+
     Tracks additions, removals, and rebalancing events.
-    
+
     Args:
         index: Index name
         from_date: Start date filter
         to_date: End date filter
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Index change history
-        
+
     Example:
         GET /api/v1/indices/NIFTY50/changes?from=2024-01-01
     """
     try:
         # Build where clause
         where_clauses = [f"index_name = '{index.upper()}'"]
-        
+
         if from_date:
             where_clauses.append(f"change_date >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"change_date <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         # Query index changes table
         query = f"""
-        SELECT 
+        SELECT
             index_name,
             change_date,
             change_type,
@@ -148,10 +148,10 @@ async def get_index_changes(
         ORDER BY change_date DESC, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Format changes
         changes = []
         for row in rows:
@@ -163,7 +163,7 @@ async def get_index_changes(
                 "company_name": row[4],
                 "reason": row[5] if len(row) > 5 else None,
             })
-        
+
         return JSONResponse(
             content={
                 "index": index.upper(),
@@ -171,7 +171,7 @@ async def get_index_changes(
                 "count": len(changes),
             }
         )
-        
+
     except Exception as e:
         # If table doesn't exist, return placeholder data
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():
@@ -194,13 +194,13 @@ async def list_indices(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """List all available indices.
-    
+
     Args:
         db: ClickHouse client
-        
+
     Returns:
         List of available indices
-        
+
     Example:
         GET /api/v1/indices
     """
@@ -211,19 +211,19 @@ async def list_indices(
         FROM index_constituents
         ORDER BY index_name
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         indices = [row[0] for row in rows]
-        
+
         return JSONResponse(
             content={
                 "indices": indices,
                 "count": len(indices),
             }
         )
-        
+
     except Exception as e:
         # If table doesn't exist, return common indices as placeholder
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():

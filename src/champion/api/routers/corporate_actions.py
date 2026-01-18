@@ -21,40 +21,40 @@ async def get_corporate_actions(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get corporate actions data.
-    
+
     Args:
         symbol: Optional stock symbol filter
         from_date: Start date filter
         to_date: End date filter
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Corporate actions data
-        
+
     Example:
         GET /api/v1/corporate-actions?symbol=INFY&from=2024-01-01
     """
     try:
         # Build where clause
         where_clauses = []
-        
+
         if symbol:
             where_clauses.append(f"symbol = '{symbol}'")
-        
+
         if from_date:
             where_clauses.append(f"ex_date >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"ex_date <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
-        
+
         # Query corporate actions table
         # Note: This assumes a corporate_actions table exists
         # If not, this will gracefully fail with a helpful message
         query = f"""
-        SELECT 
+        SELECT
             symbol,
             ex_date,
             ca_type AS action_type,
@@ -66,10 +66,10 @@ async def get_corporate_actions(
         ORDER BY ex_date DESC, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Format corporate actions
         actions = []
         for row in rows:
@@ -81,7 +81,7 @@ async def get_corporate_actions(
                 "ratio": row[4],
                 "amount": float(row[5]) if row[5] is not None else None,
             })
-        
+
         return JSONResponse(
             content={
                 "data": actions,
@@ -90,7 +90,7 @@ async def get_corporate_actions(
                 "page_size": pagination["page_size"],
             }
         )
-        
+
     except Exception as e:
         # If table doesn't exist, return empty result with message
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():
@@ -116,34 +116,34 @@ async def get_stock_splits(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get stock split data for a symbol.
-    
+
     Args:
         symbol: Stock symbol
         from_date: Start date filter
         to_date: End date filter
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Stock split data
-        
+
     Example:
         GET /api/v1/corporate-actions/INFY/splits
     """
     try:
         # Build where clause
         where_clauses = [f"symbol = '{symbol}'", "ca_type = 'split'"]
-        
+
         if from_date:
             where_clauses.append(f"ex_date >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"ex_date <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         query = f"""
-        SELECT 
+        SELECT
             symbol,
             ex_date,
             ratio,
@@ -153,10 +153,10 @@ async def get_stock_splits(
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Parse split ratios (e.g., "1:2" means 1 old share becomes 2 new shares)
         splits = []
         for row in rows:
@@ -164,7 +164,7 @@ async def get_stock_splits(
             parts = ratio_str.split(":")
             old_ratio = int(parts[0]) if len(parts) > 0 else 1
             new_ratio = int(parts[1]) if len(parts) > 1 else 1
-            
+
             splits.append({
                 "symbol": row[0],
                 "ex_date": str(row[1]),
@@ -172,7 +172,7 @@ async def get_stock_splits(
                 "new_ratio": new_ratio,
                 "description": row[3],
             })
-        
+
         return JSONResponse(
             content={
                 "symbol": symbol,
@@ -180,7 +180,7 @@ async def get_stock_splits(
                 "count": len(splits),
             }
         )
-        
+
     except Exception as e:
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():
             return JSONResponse(
@@ -206,17 +206,17 @@ async def get_dividends(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get dividend data for a symbol.
-    
+
     Args:
         symbol: Stock symbol
         from_date: Start date filter
         to_date: End date filter
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Dividend data
-        
+
     Example:
         GET /api/v1/corporate-actions/INFY/dividends
     """
@@ -226,17 +226,17 @@ async def get_dividends(
             f"symbol = '{symbol}'",
             "ca_type IN ('dividend', 'interim_dividend', 'final_dividend')"
         ]
-        
+
         if from_date:
             where_clauses.append(f"ex_date >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"ex_date <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         query = f"""
-        SELECT 
+        SELECT
             symbol,
             ex_date,
             record_date,
@@ -248,10 +248,10 @@ async def get_dividends(
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Format dividends
         dividends = []
         for row in rows:
@@ -263,7 +263,7 @@ async def get_dividends(
                 "dividend_type": row[4],
                 "description": row[5],
             })
-        
+
         return JSONResponse(
             content={
                 "symbol": symbol,
@@ -271,7 +271,7 @@ async def get_dividends(
                 "count": len(dividends),
             }
         )
-        
+
     except Exception as e:
         if "doesn't exist" in str(e).lower() or "unknown table" in str(e).lower():
             return JSONResponse(

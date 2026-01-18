@@ -24,7 +24,7 @@ async def get_ohlc_data(
     settings: APISettings = Depends(get_api_settings),
 ) -> OHLCResponse:
     """Get OHLC data for a symbol with optional date range.
-    
+
     Args:
         symbol: Stock symbol (e.g., INFY, TCS, RELIANCE)
         from_date: Start date (inclusive)
@@ -32,28 +32,28 @@ async def get_ohlc_data(
         pagination: Pagination parameters
         db: ClickHouse client
         settings: API settings
-        
+
     Returns:
         OHLC data with metadata
-        
+
     Example:
         GET /api/v1/ohlc?symbol=INFY&from=2024-01-01&to=2024-12-31&page=1&page_size=100
     """
     try:
         # Build query
         where_clauses = [f"TckrSymb = '{symbol}'"]
-        
+
         if from_date:
             where_clauses.append(f"TradDt >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"TradDt <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         # Query for data
         query = f"""
-        SELECT 
+        SELECT
             TckrSymb AS symbol,
             TradDt AS trade_date,
             OpnPric AS open,
@@ -67,10 +67,10 @@ async def get_ohlc_data(
         ORDER BY TradDt DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Convert to OHLCData objects
         ohlc_data = []
         for row in rows:
@@ -86,7 +86,7 @@ async def get_ohlc_data(
                     turnover=row[7],
                 )
             )
-        
+
         # Prepare response metadata
         date_range = None
         if from_date or to_date:
@@ -94,14 +94,14 @@ async def get_ohlc_data(
                 "from": from_date or date(2000, 1, 1),  # Reasonable default
                 "to": to_date or date.today(),
             }
-        
+
         return OHLCResponse(
             data=ohlc_data,
             count=len(ohlc_data),
             symbol=symbol,
             date_range=date_range,
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -115,20 +115,20 @@ async def get_latest_ohlc(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> OHLCData:
     """Get the latest OHLC data for a symbol.
-    
+
     Args:
         symbol: Stock symbol
         db: ClickHouse client
-        
+
     Returns:
         Latest OHLC data
-        
+
     Example:
         GET /api/v1/ohlc/INFY/latest
     """
     try:
         query = f"""
-        SELECT 
+        SELECT
             TckrSymb AS symbol,
             TradDt AS trade_date,
             OpnPric AS open,
@@ -142,16 +142,16 @@ async def get_latest_ohlc(
         ORDER BY TradDt DESC
         LIMIT 1
         """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         if not rows:
             raise HTTPException(
                 status_code=404,
                 detail=f"No OHLC data found for symbol {symbol}",
             )
-        
+
         row = rows[0]
         return OHLCData(
             symbol=row[0],
@@ -163,7 +163,7 @@ async def get_latest_ohlc(
             volume=row[6],
             turnover=row[7],
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -183,7 +183,7 @@ async def get_candles(
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
     """Get candle data for charting.
-    
+
     Args:
         symbol: Stock symbol
         interval: Candle interval (1d=daily, 1w=weekly, 1M=monthly)
@@ -191,10 +191,10 @@ async def get_candles(
         to_date: End date
         pagination: Pagination parameters
         db: ClickHouse client
-        
+
     Returns:
         Candle data in JSON format
-        
+
     Example:
         GET /api/v1/ohlc/INFY/candles?interval=1d&from=2024-01-01&to=2024-12-31
     """
@@ -206,23 +206,23 @@ async def get_candles(
                 status_code=400,
                 detail=f"Invalid interval. Must be one of: {', '.join(valid_intervals)}",
             )
-        
+
         # Build date filter
         where_clauses = [f"TckrSymb = '{symbol}'"]
-        
+
         if from_date:
             where_clauses.append(f"TradDt >= '{from_date}'")
-        
+
         if to_date:
             where_clauses.append(f"TradDt <= '{to_date}'")
-        
+
         where_clause = " AND ".join(where_clauses)
-        
+
         # Build aggregation based on interval
         if interval == "1d":
             # Daily candles (no aggregation needed)
             query = f"""
-            SELECT 
+            SELECT
                 toDateTime(TradDt) AS timestamp,
                 OpnPric AS open,
                 HghPric AS high,
@@ -237,7 +237,7 @@ async def get_candles(
         elif interval == "1w":
             # Weekly candles
             query = f"""
-            SELECT 
+            SELECT
                 toStartOfWeek(TradDt) AS timestamp,
                 argMin(OpnPric, TradDt) AS open,
                 max(HghPric) AS high,
@@ -253,7 +253,7 @@ async def get_candles(
         else:  # 1M
             # Monthly candles
             query = f"""
-            SELECT 
+            SELECT
                 toStartOfMonth(TradDt) AS timestamp,
                 argMin(OpnPric, TradDt) AS open,
                 max(HghPric) AS high,
@@ -266,10 +266,10 @@ async def get_candles(
             ORDER BY timestamp DESC
             LIMIT {pagination['limit']} OFFSET {pagination['offset']}
             """
-        
+
         result = db.client.query(query)
         rows = result.result_rows
-        
+
         # Format candles
         candles = []
         for row in rows:
@@ -281,7 +281,7 @@ async def get_candles(
                 "close": float(row[4]) if row[4] is not None else None,
                 "volume": int(row[5]) if row[5] is not None else None,
             })
-        
+
         return JSONResponse(
             content={
                 "symbol": symbol,
@@ -290,7 +290,7 @@ async def get_candles(
                 "count": len(candles),
             }
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
