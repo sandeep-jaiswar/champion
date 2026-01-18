@@ -167,11 +167,12 @@ class IsolationForestDetector:
 
         # Check if model and scaler are fitted using sklearn's check_is_fitted
         try:
+            from sklearn.exceptions import NotFittedError
             from sklearn.utils.validation import check_is_fitted
 
             check_is_fitted(self.model, ["n_features_in_"])
             check_is_fitted(self.scaler, ["n_features_in_"])
-        except Exception as e:
+        except NotFittedError as e:
             raise ValueError(f"Model must be fitted before calling predict: {e}") from e
 
         X = df[self.feature_columns].values

@@ -8,9 +8,9 @@ from pathlib import Path
 src_path = Path(__file__).resolve().parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from passlib.context import CryptContext
 from champion.api.repositories import UserRepository
 from champion.warehouse.adapters import ClickHouseSink
+from passlib.context import CryptContext
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -50,25 +50,23 @@ def init_demo_user():
 
     # Create demo user
     print("Creating demo user...")
-    
+
     # Get password from environment variable or generate secure one
     demo_password = os.getenv("DEMO_PASSWORD")
     if not demo_password:
         import secrets
         import string
-        # Generate secure random password
-        alphabet = string.ascii_letters + string.digits + string.punctuation
-        demo_password = ''.join(secrets.choice(alphabet) for i in range(16))
+
+        # Generate secure random password with safe characters
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+        demo_password = "".join(secrets.choice(alphabet) for i in range(16))
         # Print to stderr for CI/dev environments only
         if os.getenv("CI") or os.getenv("ENV") == "dev":
             print(f"Generated password: {demo_password}", file=sys.stderr)
-    
+
     hashed_password = pwd_context.hash(demo_password)
     success = repo.create_user(
-        username="demo",
-        email="demo@champion.com",
-        hashed_password=hashed_password,
-        disabled=False
+        username="demo", email="demo@champion.com", hashed_password=hashed_password, disabled=False
     )
 
     if success:
