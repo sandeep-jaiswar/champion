@@ -2,10 +2,12 @@
 
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 from passlib.context import CryptContext
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from champion.api.config import APISettings, get_api_settings
 from champion.api.dependencies import get_user_repository, verify_token
@@ -13,6 +15,9 @@ from champion.api.repositories import UserRepository
 from champion.api.schemas import Token, TokenData, User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -57,12 +62,16 @@ def create_access_token(
 
 
 @router.post("/token", response_model=Token)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     settings: APISettings = Depends(get_api_settings),
     user_repo: UserRepository = Depends(get_user_repository),
 ) -> Token:
     """Login endpoint to get JWT token.
+
+    Rate limited to 5 attempts per minute to prevent brute force attacks.
 
     Args:
         form_data: OAuth2 password form data (username and password)

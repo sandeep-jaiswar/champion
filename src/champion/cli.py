@@ -902,9 +902,12 @@ def orchestrate_backfill(
     start_date: str = typer.Option(..., "--start", help="Start date (YYYY-MM-DD)"),
     end_date: str = typer.Option(..., "--end", help="End date (YYYY-MM-DD)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse without producing to Kafka"),
+    load_to_clickhouse: bool = typer.Option(
+        True, "--load/--no-load", help="Load results into ClickHouse"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
-    """Backfill NSE data for a date range.
+    """Backfill NSE data for a date range (two-phase: download then batch load).
 
     [bold]Example:[/bold]
         champion orchestrate backfill --start 2024-01-01 --end 2024-01-31
@@ -920,28 +923,99 @@ def orchestrate_backfill(
             console.print("[red]Backfill only supported for bhavcopy[/red]")
             raise typer.Exit(1)
 
+        from pathlib import Path
         from champion.scrapers.bhavcopy import BhavcopyScraper
+        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+        from champion.config import config
+        import polars as pl
 
         scraper = BhavcopyScraper()
 
+        # Phase 1: Download all data files for the date range
+        console.print("[bold]Phase 1: Downloading data files...[/bold]")
         current = start
-        successes = 0
-        failures = 0
+        successful_dates = []
+        download_failures = 0
 
         while current <= end:
             try:
                 scraper.scrape(current, dry_run=dry_run)
-                successes += 1
-                console.print(f"[green]✓[/green] {current}")
-            except Exception as e:
-                failures += 1
-                console.print(f"[red]✗[/red] {current}: {e}")
+                successful_dates.append(current)
+                console.print(f"[green]✓ Downloaded[/green] {current}")
                 if verbose:
-                    logger.error("Backfill failed for date", date=current, error=str(e))
+                    logger.info("Downloaded data for date", date=current)
+            except Exception as e:
+                download_failures += 1
+                console.print(f"[yellow]⊘ Skipped[/yellow] {current}: {e}")
+                if verbose:
+                    logger.warning("Download failed for date", date=current, error=str(e))
 
             current = current + timedelta(days=1)
 
-        console.print(f"\n[bold]Backfill complete:[/bold] {successes} succeeded, {failures} failed")
+        console.print(f"\n[bold]Download phase complete:[/bold] {len(successful_dates)} downloaded, {download_failures} failed\n")
+
+        # Phase 2: Batch load all parquet files to ClickHouse using compressed HTTP
+        if load_to_clickhouse and successful_dates:
+            console.print("[bold]Phase 2: Batch loading to ClickHouse...[/bold]")
+            
+            try:
+                # Initialize loader with compression for better batch performance
+                loader = ClickHouseLoader(
+                    host="localhost",
+                    port=8123,  # HTTP port with compression
+                    user="default",
+                    password="",
+                    database="champion"
+                )
+                loader.connect()
+                
+                total_rows = 0
+                for trade_date in successful_dates:
+                    # Build path to parquet file
+                    parquet_path = (
+                        config.storage.data_dir
+                        / "lake"
+                        / "normalized"
+                        / "equity_ohlc"
+                        / f"year={trade_date.year}"
+                        / f"month={trade_date.month:02d}"
+                        / f"day={trade_date.day:02d}"
+                        / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                    )
+                    
+                    if parquet_path.exists():
+                        try:
+                            # Read parquet and insert using compressed HTTP
+                            df = pl.read_parquet(str(parquet_path))
+                            rows_inserted = loader.insert_polars_dataframe(
+                                table="normalized_equity_ohlc",
+                                df=df,
+                                batch_size=100000,
+                                dry_run=False
+                            )
+                            total_rows += rows_inserted
+                            console.print(f"[green]✓ Loaded[/green] {trade_date} ({rows_inserted:,} rows)")
+                            if verbose:
+                                logger.info("Loaded data for date", date=trade_date, rows=rows_inserted)
+                        except Exception as e:
+                            console.print(f"[red]✗ Load failed[/red] {trade_date}: {e}")
+                            if verbose:
+                                logger.error("Load failed for date", date=trade_date, error=str(e))
+                    else:
+                        console.print(f"[yellow]⊘ Parquet not found[/yellow] {trade_date}")
+                
+                loader.disconnect()
+                console.print(f"\n[bold]Batch load complete:[/bold] {total_rows:,} rows loaded into ClickHouse")
+                
+            except Exception as e:
+                console.print(f"[red]✗ Batch load failed: {e}[/red]")
+                if verbose:
+                    logger.error("Batch load failed", error=str(e))
+                raise
+        elif not load_to_clickhouse:
+            console.print("[yellow]Skipping load phase (--no-load flag set)[/yellow]")
+        else:
+            console.print("[yellow]No data to load (all downloads failed)[/yellow]")
 
     except Exception as e:
         logger.error("Backfill failed", error=str(e), exc_info=True)

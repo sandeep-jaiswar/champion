@@ -61,7 +61,7 @@ async def get_ohlc_data(
             ClsPric AS close,
             TtlTradgVol AS volume,
             TtlTrfVal AS turnover
-        FROM normalized_equity_ohlc
+        FROM {settings.clickhouse_database}.normalized_equity_ohlc
         WHERE {where_clause}
         ORDER BY TradDt DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}

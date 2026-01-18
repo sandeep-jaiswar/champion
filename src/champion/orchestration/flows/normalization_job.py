@@ -91,11 +91,11 @@ def raw_to_normalized_flow(
         import os
 
         loader = ClickHouseLoader(
-            host=clickhouse_host or os.getenv("CLICKHOUSE_HOST", "localhost"),
-            port=clickhouse_port or int(os.getenv("CLICKHOUSE_PORT", "8123")),
-            user=clickhouse_user or os.getenv("CLICKHOUSE_USER"),
-            password=clickhouse_password or os.getenv("CLICKHOUSE_PASSWORD"),
-            database=clickhouse_database or os.getenv("CLICKHOUSE_DATABASE"),
+            host=clickhouse_host or os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost"),
+            port=clickhouse_port or int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123")),
+            user=clickhouse_user or os.getenv("CHAMPION_CLICKHOUSE_USER", "default"),
+            password=clickhouse_password or os.getenv("CHAMPION_CLICKHOUSE_PASSWORD", ""),
+            database=clickhouse_database or os.getenv("CHAMPION_CLICKHOUSE_DATABASE", "champion"),
         )
         try:
             loader.connect()

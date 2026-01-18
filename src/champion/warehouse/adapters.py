@@ -55,18 +55,29 @@ class ClickHouseSink(WarehouseSink):
 
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 8123,
-        user: str = "default",
-        password: str = "",
-        database: str = "default",
+        host: str | None = None,
+        port: int | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
         **kwargs,
     ):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.database = database
+        """Initialize ClickHouse sink.
+        
+        Args:
+            host: ClickHouse host (defaults to CHAMPION_CLICKHOUSE_HOST env var or 'localhost')
+            port: ClickHouse HTTP port (defaults to CHAMPION_CLICKHOUSE_PORT env var or 8123)
+            user: ClickHouse user (defaults to CHAMPION_CLICKHOUSE_USER env var or 'default')
+            password: ClickHouse password (defaults to CHAMPION_CLICKHOUSE_PASSWORD env var or '')
+            database: ClickHouse database (defaults to CHAMPION_CLICKHOUSE_DATABASE env var or 'champion')
+        """
+        import os
+        
+        self.host = host or os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost")
+        self.port = port or int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123"))
+        self.user = user or os.getenv("CHAMPION_CLICKHOUSE_USER", "default")
+        self.password = password or os.getenv("CHAMPION_CLICKHOUSE_PASSWORD", "")
+        self.database = database or os.getenv("CHAMPION_CLICKHOUSE_DATABASE", "champion")
         self.client: Any = None
 
     def connect(self) -> None:

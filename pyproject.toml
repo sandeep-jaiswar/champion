@@ -67,6 +67,7 @@ typer = { extras = ["all"], version = "^0.12.5" }
 # ============ API & Web ============
 fastapi = "^0.115.0"
 uvicorn = { extras = ["standard"], version = "^0.32.0" }
+slowapi = "^0.1.9"
 redis = "^5.0.0"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }

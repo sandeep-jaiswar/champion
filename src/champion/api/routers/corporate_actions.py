@@ -60,7 +60,7 @@ async def get_corporate_actions(
             purpose AS description,
             ratio,
             dividend_amount AS amount
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
@@ -149,7 +149,7 @@ async def get_stock_splits(
             ex_date,
             ratio,
             purpose AS description
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
@@ -246,7 +246,7 @@ async def get_dividends(
             dividend_amount,
             ca_type AS dividend_type,
             purpose AS description
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}

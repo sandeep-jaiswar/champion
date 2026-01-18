@@ -1,6 +1,6 @@
 """API Configuration."""
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from pydantic_settings import BaseSettings
 
 
@@ -51,10 +51,12 @@ class APISettings(BaseSettings):
     default_page_size: int = Field(default=100, description="Default page size")
     max_page_size: int = Field(default=1000, description="Maximum page size")
 
-    class Config:
-        env_file = ".env"
-        env_prefix = "CHAMPION_"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file=".env",
+        env_prefix="CHAMPION_",
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra environment variables
+    )
 
 
 def get_api_settings() -> APISettings:

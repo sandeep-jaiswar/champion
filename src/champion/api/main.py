@@ -4,10 +4,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from champion.api.config import get_api_settings
 from champion.api.middleware import add_cache_middleware, add_cors_middleware
 from champion.api.routers import auth, corporate_actions, indicators, indices, ohlc
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -80,6 +85,11 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
+
+    # Add rate limiter
+    app.state.limiter = limiter
+    # TODO: Fix slowapi exception handler - method doesn't exist in current version
+    # app.add_exception_handler(Exception, limiter.limit_exception_handler)
 
     # Add middleware
     add_cors_middleware(app)
