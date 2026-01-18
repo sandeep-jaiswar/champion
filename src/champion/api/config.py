@@ -38,19 +38,22 @@ class APISettings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expiration_minutes: int = Field(default=30, description="JWT token expiration in minutes")
 
-    # Database Settings (inherited from AppConfig)
+    # Database Settings
     clickhouse_host: str = Field(default="localhost", description="ClickHouse host")
-    clickhouse_port: int = Field(default=8123, description="ClickHouse port")
+    clickhouse_port: int = Field(
+        default=8123, description="ClickHouse HTTP port (8123) for API access"
+    )
     clickhouse_user: str = Field(default="default", description="ClickHouse user")
     clickhouse_password: str = Field(default="", description="ClickHouse password")
-    clickhouse_database: str = Field(default="default", description="ClickHouse database")
+    clickhouse_database: str = Field(default="champion", description="ClickHouse database")
 
     # Pagination
     default_page_size: int = Field(default=100, description="Default page size")
     max_page_size: int = Field(default=1000, description="Maximum page size")
 
     class Config:
-        env_prefix = "CHAMPION_API_"
+        env_file = ".env"
+        env_prefix = "CHAMPION_"
         case_sensitive = False
 
 

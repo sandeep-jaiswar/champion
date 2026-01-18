@@ -9,12 +9,12 @@ Checks:
 """
 from __future__ import annotations
 
-import sys
 import os
-import urllib.request
-import urllib.parse
 import subprocess
+import sys
 import time
+import urllib.parse
+import urllib.request
 
 
 def check_python_version() -> None:
