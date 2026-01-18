@@ -2,11 +2,9 @@
 
 import json
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import polars as pl
 import pytest
-
 from champion.validation.validator import ParquetValidator
 
 
@@ -442,7 +440,7 @@ def test_validation_result_tracking(validator):
     )
 
     result = validator.validate_dataframe(df, "test_ohlc")
-    
+
     # Should have tracked rules
     assert len(result.validation_rules_applied) > 0
     assert "schema_validation" in result.validation_rules_applied

@@ -1,9 +1,8 @@
 """Tests for Champion REST API."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from champion.api.main import create_app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -156,16 +155,14 @@ class TestAuthEndpoints:
     def test_login_invalid_credentials(self, client):
         """Test login with invalid credentials."""
         response = client.post(
-            "/api/v1/auth/token",
-            data={"username": "invalid", "password": "invalid"}
+            "/api/v1/auth/token", data={"username": "invalid", "password": "invalid"}
         )
         assert response.status_code == 401
 
     def test_login_valid_credentials(self, client):
         """Test login with valid credentials."""
         response = client.post(
-            "/api/v1/auth/token",
-            data={"username": "demo", "password": "demo123"}
+            "/api/v1/auth/token", data={"username": "demo", "password": "demo123"}
         )
         assert response.status_code == 200
         data = response.json()

@@ -1,11 +1,10 @@
 """API dependencies for dependency injection."""
 
 import time
-from typing import Optional
 
 import redis
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from champion.api.config import APISettings, get_api_settings
@@ -20,10 +19,10 @@ def get_clickhouse_client(
     settings: APISettings = Depends(get_api_settings),
 ) -> ClickHouseSink:
     """Get ClickHouse client instance.
-    
+
     Args:
         settings: API settings
-        
+
     Returns:
         Connected ClickHouse client
     """
@@ -42,10 +41,10 @@ def get_redis_client(
     settings: APISettings = Depends(get_api_settings),
 ) -> redis.Redis:
     """Get Redis client for caching.
-    
+
     Args:
         settings: API settings
-        
+
     Returns:
         Redis client instance
     """
@@ -62,14 +61,14 @@ def verify_token(
     settings: APISettings = Depends(get_api_settings),
 ) -> TokenData:
     """Verify JWT token.
-    
+
     Args:
         credentials: HTTP authorization credentials
         settings: API settings
-        
+
     Returns:
         Token data
-        
+
     Raises:
         HTTPException: If token is invalid
     """
@@ -78,21 +77,17 @@ def verify_token(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         token = credentials.credentials
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm]
-        )
-        username: Optional[str] = payload.get("sub")
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        username: str | None = payload.get("sub")
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    
+    except JWTError as err:
+        raise credentials_exception from err
+
     return token_data
 
 
@@ -102,30 +97,30 @@ async def rate_limiter(
     redis_client: redis.Redis = Depends(get_redis_client),
 ) -> None:
     """Rate limiting middleware using Redis.
-    
+
     Args:
         request: FastAPI request
         settings: API settings
         redis_client: Redis client
-        
+
     Raises:
         HTTPException: If rate limit exceeded
     """
     # Get client identifier (IP address)
     client_id = request.client.host if request.client else "unknown"
-    
+
     # Create rate limit key
     current_minute = int(time.time() / 60)
     key = f"rate_limit:{client_id}:{current_minute}"
-    
+
     try:
         # Increment counter
         current = redis_client.incr(key)
-        
+
         # Set expiration on first request
         if current == 1:
             redis_client.expire(key, 60)
-        
+
         # Check rate limit
         if current > settings.rate_limit_per_minute:
             raise HTTPException(
@@ -143,15 +138,15 @@ def get_pagination_params(
     settings: APISettings = Depends(get_api_settings),
 ) -> dict[str, int]:
     """Get pagination parameters.
-    
+
     Args:
         page: Page number (1-indexed)
         page_size: Number of items per page
         settings: API settings
-        
+
     Returns:
         Dictionary with pagination parameters
-        
+
     Raises:
         HTTPException: If parameters are invalid
     """
@@ -160,15 +155,15 @@ def get_pagination_params(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Page number must be >= 1",
         )
-    
+
     if page_size < 1 or page_size > settings.max_page_size:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Page size must be between 1 and {settings.max_page_size}",
         )
-    
+
     offset = (page - 1) * page_size
-    
+
     return {
         "limit": page_size,
         "offset": offset,

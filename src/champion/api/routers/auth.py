@@ -1,7 +1,6 @@
 """Authentication endpoints."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -33,7 +32,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_user(username: str) -> Optional[User]:
+def get_user(username: str) -> User | None:
     """Get user from database."""
     if username in fake_users_db:
         user_dict = fake_users_db[username]
@@ -41,7 +40,7 @@ def get_user(username: str) -> Optional[User]:
     return None
 
 
-def authenticate_user(username: str, password: str) -> Optional[User]:
+def authenticate_user(username: str, password: str) -> User | None:
     """Authenticate a user."""
     user_dict = fake_users_db.get(username)
     if not user_dict:
@@ -52,24 +51,18 @@ def authenticate_user(username: str, password: str) -> Optional[User]:
 
 
 def create_access_token(
-    data: dict,
-    settings: APISettings,
-    expires_delta: Optional[timedelta] = None
+    data: dict, settings: APISettings, expires_delta: timedelta | None = None
 ) -> str:
     """Create JWT access token."""
     to_encode = data.copy()
-    
+
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expiration_minutes)
-    
+        expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_expiration_minutes)
+
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 
 
@@ -79,42 +72,40 @@ async def login(
     settings: APISettings = Depends(get_api_settings),
 ) -> Token:
     """Login endpoint to get JWT token.
-    
+
     Args:
         form_data: OAuth2 password form data (username and password)
         settings: API settings
-        
+
     Returns:
         JWT access token
-        
+
     Example:
         POST /api/v1/auth/token
         Content-Type: application/x-www-form-urlencoded
-        
+
         username=demo&password=demo123
     """
     user = authenticate_user(form_data.username, form_data.password)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if user.disabled:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User account is disabled",
         )
-    
+
     access_token_expires = timedelta(minutes=settings.jwt_expiration_minutes)
     access_token = create_access_token(
-        data={"sub": user.username},
-        settings=settings,
-        expires_delta=access_token_expires
+        data={"sub": user.username}, settings=settings, expires_delta=access_token_expires
     )
-    
+
     return Token(access_token=access_token, token_type="bearer")
 
 
@@ -123,15 +114,15 @@ async def read_users_me(
     settings: APISettings = Depends(get_api_settings),
 ) -> User:
     """Get current user information.
-    
+
     This endpoint requires authentication.
-    
+
     Args:
         settings: API settings
-        
+
     Returns:
         Current user information
-        
+
     Example:
         GET /api/v1/auth/me
         Authorization: Bearer <token>

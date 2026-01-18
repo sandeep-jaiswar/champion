@@ -19,26 +19,31 @@ A production-ready REST API has been implemented for the Champion platform, prov
 ### Endpoints Implemented
 
 #### OHLC Data (3 endpoints)
+
 - `GET /api/v1/ohlc` - Query OHLC data with date range filters
 - `GET /api/v1/ohlc/{symbol}/latest` - Get latest OHLC data
 - `GET /api/v1/ohlc/{symbol}/candles` - Get candle data for charting (1d/1w/1M)
 
 #### Corporate Actions (3 endpoints)
+
 - `GET /api/v1/corporate-actions` - Get all corporate actions
 - `GET /api/v1/corporate-actions/{symbol}/splits` - Get stock splits
 - `GET /api/v1/corporate-actions/{symbol}/dividends` - Get dividend history
 
 #### Technical Indicators (3 endpoints)
+
 - `GET /api/v1/indicators/{symbol}/sma` - Simple Moving Average
 - `GET /api/v1/indicators/{symbol}/rsi` - Relative Strength Index
 - `GET /api/v1/indicators/{symbol}/ema` - Exponential Moving Average
 
 #### Index Data (3 endpoints)
+
 - `GET /api/v1/indices` - List all available indices
 - `GET /api/v1/indices/{index}/constituents` - Get index constituents
 - `GET /api/v1/indices/{index}/changes` - Get historical changes
 
 #### Authentication (2 endpoints)
+
 - `POST /api/v1/auth/token` - Get JWT token
 - `GET /api/v1/auth/me` - Get current user info
 
@@ -47,6 +52,7 @@ A production-ready REST API has been implemented for the Champion platform, prov
 ### Features Implemented
 
 #### Core Features
+
 - ✅ FastAPI implementation with async support
 - ✅ OpenAPI/Swagger documentation (auto-generated)
 - ✅ Request validation using Pydantic
@@ -61,6 +67,7 @@ A production-ready REST API has been implemented for the Champion platform, prov
 - ✅ CLI integration (`champion api serve`)
 
 #### Technical Implementation
+
 - Dynamic SQL query generation
 - Window functions for indicators (SMA, RSI, EMA)
 - Aggregated candles (daily, weekly, monthly)
@@ -101,6 +108,7 @@ src/champion/api/
 - **Coverage**: Core API functionality and structure
 
 Test results:
+
 - ✅ Root and health endpoints
 - ✅ Authentication flow (JWT)
 - ✅ API documentation (OpenAPI)
@@ -199,6 +207,7 @@ python-multipart = "^0.0.9"
 ## Performance Considerations
 
 ### Optimizations Implemented
+
 1. Redis caching for GET requests (5-min TTL)
 2. ClickHouse window functions for efficient indicator calculations
 3. Connection reuse (database client)
@@ -206,6 +215,7 @@ python-multipart = "^0.0.9"
 5. Pagination to limit response sizes
 
 ### Recommendations for Production
+
 1. Use multiple Uvicorn workers (4-8 workers)
 2. Deploy behind a reverse proxy (Nginx)
 3. Enable HTTP/2
@@ -300,6 +310,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ## Files Created/Modified
 
 ### Created
+
 - `src/champion/api/__init__.py`
 - `src/champion/api/config.py`
 - `src/champion/api/main.py`
@@ -318,6 +329,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 - `examples/api/README.md`
 
 ### Modified
+
 - `pyproject.toml` (added dependencies)
 - `src/champion/cli.py` (added API command)
 
@@ -329,8 +341,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ## References
 
-- FastAPI Documentation: https://fastapi.tiangolo.com/
-- JWT: https://jwt.io/
-- OpenAPI: https://swagger.io/specification/
-- Redis: https://redis.io/
-- ClickHouse: https://clickhouse.com/
+- FastAPI Documentation: <https://fastapi.tiangolo.com/>
+- JWT: <https://jwt.io/>
+- OpenAPI: <https://swagger.io/specification/>
+- Redis: <https://redis.io/>
+- ClickHouse: <https://clickhouse.com/>

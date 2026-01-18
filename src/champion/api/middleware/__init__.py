@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from typing import Callable
+from collections.abc import Callable
 
 import redis
 from fastapi import Request, Response
@@ -14,12 +14,12 @@ from champion.api.config import get_api_settings
 
 def add_cors_middleware(app) -> None:
     """Add CORS middleware to the application.
-    
+
     Args:
         app: FastAPI application instance
     """
     settings = get_api_settings()
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -39,29 +39,29 @@ class CacheMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Dispatch request with caching.
-        
+
         Args:
             request: FastAPI request
             call_next: Next middleware/handler
-            
+
         Returns:
             Response (cached or fresh)
         """
         # Only cache GET requests
         if request.method != "GET":
             return await call_next(request)
-        
+
         # Skip caching for auth endpoints
         if "/auth/" in str(request.url):
             return await call_next(request)
-        
+
         # Generate cache key from URL and query params
         cache_key = self._generate_cache_key(request)
-        
+
         try:
             # Try to get from cache
             cached_response = self.redis_client.get(cache_key)
-            
+
             if cached_response:
                 # Return cached response
                 cached_data = json.loads(cached_response)
@@ -74,10 +74,10 @@ class CacheMiddleware(BaseHTTPMiddleware):
         except redis.exceptions.ConnectionError:
             # If Redis is down, continue without caching
             pass
-        
+
         # Get fresh response
         response = await call_next(request)
-        
+
         # Cache successful responses
         if response.status_code == 200:
             try:
@@ -85,7 +85,7 @@ class CacheMiddleware(BaseHTTPMiddleware):
                 response_body = b""
                 async for chunk in response.body_iterator:
                     response_body += chunk
-                
+
                 # Cache the response
                 cache_data = {
                     "content": response_body.decode(),
@@ -93,13 +93,9 @@ class CacheMiddleware(BaseHTTPMiddleware):
                     "headers": dict(response.headers),
                     "media_type": response.media_type,
                 }
-                
-                self.redis_client.setex(
-                    cache_key,
-                    self.cache_ttl,
-                    json.dumps(cache_data)
-                )
-                
+
+                self.redis_client.setex(cache_key, self.cache_ttl, json.dumps(cache_data))
+
                 # Return response with body
                 return Response(
                     content=response_body,
@@ -110,35 +106,35 @@ class CacheMiddleware(BaseHTTPMiddleware):
             except redis.exceptions.ConnectionError:
                 # If Redis is down, return response without caching
                 pass
-        
+
         return response
 
     def _generate_cache_key(self, request: Request) -> str:
         """Generate cache key from request.
-        
+
         Args:
             request: FastAPI request
-            
+
         Returns:
             Cache key
         """
         # Create key from path and query params
         key_data = f"{request.url.path}?{request.url.query}"
-        
+
         # Hash the key to keep it short
         key_hash = hashlib.md5(key_data.encode()).hexdigest()
-        
+
         return f"cache:{key_hash}"
 
 
 def add_cache_middleware(app) -> None:
     """Add cache middleware to the application.
-    
+
     Args:
         app: FastAPI application instance
     """
     settings = get_api_settings()
-    
+
     try:
         redis_client = redis.Redis(
             host=settings.redis_host,
@@ -146,10 +142,10 @@ def add_cache_middleware(app) -> None:
             db=settings.redis_db,
             decode_responses=True,
         )
-        
+
         # Test connection
         redis_client.ping()
-        
+
         app.add_middleware(
             CacheMiddleware,
             redis_client=redis_client,

@@ -1034,7 +1034,7 @@ def api_serve(
     workers: int = typer.Option(1, help="Number of worker processes"),
 ):
     """Start the REST API server.
-    
+
     [bold]Examples:[/bold]
         champion api serve
         champion api serve --port 8080
@@ -1043,9 +1043,9 @@ def api_serve(
     """
     try:
         import uvicorn
-        
+
         console.print(f"[green]Starting Champion API server on {host}:{port}[/green]")
-        
+
         uvicorn.run(
             "champion.api.main:app",
             host=host,
@@ -1056,10 +1056,10 @@ def api_serve(
         )
     except ImportError:
         console.print("[red]uvicorn not installed. Install with: pip install uvicorn[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except Exception as e:
         console.print(f"[red]Failed to start API server: {e}[/red]")
-        raise typer.Exit(1) from e
+        raise typer.Exit(1) from None
 
 
 def main(argv: list[str] | None = None) -> int:
