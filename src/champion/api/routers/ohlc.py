@@ -272,14 +272,18 @@ async def get_candles(
         # Format candles
         candles = []
         for row in rows:
-            candles.append({
-                "timestamp": row[0].isoformat() if isinstance(row[0], datetime) else str(row[0]),
-                "open": float(row[1]) if row[1] is not None else None,
-                "high": float(row[2]) if row[2] is not None else None,
-                "low": float(row[3]) if row[3] is not None else None,
-                "close": float(row[4]) if row[4] is not None else None,
-                "volume": int(row[5]) if row[5] is not None else None,
-            })
+            candles.append(
+                {
+                    "timestamp": row[0].isoformat()
+                    if isinstance(row[0], datetime)
+                    else str(row[0]),
+                    "open": float(row[1]) if row[1] is not None else None,
+                    "high": float(row[2]) if row[2] is not None else None,
+                    "low": float(row[3]) if row[3] is not None else None,
+                    "close": float(row[4]) if row[4] is not None else None,
+                    "volume": int(row[5]) if row[5] is not None else None,
+                }
+            )
 
         return JSONResponse(
             content={

@@ -32,9 +32,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    data: dict,
-    settings: APISettings,
-    expires_delta: timedelta | None = None
+    data: dict, settings: APISettings, expires_delta: timedelta | None = None
 ) -> str:
     """Create JWT access token.
 
@@ -111,9 +109,7 @@ async def login(
     # Create access token
     access_token_expires = timedelta(minutes=settings.jwt_expiration_minutes)
     access_token = create_access_token(
-        data={"sub": user_data["username"]},
-        settings=settings,
-        expires_delta=access_token_expires
+        data={"sub": user_data["username"]}, settings=settings, expires_delta=access_token_expires
     )
 
     return Token(access_token=access_token, token_type="bearer")

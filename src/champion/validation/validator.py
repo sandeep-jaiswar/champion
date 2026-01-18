@@ -704,9 +704,7 @@ class ParquetValidator:
 
         if len(duplicates) > 0:
             # Group by key to show which keys are duplicated
-            dup_groups = duplicates.group_by(key_cols).agg(
-                pl.col("__idx__").alias("indices")
-            )
+            dup_groups = duplicates.group_by(key_cols).agg(pl.col("__idx__").alias("indices"))
 
             for row in dup_groups.iter_rows(named=True):
                 key_str = ", ".join([f"{k}={row[k]}" for k in key_cols])

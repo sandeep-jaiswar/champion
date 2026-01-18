@@ -94,11 +94,7 @@ class CacheMiddleware(BaseHTTPMiddleware):
                     "media_type": response.media_type,
                 }
 
-                self.redis_client.setex(
-                    cache_key,
-                    self.cache_ttl,
-                    json.dumps(cache_data)
-                )
+                self.redis_client.setex(cache_key, self.cache_ttl, json.dumps(cache_data))
 
                 # Return response with body
                 return Response(

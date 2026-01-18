@@ -34,7 +34,7 @@ class UserRepository:
 
     def init_table(self) -> None:
         """Initialize the users table if it doesn't exist.
-        
+
         Raises:
             Exception: Re-raises database errors after logging
         """
@@ -43,17 +43,17 @@ class UserRepository:
                 error_msg = "ClickHouse client not connected"
                 logger.error(f"init_table_failed: {error_msg}")
                 raise RuntimeError(error_msg)
-            
+
             self.sink.client.query(self.CREATE_TABLE_SQL)
             logger.info("users_table_initialized")
         except Exception as e:
             logger.error(
-                f"init_table_error: Failed to initialize users table",
+                "init_table_error: Failed to initialize users table",
                 extra={
                     "sql": self.CREATE_TABLE_SQL,
                     "client": str(self.sink.client) if self.sink.client else None,
-                    "error": str(e)
-                }
+                    "error": str(e),
+                },
             )
             raise RuntimeError(f"Failed to initialize users table: {e}") from e
 
@@ -65,7 +65,7 @@ class UserRepository:
 
         Returns:
             User data dictionary or None if not found
-            
+
         Raises:
             Exception: Re-raises database errors after logging
         """
@@ -89,16 +89,15 @@ class UserRepository:
         except Exception as e:
             logger.error(
                 f"get_by_username_error: {str(e)}",
-                extra={"username": username, "client": str(self.sink.client) if self.sink.client else None}
+                extra={
+                    "username": username,
+                    "client": str(self.sink.client) if self.sink.client else None,
+                },
             )
             raise
 
     def create_user(
-        self,
-        username: str,
-        email: str,
-        hashed_password: str,
-        disabled: bool = False
+        self, username: str, email: str, hashed_password: str, disabled: bool = False
     ) -> bool:
         """Create a new user.
 
@@ -110,7 +109,7 @@ class UserRepository:
 
         Returns:
             True if successful, False otherwise
-            
+
         Raises:
             Exception: Re-raises database errors after logging
         """
@@ -122,12 +121,14 @@ class UserRepository:
             # Use insert method with list of dicts
             self.sink.client.insert(
                 "users",
-                [{
-                    "username": username,
-                    "email": email,
-                    "hashed_password": hashed_password,
-                    "disabled": int(disabled),
-                }]
+                [
+                    {
+                        "username": username,
+                        "email": email,
+                        "hashed_password": hashed_password,
+                        "disabled": int(disabled),
+                    }
+                ],
             )
             logger.info(f"user_created: {username}")
             return True
@@ -137,8 +138,8 @@ class UserRepository:
                 extra={
                     "username": username,
                     "email": email,
-                    "client": str(self.sink.client) if self.sink.client else None
-                }
+                    "client": str(self.sink.client) if self.sink.client else None,
+                },
             )
             raise
 
@@ -150,7 +151,7 @@ class UserRepository:
 
         Returns:
             True if user exists, False otherwise
-            
+
         Raises:
             Exception: Re-raises database errors after logging
         """
@@ -165,6 +166,9 @@ class UserRepository:
         except Exception as e:
             logger.error(
                 f"user_exists_error: {str(e)}",
-                extra={"username": username, "client": str(self.sink.client) if self.sink.client else None}
+                extra={
+                    "username": username,
+                    "client": str(self.sink.client) if self.sink.client else None,
+                },
             )
             raise

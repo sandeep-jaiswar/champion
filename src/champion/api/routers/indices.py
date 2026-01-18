@@ -62,13 +62,15 @@ async def get_index_constituents(
         # Format constituents
         constituents = []
         for row in rows:
-            constituents.append({
-                "index_name": row[0],
-                "symbol": row[1],
-                "company_name": row[2],
-                "weightage": float(row[3]) if row[3] is not None else None,
-                "effective_date": str(row[4]),
-            })
+            constituents.append(
+                {
+                    "index_name": row[0],
+                    "symbol": row[1],
+                    "company_name": row[2],
+                    "weightage": float(row[3]) if row[3] is not None else None,
+                    "effective_date": str(row[4]),
+                }
+            )
 
         return JSONResponse(
             content={
@@ -154,14 +156,16 @@ async def get_index_changes(
         # Format changes
         changes = []
         for row in rows:
-            changes.append({
-                "index_name": row[0],
-                "change_date": str(row[1]),
-                "change_type": row[2],
-                "symbol": row[3],
-                "company_name": row[4],
-                "reason": row[5] if len(row) > 5 else None,
-            })
+            changes.append(
+                {
+                    "index_name": row[0],
+                    "change_date": str(row[1]),
+                    "change_type": row[2],
+                    "symbol": row[3],
+                    "company_name": row[4],
+                    "reason": row[5] if len(row) > 5 else None,
+                }
+            )
 
         return JSONResponse(
             content={

@@ -71,11 +71,13 @@ async def get_sma(
         # Format SMA data
         sma_data = []
         for row in rows:
-            sma_data.append({
-                "trade_date": str(row[0]),
-                "close": float(row[1]) if row[1] is not None else None,
-                "sma_value": float(row[2]) if row[2] is not None else None,
-            })
+            sma_data.append(
+                {
+                    "trade_date": str(row[0]),
+                    "close": float(row[1]) if row[1] is not None else None,
+                    "sma_value": float(row[2]) if row[2] is not None else None,
+                }
+            )
 
         return JSONResponse(
             content={
@@ -187,11 +189,13 @@ async def get_rsi(
         # Format RSI data
         rsi_data = []
         for row in rows:
-            rsi_data.append({
-                "trade_date": str(row[0]),
-                "close": float(row[1]) if row[1] is not None else None,
-                "rsi_value": float(row[2]) if row[2] is not None else None,
-            })
+            rsi_data.append(
+                {
+                    "trade_date": str(row[0]),
+                    "close": float(row[1]) if row[1] is not None else None,
+                    "rsi_value": float(row[2]) if row[2] is not None else None,
+                }
+            )
 
         return JSONResponse(
             content={
@@ -272,11 +276,13 @@ async def get_ema(
         # Format EMA data
         ema_data = []
         for row in rows:
-            ema_data.append({
-                "trade_date": str(row[0]),
-                "close": float(row[1]) if row[1] is not None else None,
-                "ema_value": float(row[2]) if row[2] is not None else None,
-            })
+            ema_data.append(
+                {
+                    "trade_date": str(row[0]),
+                    "close": float(row[1]) if row[1] is not None else None,
+                    "ema_value": float(row[2]) if row[2] is not None else None,
+                }
+            )
 
         return JSONResponse(
             content={

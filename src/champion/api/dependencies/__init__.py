@@ -95,11 +95,7 @@ def verify_token(
 
     try:
         token = credentials.credentials
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         username: str | None = payload.get("sub")
         if username is None:
             raise credentials_exception

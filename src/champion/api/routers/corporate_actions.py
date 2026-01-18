@@ -72,14 +72,16 @@ async def get_corporate_actions(
         # Format corporate actions
         actions = []
         for row in rows:
-            actions.append({
-                "symbol": row[0],
-                "ex_date": str(row[1]),
-                "action_type": row[2],
-                "description": row[3],
-                "ratio": row[4],
-                "amount": float(row[5]) if row[5] is not None else None,
-            })
+            actions.append(
+                {
+                    "symbol": row[0],
+                    "ex_date": str(row[1]),
+                    "action_type": row[2],
+                    "description": row[3],
+                    "ratio": row[4],
+                    "amount": float(row[5]) if row[5] is not None else None,
+                }
+            )
 
         return JSONResponse(
             content={
@@ -164,13 +166,15 @@ async def get_stock_splits(
             old_ratio = int(parts[0]) if len(parts) > 0 else 1
             new_ratio = int(parts[1]) if len(parts) > 1 else 1
 
-            splits.append({
-                "symbol": row[0],
-                "ex_date": str(row[1]),
-                "old_ratio": old_ratio,
-                "new_ratio": new_ratio,
-                "description": row[3],
-            })
+            splits.append(
+                {
+                    "symbol": row[0],
+                    "ex_date": str(row[1]),
+                    "old_ratio": old_ratio,
+                    "new_ratio": new_ratio,
+                    "description": row[3],
+                }
+            )
 
         return JSONResponse(
             content={
@@ -254,14 +258,16 @@ async def get_dividends(
         # Format dividends
         dividends = []
         for row in rows:
-            dividends.append({
-                "symbol": row[0],
-                "ex_date": str(row[1]),
-                "record_date": str(row[2]) if row[2] else None,
-                "dividend_amount": float(row[3]) if row[3] is not None else 0.0,
-                "dividend_type": row[4],
-                "description": row[5],
-            })
+            dividends.append(
+                {
+                    "symbol": row[0],
+                    "ex_date": str(row[1]),
+                    "record_date": str(row[2]) if row[2] else None,
+                    "dividend_amount": float(row[3]) if row[3] is not None else 0.0,
+                    "dividend_type": row[4],
+                    "description": row[5],
+                }
+            )
 
         return JSONResponse(
             content={

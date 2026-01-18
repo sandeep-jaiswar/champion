@@ -235,9 +235,7 @@ def test_calculate_trends_decreasing(tmp_path):
     report = reporter.generate_daily_report(date=today.strftime("%Y-%m-%d"), include_trends=True)
 
     # Should have trends showing decrease
-    failure_rate_trend = next(
-        (t for t in report.trends if t.metric_name == "failure_rate"), None
-    )
+    failure_rate_trend = next((t for t in report.trends if t.metric_name == "failure_rate"), None)
 
     if failure_rate_trend:
         assert failure_rate_trend.current_value < failure_rate_trend.previous_value

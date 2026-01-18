@@ -36,13 +36,13 @@ class APISettings(BaseSettings):
         default="your-secret-key-change-this-in-production", description="JWT secret key"
     )
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
-    jwt_expiration_minutes: int = Field(
-        default=30, description="JWT token expiration in minutes"
-    )
+    jwt_expiration_minutes: int = Field(default=30, description="JWT token expiration in minutes")
 
     # Database Settings
     clickhouse_host: str = Field(default="localhost", description="ClickHouse host")
-    clickhouse_port: int = Field(default=8123, description="ClickHouse HTTP port (8123) for API access")
+    clickhouse_port: int = Field(
+        default=8123, description="ClickHouse HTTP port (8123) for API access"
+    )
     clickhouse_user: str = Field(default="default", description="ClickHouse user")
     clickhouse_password: str = Field(default="", description="ClickHouse password")
     clickhouse_database: str = Field(default="champion", description="ClickHouse database")
@@ -60,4 +60,3 @@ class APISettings(BaseSettings):
 def get_api_settings() -> APISettings:
     """Get API settings instance."""
     return APISettings()
-

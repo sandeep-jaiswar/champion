@@ -158,7 +158,9 @@ class AlertGenerator:
         """
         alerts = []
 
-        for idx, (pred, error) in enumerate(zip(anomaly_predictions, reconstruction_errors, strict=False)):
+        for idx, (pred, error) in enumerate(
+            zip(anomaly_predictions, reconstruction_errors, strict=False)
+        ):
             if pred == 1:  # Anomaly detected
                 row = df.iloc[idx]
 
