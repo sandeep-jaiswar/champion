@@ -1,7 +1,6 @@
 """Technical indicators endpoints."""
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -16,8 +15,8 @@ router = APIRouter(prefix="/indicators", tags=["Technical Indicators"])
 async def get_sma(
     symbol: str,
     period: int = Query(default=20, ge=1, le=200, description="SMA period (default: 20)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -92,15 +91,15 @@ async def get_sma(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to calculate SMA: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/rsi")
 async def get_rsi(
     symbol: str,
     period: int = Query(default=14, ge=2, le=50, description="RSI period (default: 14)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -208,15 +207,15 @@ async def get_rsi(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to calculate RSI: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/ema")
 async def get_ema(
     symbol: str,
     period: int = Query(default=12, ge=1, le=200, description="EMA period (default: 12)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -293,4 +292,4 @@ async def get_ema(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to calculate EMA: {str(e)}",
-        )
+        ) from e

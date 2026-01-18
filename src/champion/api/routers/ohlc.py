@@ -1,7 +1,6 @@
 """OHLC data endpoints."""
 
 from datetime import date, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -17,8 +16,8 @@ router = APIRouter(prefix="/ohlc", tags=["OHLC Data"])
 @router.get("", response_model=OHLCResponse)
 async def get_ohlc_data(
     symbol: str = Query(..., description="Stock symbol (e.g., INFY)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date (YYYY-MM-DD)"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date (YYYY-MM-DD)"),
+    from_date: date | None = Query(None, alias="from", description="Start date (YYYY-MM-DD)"),
+    to_date: date | None = Query(None, alias="to", description="End date (YYYY-MM-DD)"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
     settings: APISettings = Depends(get_api_settings),
@@ -106,7 +105,7 @@ async def get_ohlc_data(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch OHLC data: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/latest", response_model=OHLCData)
@@ -170,15 +169,15 @@ async def get_latest_ohlc(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch latest OHLC data: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/candles")
 async def get_candles(
     symbol: str,
     interval: str = Query(default="1d", description="Candle interval (1d, 1w, 1M)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -297,4 +296,4 @@ async def get_candles(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch candle data: {str(e)}",
-        )
+        ) from e

@@ -105,9 +105,7 @@ class ValidationReporter:
 
         # Load audit log for the day
         entries = self.load_audit_log(days=1)
-        date_entries = [
-            e for e in entries if e["timestamp"].startswith(date)
-        ]
+        date_entries = [e for e in entries if e["timestamp"].startswith(date)]
 
         if not date_entries:
             logger.warning("no_validation_data", date=date)
@@ -135,7 +133,7 @@ class ValidationReporter:
         all_rules = set()
         for e in date_entries:
             all_rules.update(e.get("rules_applied", []))
-        rules = sorted(list(all_rules))
+        rules = sorted(all_rules)
 
         # Calculate trends if requested
         trends = []
@@ -174,7 +172,7 @@ class ValidationReporter:
         Returns:
             List of ValidationTrend objects
         """
-        trends = []
+        trends: list[ValidationTrend] = []
 
         if not current_entries:
             return trends
@@ -257,7 +255,7 @@ class ValidationReporter:
         Returns:
             List of anomaly descriptions
         """
-        anomalies = []
+        anomalies: list[str] = []
 
         if not entries:
             return anomalies
@@ -268,9 +266,7 @@ class ValidationReporter:
         failure_rate = total_failures / total_rows if total_rows > 0 else 0.0
 
         if failure_rate > 0.05:
-            anomalies.append(
-                f"High failure rate detected: {failure_rate:.2%} (threshold: 5%)"
-            )
+            anomalies.append(f"High failure rate detected: {failure_rate:.2%} (threshold: 5%)")
 
         # Anomaly 2: Schema-specific failures
         schema_failures: dict[str, tuple[int, int]] = defaultdict(lambda: (0, 0))
@@ -284,9 +280,7 @@ class ValidationReporter:
         for schema, (failures, total) in schema_failures.items():
             schema_rate = failures / total if total > 0 else 0.0
             if schema_rate > 0.1:  # 10% threshold per schema
-                anomalies.append(
-                    f"High failure rate for schema '{schema}': {schema_rate:.2%}"
-                )
+                anomalies.append(f"High failure rate for schema '{schema}': {schema_rate:.2%}")
 
         # Anomaly 3: Sudden spike in validations
         historical = self.load_audit_log(days=7)
@@ -341,8 +335,10 @@ class ValidationReporter:
             lines.append("Trends:")
             for trend in report.trends:
                 symbol = (
-                    "📈" if trend.trend == "increasing"
-                    else "📉" if trend.trend == "decreasing"
+                    "📈"
+                    if trend.trend == "increasing"
+                    else "📉"
+                    if trend.trend == "decreasing"
                     else "➡️"
                 )
                 anomaly_flag = " ⚠️ ANOMALY" if trend.is_anomaly else ""
@@ -453,9 +449,7 @@ class ValidationReporter:
             dates.append(date)
             volumes.append(metrics["total_rows"])
             failure_rate = (
-                metrics["failed_rows"] / metrics["total_rows"]
-                if metrics["total_rows"] > 0
-                else 0.0
+                metrics["failed_rows"] / metrics["total_rows"] if metrics["total_rows"] > 0 else 0.0
             )
             failure_rates.append(failure_rate)
 

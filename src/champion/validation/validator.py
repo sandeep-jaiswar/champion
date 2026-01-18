@@ -195,8 +195,8 @@ class ParquetValidator:
         Returns:
             Tuple of (error_details, rules_applied)
         """
-        errors = []
-        rules_applied = []
+        errors: list[dict[str, Any]] = []
+        rules_applied: list[str] = []
 
         if not self.enable_all_rules:
             return errors, rules_applied
@@ -501,43 +501,55 @@ class ParquetValidator:
 
         # Map column names
         volume_col = (
-            "volume" if "volume" in df.columns
-            else "TtlTradgVol" if "TtlTradgVol" in df.columns
+            "volume"
+            if "volume" in df.columns
+            else "TtlTradgVol"
+            if "TtlTradgVol" in df.columns
             else None
         )
         turnover_col = (
-            "turnover" if "turnover" in df.columns
-            else "TtlTrfVal" if "TtlTrfVal" in df.columns
+            "turnover"
+            if "turnover" in df.columns
+            else "TtlTrfVal"
+            if "TtlTrfVal" in df.columns
             else None
         )
         close_col = (
-            "close" if "close" in df.columns
-            else "ClsPric" if "ClsPric" in df.columns
-            else None
+            "close" if "close" in df.columns else "ClsPric" if "ClsPric" in df.columns else None
         )
 
         if not all([volume_col, turnover_col, close_col]):
             return errors
 
+        # Type guard for mypy
+        assert isinstance(volume_col, str)
+        assert isinstance(turnover_col, str)
+        assert isinstance(close_col, str)
+
         # Calculate expected turnover (volume * close as proxy for avg price)
         # Allow 10% tolerance for approximation
-        violations = df.with_row_index("__idx__").filter(
-            (pl.col(volume_col).is_not_null())
-            & (pl.col(turnover_col).is_not_null())
-            & (pl.col(close_col).is_not_null())
-            & (pl.col(volume_col) > 0)
-            & (pl.col(turnover_col) > 0)
-        ).with_columns(
-            [
-                (pl.col(volume_col) * pl.col(close_col)).alias("expected_turnover"),
-                (
-                    (pl.col(turnover_col) - pl.col(volume_col) * pl.col(close_col)).abs()
-                    / (pl.col(volume_col) * pl.col(close_col))
-                    * 100
-                ).alias("deviation_pct"),
-            ]
-        ).filter(
-            pl.col("deviation_pct") > 10  # More than 10% deviation
+        violations = (
+            df.with_row_index("__idx__")
+            .filter(
+                (pl.col(volume_col).is_not_null())
+                & (pl.col(turnover_col).is_not_null())
+                & (pl.col(close_col).is_not_null())
+                & (pl.col(volume_col) > 0)
+                & (pl.col(turnover_col) > 0)
+            )
+            .with_columns(
+                [
+                    (pl.col(volume_col) * pl.col(close_col)).alias("expected_turnover"),
+                    (
+                        (pl.col(turnover_col) - pl.col(volume_col) * pl.col(close_col)).abs()
+                        / (pl.col(volume_col) * pl.col(close_col))
+                        * 100
+                    ).alias("deviation_pct"),
+                ]
+            )
+            .filter(
+                pl.col("deviation_pct") > 10  # More than 10% deviation
+            )
         )
 
         for row in violations.iter_rows(named=True):
@@ -548,7 +560,7 @@ class ParquetValidator:
                     "field": f"{turnover_col},{volume_col}",
                     "message": (
                         f"Turnover deviation: {row['deviation_pct']:.1f}% "
-                        f"(actual={row[turnover_col]}, "
+                        f"(actual={row[turnover_col]}, "  # type: ignore[index]
                         f"expected≈{row['expected_turnover']:.2f})"
                     ),
                     "validator": "business_logic",
@@ -570,33 +582,40 @@ class ParquetValidator:
         errors: list[dict[str, Any]] = []
 
         close_col = (
-            "close" if "close" in df.columns
-            else "ClsPric" if "ClsPric" in df.columns
-            else None
+            "close" if "close" in df.columns else "ClsPric" if "ClsPric" in df.columns else None
         )
         prev_close_col = (
-            "prev_close" if "prev_close" in df.columns
-            else "PrvsClsgPric" if "PrvsClsgPric" in df.columns
+            "prev_close"
+            if "prev_close" in df.columns
+            else "PrvsClsgPric"
+            if "PrvsClsgPric" in df.columns
             else None
         )
 
         if not all([close_col, prev_close_col]):
             return errors
 
-        violations = df.with_row_index("__idx__").filter(
-            (pl.col(close_col).is_not_null())
-            & (pl.col(prev_close_col).is_not_null())
-            & (pl.col(prev_close_col) > 0)
-        ).with_columns(
-            [
-                (
-                    (pl.col(close_col) - pl.col(prev_close_col)).abs()
-                    / pl.col(prev_close_col)
-                    * 100
-                ).alias("change_pct")
-            ]
-        ).filter(
-            pl.col("change_pct") > self.max_price_change_pct
+        # Type guard for mypy
+        assert isinstance(close_col, str)
+        assert isinstance(prev_close_col, str)
+
+        violations = (
+            df.with_row_index("__idx__")
+            .filter(
+                (pl.col(close_col).is_not_null())
+                & (pl.col(prev_close_col).is_not_null())
+                & (pl.col(prev_close_col) > 0)
+            )
+            .with_columns(
+                [
+                    (
+                        (pl.col(close_col) - pl.col(prev_close_col)).abs()
+                        / pl.col(prev_close_col)
+                        * 100
+                    ).alias("change_pct")
+                ]
+            )
+            .filter(pl.col("change_pct") > self.max_price_change_pct)
         )
 
         for row in violations.iter_rows(named=True):
@@ -644,8 +663,7 @@ class ParquetValidator:
                     "error_type": "critical",
                     "field": "adjustment_factor",
                     "message": (
-                        f"Invalid adjustment factor: {row['adjustment_factor']} "
-                        f"(must be > 0)"
+                        f"Invalid adjustment factor: {row['adjustment_factor']} " f"(must be > 0)"
                     ),
                     "validator": "business_logic",
                     "record": dict(row),
@@ -682,9 +700,7 @@ class ParquetValidator:
             return errors
 
         # Find duplicates
-        duplicates = df.with_row_index("__idx__").filter(
-            pl.struct(key_cols).is_duplicated()
-        )
+        duplicates = df.with_row_index("__idx__").filter(pl.struct(key_cols).is_duplicated())
 
         if len(duplicates) > 0:
             # Group by key to show which keys are duplicated
@@ -817,19 +833,19 @@ class ParquetValidator:
         if not critical_fields:
             return errors
 
-        for field in critical_fields:
-            if field not in df.columns:
+        for col_field in critical_fields:
+            if col_field not in df.columns:
                 continue
 
-            violations = df.with_row_index("__idx__").filter(pl.col(field).is_null())
+            violations = df.with_row_index("__idx__").filter(pl.col(col_field).is_null())
 
             if len(violations) > 0:
                 errors.append(
                     {
                         "row_index": violations["__idx__"][0],
                         "error_type": "critical",
-                        "field": field,
-                        "message": f"Critical field '{field}' has {len(violations)} null values",
+                        "field": col_field,
+                        "message": f"Critical field '{col_field}' has {len(violations)} null values",
                         "validator": "business_logic",
                         "record": {},
                     }
@@ -957,8 +973,7 @@ class ParquetValidator:
                         "error_type": "critical",
                         "field": date_col,
                         "message": (
-                            f"Date out of range: {row[date_col]} "
-                            f"(valid: {min_date}-{max_date})"
+                            f"Date out of range: {row[date_col]} " f"(valid: {min_date}-{max_date})"
                         ),
                         "validator": "business_logic",
                         "record": dict(row),

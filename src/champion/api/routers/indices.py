@@ -1,7 +1,6 @@
 """Index data endpoints."""
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -15,7 +14,7 @@ router = APIRouter(prefix="/indices", tags=["Index Data"])
 @router.get("/{index}/constituents")
 async def get_index_constituents(
     index: str,
-    as_of_date: Optional[date] = Query(None, description="As-of date (defaults to latest)"),
+    as_of_date: date | None = Query(None, description="As-of date (defaults to latest)"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -94,14 +93,14 @@ async def get_index_constituents(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch index constituents: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{index}/changes")
 async def get_index_changes(
     index: str,
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -186,7 +185,7 @@ async def get_index_changes(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch index changes: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("")
@@ -244,4 +243,4 @@ async def list_indices(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to list indices: {str(e)}",
-        )
+        ) from e

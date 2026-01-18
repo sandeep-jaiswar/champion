@@ -1056,10 +1056,10 @@ def api_serve(
         )
     except ImportError:
         console.print("[red]uvicorn not installed. Install with: pip install uvicorn[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except Exception as e:
         console.print(f"[red]Failed to start API server: {e}[/red]")
-        raise typer.Exit(1) from e
+        raise typer.Exit(1) from None
 
 
 def main(argv: list[str] | None = None) -> int:

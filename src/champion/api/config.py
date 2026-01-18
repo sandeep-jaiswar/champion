@@ -19,7 +19,7 @@ class APISettings(BaseSettings):
     # CORS Settings
     cors_origins: list[str] = Field(
         default=["http://localhost:3000", "http://localhost:8000"],
-        description="Allowed CORS origins"
+        description="Allowed CORS origins",
     )
 
     # Redis Cache Settings
@@ -33,8 +33,7 @@ class APISettings(BaseSettings):
 
     # JWT Settings
     jwt_secret_key: str = Field(
-        default="your-secret-key-change-this-in-production",
-        description="JWT secret key"
+        default="your-secret-key-change-this-in-production", description="JWT secret key"
     )
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expiration_minutes: int = Field(

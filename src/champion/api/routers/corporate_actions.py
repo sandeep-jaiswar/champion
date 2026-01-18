@@ -1,7 +1,6 @@
 """Corporate actions endpoints."""
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -14,9 +13,9 @@ router = APIRouter(prefix="/corporate-actions", tags=["Corporate Actions"])
 
 @router.get("")
 async def get_corporate_actions(
-    symbol: Optional[str] = Query(None, description="Stock symbol (optional)"),
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    symbol: str | None = Query(None, description="Stock symbol (optional)"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -104,14 +103,14 @@ async def get_corporate_actions(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch corporate actions: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/splits")
 async def get_stock_splits(
     symbol: str,
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -194,14 +193,14 @@ async def get_stock_splits(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch stock splits: {str(e)}",
-        )
+        ) from e
 
 
 @router.get("/{symbol}/dividends")
 async def get_dividends(
     symbol: str,
-    from_date: Optional[date] = Query(None, alias="from", description="Start date"),
-    to_date: Optional[date] = Query(None, alias="to", description="End date"),
+    from_date: date | None = Query(None, alias="from", description="Start date"),
+    to_date: date | None = Query(None, alias="to", description="End date"),
     pagination: dict = Depends(get_pagination_params),
     db: ClickHouseSink = Depends(get_clickhouse_client),
 ) -> JSONResponse:
@@ -224,7 +223,7 @@ async def get_dividends(
         # Build where clause
         where_clauses = [
             f"symbol = '{symbol}'",
-            "ca_type IN ('dividend', 'interim_dividend', 'final_dividend')"
+            "ca_type IN ('dividend', 'interim_dividend', 'final_dividend')",
         ]
 
         if from_date:
@@ -285,4 +284,4 @@ async def get_dividends(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch dividends: {str(e)}",
-        )
+        ) from e

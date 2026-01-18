@@ -20,7 +20,7 @@ class PaginatedResponse(BaseModel):
     data: list[Any]
     page: int
     page_size: int
-    total: Optional[int] = None
+    total: int | None = None
     has_more: bool = False
 
 
@@ -46,8 +46,8 @@ class OHLCResponse(BaseModel):
 
     data: list[OHLCData]
     count: int
-    symbol: Optional[str] = None
-    date_range: Optional[dict[str, date]] = None
+    symbol: str | None = None
+    date_range: dict[str, date] | None = None
 
 
 class CandleData(BaseModel):
@@ -68,9 +68,9 @@ class CorporateAction(BaseModel):
     symbol: str
     ex_date: date
     action_type: str = Field(..., description="Type: split, dividend, bonus, rights")
-    description: Optional[str] = None
-    ratio: Optional[str] = None
-    amount: Optional[float] = None
+    description: str | None = None
+    ratio: str | None = None
+    amount: float | None = None
 
 
 class SplitData(BaseModel):
@@ -80,7 +80,7 @@ class SplitData(BaseModel):
     ex_date: date
     old_ratio: int
     new_ratio: int
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class DividendData(BaseModel):
@@ -88,8 +88,8 @@ class DividendData(BaseModel):
 
     symbol: str
     ex_date: date
-    record_date: Optional[date] = None
-    payment_date: Optional[date] = None
+    record_date: date | None = None
+    payment_date: date | None = None
     dividend_amount: float
     dividend_type: str = Field(..., description="Type: interim, final, special")
 
@@ -130,7 +130,7 @@ class IndexConstituent(BaseModel):
     index_name: str
     symbol: str
     company_name: str
-    weightage: Optional[float] = None
+    weightage: float | None = None
     effective_date: date
 
 
@@ -155,15 +155,15 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Token payload data."""
 
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class User(BaseModel):
     """User model."""
 
     username: str
-    email: Optional[str] = None
-    disabled: Optional[bool] = None
+    email: str | None = None
+    disabled: bool | None = None
 
 
 # Error Schemas
