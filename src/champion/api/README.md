@@ -64,6 +64,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
 ```
 
 Demo credentials:
+
 - Username: `demo`
 - Password: `demo123`
 
@@ -156,18 +157,21 @@ GET /api/v1/ohlc?symbol=INFY&page=1&page_size=100
 ```
 
 Parameters:
+
 - `page`: Page number (default: 1)
 - `page_size`: Items per page (default: 100, max: 1000)
 
 ## Rate Limiting
 
 The API implements rate limiting using Redis:
+
 - Default: 60 requests per minute per IP address
 - Returns HTTP 429 (Too Many Requests) when exceeded
 
 ## Caching
 
 GET requests are cached in Redis for 5 minutes by default:
+
 - Reduces database load
 - Improves response times
 - Automatically invalidates after TTL
@@ -265,12 +269,14 @@ docker run -p 8000:8000 champion-api
 ### Redis Connection Errors
 
 If Redis is not available, the API will:
+
 - Disable caching (fail open)
 - Continue to function without rate limiting
 
 ### ClickHouse Connection Errors
 
 If ClickHouse is not available, endpoints will return:
+
 - HTTP 500 errors with descriptive messages
 - Placeholder data for some endpoints (indices, corporate actions)
 

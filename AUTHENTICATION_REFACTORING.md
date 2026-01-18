@@ -7,17 +7,20 @@ Successfully refactored the authentication system from using an in-memory fake d
 ## Changes Made
 
 ### 1. **Environment Configuration** (`.env`)
+
 - Updated `.env` file with proper CHAMPION-prefixed environment variables
 - Added sections for: ClickHouse, Redis, JWT, API, MLflow, and Prefect configurations
 - All database credentials, secrets, and URLs now managed through environment variables
 
 ### 2. **API Settings** (`src/champion/api/config.py`)
+
 - Added `env_file = ".env"` to Config class to load environment variables
 - Set `env_prefix = "CHAMPION_"` to read from CHAMPION_* environment variables
 - Updated all database connection fields to read from environment
 - Settings now properly load ClickHouse and Redis credentials from `.env`
 
 ### 3. **User Repository Pattern** (`src/champion/api/repositories/user_repository.py`)
+
 - **NEW**: Implemented `UserRepository` class with proper data access abstraction
 - Methods:
   - `init_table()` - Creates users table in ClickHouse if not exists
@@ -28,6 +31,7 @@ Successfully refactored the authentication system from using an in-memory fake d
 - Table schema includes: username, email, hashed_password, disabled, created_at, updated_at
 
 ### 4. **Dependency Injection** (`src/champion/api/dependencies/__init__.py`)
+
 - **NEW**: Added `get_user_repository()` dependency provider
   - Returns configured UserRepository instance
   - Automatically initializes users table on first use
@@ -37,6 +41,7 @@ Successfully refactored the authentication system from using an in-memory fake d
 - Fixed type annotations for redis operations with `# type: ignore[assignment]`
 
 ### 5. **Authentication Endpoints** (`src/champion/api/routers/auth.py`)
+
 - **Removed**: `_fake_users_db` and `_get_fake_users_db()` - no more fake data
 - **Removed**: `authenticate_user()` - logic now in endpoints directly
 - **Updated** `/token` endpoint:
@@ -50,10 +55,12 @@ Successfully refactored the authentication system from using an in-memory fake d
 - **Kept**: `verify_password()`, `create_access_token()` - password hashing and JWT logic
 
 ### 6. **Repository Module Export** (`src/champion/api/repositories/__init__.py`)
+
 - Exports `UserRepository` for easy importing
 - Maintained clean namespace for repository pattern
 
 ### 7. **Demo User Initialization** (`scripts/init_demo_user.py`)
+
 - **NEW**: Script to initialize demo user in ClickHouse
 - Reads database credentials from environment variables
 - Creates users table if it doesn't exist
@@ -64,12 +71,14 @@ Successfully refactored the authentication system from using an in-memory fake d
 ## Architecture Benefits
 
 ### ✅ Root Issue Fixes
+
 - **No module-level side effects**: Bcrypt hashing only happens at request time, not during import
 - **Proper separation of concerns**: Database access in repository, business logic in endpoints
 - **Environment-based configuration**: No hardcoded secrets or credentials
 - **Scalable user management**: Can support multiple users without code changes
 
 ### ✅ Best Practices Implemented
+
 1. **Repository Pattern**: Data access logic abstracted and testable
 2. **Dependency Injection**: UserRepository provided via FastAPI dependencies
 3. **Environment Configuration**: Pydantic BaseSettings with .env file support
@@ -77,6 +86,7 @@ Successfully refactored the authentication system from using an in-memory fake d
 5. **Code Quality**: All code passes ruff linting and formatting checks
 
 ### ✅ Database-Backed Authentication
+
 - Users stored in ClickHouse `users` table
 - Passwords hashed with bcrypt before storage
 - Supports multiple users without hardcoding
@@ -85,6 +95,7 @@ Successfully refactored the authentication system from using an in-memory fake d
 ## Testing & Validation
 
 All code validated:
+
 - ✅ MyPy type checking: `Success: no issues found in 5 source files`
 - ✅ Ruff linting: No errors
 - ✅ Ruff formatting: All files properly formatted
@@ -115,12 +126,14 @@ CHAMPION_API_PORT=8000
 ## Next Steps
 
 1. Run demo user initialization script:
+
    ```bash
    cd /media/sandeep-jaiswar/DataDrive/champion
    poetry run python scripts/init_demo_user.py
    ```
 
 2. Test authentication endpoints:
+
    ```bash
    # Login
    curl -X POST http://localhost:8000/api/v1/auth/token \

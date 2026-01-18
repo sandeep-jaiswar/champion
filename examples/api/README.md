@@ -7,6 +7,7 @@ This directory contains example scripts demonstrating how to use the Champion RE
 ### `api_usage_example.py`
 
 Comprehensive example showing:
+
 - Authentication (JWT)
 - Fetching OHLC data
 - Getting latest prices
@@ -22,13 +23,13 @@ Comprehensive example showing:
 champion api serve
 ```
 
-2. **Install requests library (if not already installed):**
+1. **Install requests library (if not already installed):**
 
 ```bash
 pip install requests
 ```
 
-3. **Run the example:**
+1. **Run the example:**
 
 ```bash
 python examples/api/api_usage_example.py
@@ -126,14 +127,15 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 The API provides interactive documentation:
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: <http://localhost:8000/docs>
+- **ReDoc**: <http://localhost:8000/redoc>
 
 You can test all endpoints directly from the browser using these interfaces.
 
 ## Common Symbols
 
 Indian stock symbols you can try:
+
 - `INFY` - Infosys
 - `TCS` - Tata Consultancy Services
 - `RELIANCE` - Reliance Industries
@@ -177,7 +179,7 @@ time.sleep(1)  # Wait 1 second between requests
 
 ## Next Steps
 
-- Explore the full API documentation at http://localhost:8000/docs
+- Explore the full API documentation at <http://localhost:8000/docs>
 - Try different symbols and date ranges
 - Combine multiple indicators for analysis
 - Build your own trading strategies using the API
