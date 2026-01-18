@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 # Add src to path
-src_path = Path(__file__).parent / "src"
+src_path = Path(__file__).resolve().parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from passlib.context import CryptContext
@@ -20,7 +20,7 @@ def init_demo_user():
     """Initialize demo user in ClickHouse."""
     # Get environment variables
     clickhouse_host = os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost")
-    clickhouse_port = int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "9000"))
+    clickhouse_port = int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123"))
     clickhouse_user = os.getenv("CHAMPION_CLICKHOUSE_USER", "default")
     clickhouse_password = os.getenv("CHAMPION_CLICKHOUSE_PASSWORD", "")
     clickhouse_database = os.getenv("CHAMPION_CLICKHOUSE_DATABASE", "champion")
@@ -50,7 +50,20 @@ def init_demo_user():
 
     # Create demo user
     print("Creating demo user...")
-    hashed_password = pwd_context.hash("demo123")
+    
+    # Get password from environment variable or generate secure one
+    demo_password = os.getenv("DEMO_PASSWORD")
+    if not demo_password:
+        import secrets
+        import string
+        # Generate secure random password
+        alphabet = string.ascii_letters + string.digits + string.punctuation
+        demo_password = ''.join(secrets.choice(alphabet) for i in range(16))
+        # Print to stderr for CI/dev environments only
+        if os.getenv("CI") or os.getenv("ENV") == "dev":
+            print(f"Generated password: {demo_password}", file=sys.stderr)
+    
+    hashed_password = pwd_context.hash(demo_password)
     success = repo.create_user(
         username="demo",
         email="demo@champion.com",
@@ -61,8 +74,9 @@ def init_demo_user():
     if success:
         print("✅ Demo user created successfully!")
         print("  Username: demo")
-        print("  Password: demo123")
         print("  Email: demo@champion.com")
+        if not os.getenv("DEMO_PASSWORD"):
+            print("  Note: Set DEMO_PASSWORD environment variable to use a specific password")
     else:
         print("❌ Failed to create demo user")
         sys.exit(1)

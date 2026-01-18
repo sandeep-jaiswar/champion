@@ -46,7 +46,8 @@ class PredictionServer:
         Returns:
             Loaded model instance
         """
-        model_key = f"{model_name}_{model_version}"
+        # Include model_type in cache key to avoid collisions
+        model_key = f"{model_name}_{model_version}_{model_type}"
 
         if model_key in self.loaded_models:
             logger.info("model_already_loaded", model_name=model_name, version=model_version)

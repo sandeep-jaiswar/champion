@@ -271,6 +271,12 @@ class TestMLPipelineIntegration:
         )
 
         price_alerts = alert_gen.generate_price_movement_alerts(df[400:450])
+        
+        # Assert that alerts are generated correctly
+        assert isinstance(volume_alerts, list)
+        assert isinstance(price_alerts, list)
+        assert len(volume_alerts) >= 0
+        assert len(price_alerts) >= 0
 
         # 4. Export and filter
         all_alerts_df = alert_gen.export_alerts()

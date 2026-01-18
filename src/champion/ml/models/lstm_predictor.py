@@ -165,11 +165,12 @@ class LSTMPricePredictor:
                 "volume",
             ]
 
-        self.feature_columns = feature_columns
-
         # Ensure target is first column for easy indexing
         if target_column not in feature_columns:
             feature_columns = [target_column] + feature_columns
+        
+        # Update self.feature_columns after modification
+        self.feature_columns = feature_columns
 
         # Extract features
         data = df[feature_columns].values
@@ -314,8 +315,18 @@ class LSTMPricePredictor:
 
         Args:
             path: Directory path containing saved model
+            
+        Raises:
+            RuntimeError: If TensorFlow/keras is not available
         """
         path = Path(path)
+        
+        # Check TensorFlow availability
+        if keras is None:
+            raise RuntimeError(
+                "TensorFlow is required to load LSTM models. "
+                "Please install TensorFlow: pip install tensorflow"
+            )
 
         # Load Keras model
         self.model = keras.models.load_model(path / "lstm_model.keras")

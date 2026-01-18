@@ -71,6 +71,10 @@ class Backtester:
         Returns:
             Dictionary with backtest results
         """
+        # Reset state at the start of each run
+        self.trades = []
+        self.portfolio_values = []
+        
         df = df.sort_values("trade_date").reset_index(drop=True)
 
         portfolio_value = self.initial_capital

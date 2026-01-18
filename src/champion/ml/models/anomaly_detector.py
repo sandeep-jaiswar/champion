@@ -155,7 +155,22 @@ class IsolationForestDetector:
             Tuple of (predictions, anomaly_scores)
             predictions: -1 for anomalies, 1 for normal
             anomaly_scores: Lower scores indicate anomalies
+            
+        Raises:
+            ValueError: If model hasn't been fitted or feature_columns not set
         """
+        # Validate model has been fitted
+        if self.feature_columns is None or len(self.feature_columns) == 0:
+            raise ValueError("Model must be fitted before calling predict. feature_columns not set.")
+        
+        # Check if model and scaler are fitted using sklearn's check_is_fitted
+        try:
+            from sklearn.utils.validation import check_is_fitted
+            check_is_fitted(self.model, ["n_features_in_"])
+            check_is_fitted(self.scaler, ["n_features_in_"])
+        except Exception as e:
+            raise ValueError(f"Model must be fitted before calling predict: {e}") from e
+        
         X = df[self.feature_columns].values
         X_scaled = self.scaler.transform(X)
 
@@ -418,9 +433,20 @@ class AutoencoderDetector:
         logger.info("autoencoder_saved", path=str(path))
 
     def load(self, path: Path) -> None:
-        """Load model from disk."""
+        """Load model from disk.
+        
+        Raises:
+            RuntimeError: If TensorFlow/keras is not available
+        """
 
         path = Path(path)
+        
+        # Check TensorFlow availability
+        if keras is None:
+            raise RuntimeError(
+                "TensorFlow is required to load autoencoder models. "
+                "Please install TensorFlow: pip install tensorflow"
+            )
 
         self.model = keras.models.load_model(path / "autoencoder_model.keras")
         self.scaler = joblib.load(path / "scaler.pkl")

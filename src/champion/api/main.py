@@ -15,9 +15,29 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     print("Starting Champion API...")
+    
+    # Initialize database tables
+    from champion.api.dependencies import get_clickhouse_client
+    from champion.api.repositories import UserRepository
+    
+    try:
+        clickhouse = get_clickhouse_client()
+        clickhouse.connect()
+        repo = UserRepository(clickhouse)
+        repo.init_table()
+        print("Database tables initialized successfully")
+    except Exception as e:
+        print(f"Warning: Failed to initialize database tables: {e}")
+    
     yield
+    
     # Shutdown
     print("Shutting down Champion API...")
+    try:
+        if clickhouse:
+            clickhouse.disconnect()
+    except Exception:
+        pass
 
 
 def create_app() -> FastAPI:

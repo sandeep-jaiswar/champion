@@ -127,7 +127,7 @@ class ValidationReporter:
         total_failures = sum(e["failed_rows"] for e in date_entries)
         failure_rate = total_failures / total_rows if total_rows > 0 else 0.0
 
-        schemas = list(set(e["schema_name"] for e in date_entries))
+        schemas = list({e["schema_name"] for e in date_entries})
 
         # Collect all rules applied
         all_rules = set()

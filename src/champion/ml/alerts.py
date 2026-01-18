@@ -228,7 +228,8 @@ class AlertGenerator:
         """
         alerts = []
 
-        # Calculate price changes
+        # Calculate price changes on a copy to avoid mutating input
+        df = df.copy()
         df["price_change"] = (df["close"] - df["open"]) / df["open"]
 
         # Find large movements

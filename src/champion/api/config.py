@@ -42,7 +42,7 @@ class APISettings(BaseSettings):
 
     # Database Settings
     clickhouse_host: str = Field(default="localhost", description="ClickHouse host")
-    clickhouse_port: int = Field(default=9000, description="ClickHouse port")
+    clickhouse_port: int = Field(default=8123, description="ClickHouse HTTP port (8123) for API access")
     clickhouse_user: str = Field(default="default", description="ClickHouse user")
     clickhouse_password: str = Field(default="", description="ClickHouse password")
     clickhouse_database: str = Field(default="champion", description="ClickHouse database")

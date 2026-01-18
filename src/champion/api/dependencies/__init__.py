@@ -68,9 +68,7 @@ def get_user_repository(
     Returns:
         UserRepository instance
     """
-    repository = UserRepository(clickhouse)
-    repository.init_table()
-    return repository
+    return UserRepository(clickhouse)
 
 
 def verify_token(

@@ -1,7 +1,7 @@
 """Pydantic schemas for API request/response models."""
 
 from datetime import UTC, date, datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -30,12 +30,12 @@ class OHLCData(BaseModel):
 
     symbol: str = Field(..., description="Stock symbol")
     trade_date: date = Field(..., description="Trading date")
-    open: Optional[float] = Field(None, description="Open price")
-    high: Optional[float] = Field(None, description="High price")
-    low: Optional[float] = Field(None, description="Low price")
-    close: Optional[float] = Field(None, description="Close price")
-    volume: Optional[int] = Field(None, description="Trading volume")
-    turnover: Optional[float] = Field(None, description="Turnover value")
+    open: float | None = Field(None, description="Open price")
+    high: float | None = Field(None, description="High price")
+    low: float | None = Field(None, description="Low price")
+    close: float | None = Field(None, description="Close price")
+    volume: int | None = Field(None, description="Trading volume")
+    turnover: float | None = Field(None, description="Turnover value")
 
     class Config:
         from_attributes = True
@@ -171,5 +171,5 @@ class ErrorResponse(BaseModel):
     """Error response."""
 
     error: str
-    detail: Optional[str] = None
+    detail: str | None = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

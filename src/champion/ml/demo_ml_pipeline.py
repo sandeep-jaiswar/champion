@@ -327,7 +327,7 @@ def demo_alert_generation():
 
     print(f"Generated {len(volume_alerts)} volume alerts")
     for alert in volume_alerts[:3]:  # Show first 3
-        print(f"\n  [{alert.severity.upper()}] {alert.alert_type}")
+        print(f"\n  [{alert.severity.value.upper()}] {alert.alert_type}")
         print(f"  {alert.message}")
         print(f"  Symbol: {alert.symbol}")
 
@@ -337,7 +337,7 @@ def demo_alert_generation():
 
     print(f"Generated {len(price_alerts)} price movement alerts")
     for alert in price_alerts[:3]:  # Show first 3
-        print(f"\n  [{alert.severity.upper()}] {alert.alert_type}")
+        print(f"\n  [{alert.severity.value.upper()}] {alert.alert_type}")
         print(f"  {alert.message}")
 
     # Export alerts
