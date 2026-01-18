@@ -59,7 +59,7 @@ def init_demo_user():
 
         # Generate secure random password with safe characters
         alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-        demo_password = "".join(secrets.choice(alphabet) for i in range(16))
+        demo_password = "".join(secrets.choice(alphabet) for _ in range(16))
         # Print to stderr for CI/dev environments only
         if os.getenv("CI") or os.getenv("ENV") == "dev":
             print(f"Generated password: {demo_password}", file=sys.stderr)
