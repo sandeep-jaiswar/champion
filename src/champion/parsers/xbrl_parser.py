@@ -1,7 +1,7 @@
 """Simple XBRL/XML parser for quarterly financials.
 
-This parser extracts all facts from company XBRL instance documents and 
-returns a normalized dict with snake_case column names matching the 
+This parser extracts all facts from company XBRL instance documents and
+returns a normalized dict with snake_case column names matching the
 `quarterly_financials` ClickHouse table schema.
 """
 
@@ -23,8 +23,8 @@ def _local_name(tag: str) -> str:
 
 def _camel_to_snake(name: str) -> str:
     """Convert CamelCase to snake_case."""
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
     return s2.lower()
 
 
@@ -105,55 +105,6 @@ def parse_xbrl_file(path: Path) -> dict[str, Any]:
         measure = unit.find("{http://www.xbrl.org/2003/instance}measure")
         if measure is not None and measure.text:
             units[uid] = measure.text.strip()
-
-    # mapping heuristics: local tag -> target field name (matching ClickHouse schema)
-    field_map = {
-        "RevenueFromOperations": "revenue_from_operations",
-        "SegmentRevenueFromOperations": "segment_revenue_from_operations",
-        "Income": "income",
-        "OtherIncome": "other_income",
-        "EmployeeBenefitExpense": "employee_benefit_expense",
-        "FinanceCosts": "finance_costs",
-        "SegmentFinanceCosts": "segment_finance_costs",
-        "DepreciationDepletionAndAmortisationExpense": "depreciation_depletion_and_amortisation_expense",
-        "OtherExpenses": "other_expenses",
-        "DescriptionOfOtherExpenses": "description_of_other_expenses",
-        "Expenses": "expenses",
-        "ProfitBeforeExceptionalItemsAndTax": "profit_before_exceptional_items_and_tax",
-        "ProfitBeforeTax": "profit_before_tax",
-        "ProfitLossForPeriodFromContinuingOperations": "profit_loss_for_period_from_continuing_operations",
-        "ProfitLossForPeriod": "profit_loss_for_period",
-        "ProfitOrLossAttributableToOwnersOfParent": "profit_or_loss_attributable_to_owners_of_parent",
-        "ProfitOrLossAttributableToNonControllingInterests": "profit_or_loss_attributable_to_non_controlling_interests",
-        "TaxExpense": "tax_expense",
-        "CurrentTax": "current_tax",
-        "DeferredTax": "deferred_tax",
-        "NetMovementInRegulatoryDeferralAccountBalancesRelatedToProfitOrLossAndTheRelatedDeferredTaxMovement": "net_movement_in_regulatory_deferral_account_balances_related_to_profit_or_loss_and_the_related_deferred_tax_movement",
-        "PaidUpValueOfEquityShareCapital": "paid_up_value_of_equity_share_capital",
-        "FaceValueOfEquityShareCapital": "face_value_of_equity_share_capital",
-        "BasicEarningsLossPerShareFromContinuingOperations": "basic_earnings_loss_per_share_from_continuing_operations",
-        "DilutedEarningsLossPerShareFromContinuingOperations": "diluted_earnings_loss_per_share_from_continuing_operations",
-        "BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations": "basic_earnings_loss_per_share_from_continuing_and_discontinued_operations",
-        "DilutedEarningsLossPerShareFromContinuingAndDiscontinuedOperations": "diluted_earnings_loss_per_share_from_continuing_and_discontinued_operations",
-        "TotalAssets": "total_assets",
-        "SegmentAssets": "segment_assets",
-        "TotalLiabilities": "total_liabilities",
-        "SegmentLiabilities": "segment_liabilities",
-        "Equity": "equity",
-        "TotalDebt": "total_debt",
-        "CurrentAssets": "current_assets",
-        "CurrentLiabilities": "current_liabilities",
-        "CashAndCashEquivalents": "cash_and_cash_equivalents",
-        "Inventories": "inventories",
-        "InterSegmentRevenue": "inter_segment_revenue",
-        "SegmentProfitLossBeforeTaxAndFinanceCosts": "segment_profit_loss_before_tax_and_finance_costs",
-        "SegmentProfitBeforeTax": "segment_profit_before_tax",
-        "OtherUnallocableExpenditureNetOffUnAllocableIncome": "other_unallocable_expenditure",
-        "ComprehensiveIncomeForThePeriod": "comprehensive_income_for_the_period",
-        "ComprehensiveIncomeForThePeriodAttributableToOwnersOfParent": "comprehensive_income_attributable_to_parent",
-        "ComprehensiveIncomeForThePeriodAttributableToOwnersOfParentNonControllingInterests": "comprehensive_income_attributable_to_non_controlling",
-        "SegmentRevenue": "segment_revenue",
-    }
 
     record: dict[str, Any] = {
         "event_id": str(uuid.uuid4()),

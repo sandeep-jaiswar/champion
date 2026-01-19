@@ -55,7 +55,7 @@ class APISettings(BaseSettings):
         env_file=".env",
         env_prefix="CHAMPION_",
         case_sensitive=False,
-        extra="ignore"  # Ignore extra environment variables
+        extra="ignore",  # Ignore extra environment variables
     )
 
 

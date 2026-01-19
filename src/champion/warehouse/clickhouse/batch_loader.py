@@ -185,7 +185,7 @@ class ClickHouseLoader:
             database: Database name (defaults to CHAMPION_CLICKHOUSE_DATABASE env var or 'champion')
         """
         import os
-        
+
         self.host = host or os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost")
         self.port = port or int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123"))
         self.user = user or os.getenv("CHAMPION_CLICKHOUSE_USER", "default")
@@ -203,7 +203,7 @@ class ClickHouseLoader:
                 username=self.user,
                 password=self.password,
                 database=self.database,
-                compress='lz4',  # Use LZ4 compression for batch performance
+                compress="lz4",  # Use LZ4 compression for batch performance
             )
             logger.info(f"Connected to ClickHouse at {self.host}:{self.port} with LZ4 compression")
 
@@ -387,12 +387,12 @@ class ClickHouseLoader:
             table_columns_query = f"DESCRIBE TABLE {self.database}.{table}"
             result = self.client.query(table_columns_query)
             table_columns = {row[0] for row in result.result_rows}  # Get column names
-            
+
             # Filter DataFrame to only columns that exist in target table
             df_columns = set(df.columns)
             columns_to_keep = df_columns.intersection(table_columns)
             columns_to_drop = df_columns - table_columns
-            
+
             if columns_to_drop:
                 logger.info(f"Dropping columns not in target table: {columns_to_drop}")
                 df = df.select([col for col in df.columns if col in columns_to_keep])
@@ -405,16 +405,16 @@ class ClickHouseLoader:
         # Insert in batches using Arrow (avoids pandas timestamp conversion issues)
         for i in range(0, total_rows, batch_size):
             batch_df = df.slice(i, min(batch_size, total_rows - i))
-            
+
             try:
                 # Convert Polars DataFrame to Arrow Table (native format, no pandas)
                 arrow_table = batch_df.to_arrow()
-                
+
                 # Use clickhouse_connect's insert_arrow method
                 self.client.insert_arrow(
                     table=table,
                     arrow_table=arrow_table,
-                    settings={"async_insert": 0, "wait_for_async_insert": 0}
+                    settings={"async_insert": 0, "wait_for_async_insert": 0},
                 )
                 rows_inserted += len(batch_df)
 

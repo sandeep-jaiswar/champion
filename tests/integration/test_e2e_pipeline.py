@@ -5,11 +5,11 @@ from pathlib import Path
 
 import polars as pl
 import pytest
-
 from champion.core import get_config
 from champion.parsers.polars_bhavcopy_parser import PolarsBhavcopyParser
 from champion.storage.parquet_io import write_df
 from champion.validation.validator import ParquetValidator
+
 
 class TestE2EPipeline:
     """End-to-end pipeline tests."""
@@ -40,13 +40,14 @@ INE003A01014,INFY,EQ,19-JAN-2024,1750.20,1765.00,1799.50,1748.00,1795.45,1795.45
         assert len(df) == 3
         assert "symbol" in df.columns or "SYMBOL" in df.columns
 
-    def test_save_and_load_parquet(self, sample_bhavcopy_csv: Path, trade_date: date, tmp_path: Path):
+    def test_save_and_load_parquet(
+        self, sample_bhavcopy_csv: Path, trade_date: date, tmp_path: Path
+    ):
         """Test: Save and load Parquet files."""
         parser = PolarsBhavcopyParser()
         df = parser.parse(str(sample_bhavcopy_csv), trade_date)
 
         # Save to Parquet
-        parquet_file = tmp_path / f"ohlc_{trade_date}.parquet"
         write_df(df, "test", tmp_path, partitions=None)
 
         # Load and verify
@@ -56,7 +57,7 @@ INE003A01014,INFY,EQ,19-JAN-2024,1750.20,1765.00,1799.50,1748.00,1795.45,1795.45
             parquet_files = list(tmp_path.glob("test/*.parquet"))
             assert len(parquet_files) > 0, f"No parquet files found in {tmp_path / 'test'}"
             test_parquet = parquet_files[0]
-        
+
         loaded_df = pl.read_parquet(test_parquet)
         assert len(loaded_df) > 0
 
@@ -66,23 +67,27 @@ class TestDataQuality:
 
     def test_ohlc_price_consistency(self):
         """Test: OHLC price logical consistency."""
-        df = pl.DataFrame({
-            "symbol": ["RELIANCE", "TCS", "INFY"],
-            "high_price": [3045.50, 3520.00, 1799.50],
-            "low_price": [2985.10, 3450.00, 1748.00],
-            "close_price": [3032.45, 3501.50, 1795.45],
-            "open_price": [2998.00, 3480.00, 1765.00],
-        })
+        df = pl.DataFrame(
+            {
+                "symbol": ["RELIANCE", "TCS", "INFY"],
+                "high_price": [3045.50, 3520.00, 1799.50],
+                "low_price": [2985.10, 3450.00, 1748.00],
+                "close_price": [3032.45, 3501.50, 1795.45],
+                "open_price": [2998.00, 3480.00, 1765.00],
+            }
+        )
 
         # All high >= close >= low >= open should be valid
         assert df.filter(pl.col("high_price") >= pl.col("close_price")).height == 3
 
     def test_duplicate_detection(self):
         """Test: Duplicate record detection."""
-        df = pl.DataFrame({
-            "symbol": ["RELIANCE", "RELIANCE", "TCS"],
-            "trade_date": ["2024-01-19", "2024-01-19", "2024-01-19"],
-        })
+        df = pl.DataFrame(
+            {
+                "symbol": ["RELIANCE", "RELIANCE", "TCS"],
+                "trade_date": ["2024-01-19", "2024-01-19", "2024-01-19"],
+            }
+        )
 
         duplicates = df.group_by(["symbol", "trade_date"]).agg(pl.count())
         assert duplicates.filter(pl.col("count") > 1).height == 1
@@ -95,10 +100,7 @@ class TestValidationIntegration:
         """Test: Error streaming keeps memory bounded."""
         from champion.validation.error_streaming import ErrorStream
 
-        stream = ErrorStream(
-            output_file=tmp_path / "errors.jsonl",
-            keep_samples=100
-        )
+        stream = ErrorStream(output_file=tmp_path / "errors.jsonl", keep_samples=100)
 
         # Write 1000 errors
         for i in range(1000):
@@ -122,7 +124,7 @@ class TestValidationIntegration:
             result = validator.validate_dataframe(df, schema_name="raw_ohlc")
             # Should return a ValidationResult
             assert result is not None
-            assert hasattr(result, 'is_memory_efficient')
+            assert hasattr(result, "is_memory_efficient")
         except ValueError:
             # Schema might not exist, that's ok for this integration test
             pass

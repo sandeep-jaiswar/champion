@@ -51,6 +51,7 @@
    - Benefit: Can validate 1GB+ files without OOM
 
 ### In Progress (1/6)
+
 1. **🔄 CLI Exception Handling** (45 min remaining)
    - ~25 `except Exception` patterns in cli.py need updating
    - Template ready, straightforward application

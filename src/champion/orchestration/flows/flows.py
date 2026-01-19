@@ -1043,6 +1043,8 @@ def nse_bhavcopy_etl_flow(
     Raises:
         Exception: If any critical step fails
     """
+    import os
+
     flow_start_time = time.time()
 
     # Start Prometheus metrics server if requested
@@ -1074,7 +1076,11 @@ def nse_bhavcopy_etl_flow(
                 base_path = (
                     Path(os.getenv("PYTEST_TEMP_DIR")) / "lake"
                     if os.getenv("PYTEST_RUNNING")
-                    else (Path(output_base_path) if output_base_path else config.storage.data_dir / "lake")
+                    else (
+                        Path(output_base_path)
+                        if output_base_path
+                        else config.storage.data_dir / "lake"
+                    )
                 )
                 year = trade_date.year
                 month = trade_date.month
@@ -1087,7 +1093,9 @@ def nse_bhavcopy_etl_flow(
                     / f"month={month:02d}"
                     / f"day={day:02d}"
                 )
-                expected_parquet = partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                expected_parquet = (
+                    partition_path / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                )
                 if expected_parquet.exists():
                     logger.info(
                         "fast_path_parquet_exists_skipping_compute",
@@ -1123,9 +1131,9 @@ def nse_bhavcopy_etl_flow(
                     )
                     mlflow.log_metric("flow_duration_seconds", flow_duration)
                     mlflow.log_param("status", "success")
-                    metrics.flow_duration.labels(flow_name="nse-bhavcopy-etl", status="success").observe(
-                        flow_duration
-                    )
+                    metrics.flow_duration.labels(
+                        flow_name="nse-bhavcopy-etl", status="success"
+                    ).observe(flow_duration)
                     return result
             except Exception as fast_e:
                 logger.warning("fast_path_check_failed", error=str(fast_e))
@@ -1612,7 +1620,8 @@ def index_constituent_etl_flow(
             mlflow.log_metric("total_indices_processed", len(results))
 
             total_constituents: int = sum(
-                int(r.get("constituents", 0)) for r in results.values()  # type: ignore
+                int(r.get("constituents", 0))
+                for r in results.values()  # type: ignore
             )
             mlflow.log_metric("total_constituents", total_constituents)
 

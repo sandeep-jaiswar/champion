@@ -131,17 +131,16 @@ class ParquetValidator:
 
         total_rows = len(df)
         rules_applied = ["schema_validation"]
-        
+
         # Determine if we need memory-efficient streaming
         LARGE_FILE_THRESHOLD = 50_000  # 50K rows = ~2.5MB
         error_stream = None
         error_details = []
         is_memory_efficient = False
-        
+
         if total_rows > LARGE_FILE_THRESHOLD:
             error_stream = ErrorStream(
-                output_file=Path(f"/tmp/validation_errors_{uuid.uuid4()}.jsonl"),
-                keep_samples=100
+                output_file=Path(f"/tmp/validation_errors_{uuid.uuid4()}.jsonl"), keep_samples=100
             )
             is_memory_efficient = True
 
@@ -171,7 +170,7 @@ class ParquetValidator:
                             "validator": error.validator,
                             "record": record,
                         }
-                        
+
                         # Write to error stream or in-memory list
                         if error_stream:
                             error_stream.write_error(error_detail)
@@ -189,24 +188,28 @@ class ParquetValidator:
         # Note: Business logic uses Polars operations which are memory-efficient
         # as they don't materialize data until needed (e.g., only violations)
         business_errors, business_rules = self._validate_business_logic(df, schema_name)
-        
+
         # Add business errors to stream or list
         if business_errors:
             if error_stream:
                 error_stream.write_errors(business_errors)
             else:
                 error_details.extend(business_errors)
-        
+
         rules_applied.extend(business_rules)
 
         # Calculate statistics
         if error_stream:
             error_samples = error_stream.get_samples()
-            critical_failures = error_stream.total_errors if hasattr(error_stream, 'total_errors') else len(error_samples)
+            critical_failures = (
+                error_stream.total_errors
+                if hasattr(error_stream, "total_errors")
+                else len(error_samples)
+            )
         else:
             error_samples = error_details
             critical_failures = len(error_details)
-        
+
         valid_rows = total_rows - critical_failures
 
         result = ValidationResult(

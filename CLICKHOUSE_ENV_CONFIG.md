@@ -86,6 +86,7 @@ class ClickHouseConfig(BaseSettings):
 ### 5. Orchestration Flows
 
 Updated all Prefect flows to use `CHAMPION_CLICKHOUSE_*` variables:
+
 - `src/champion/orchestration/flows/flows.py`
 - `src/champion/orchestration/flows/normalization_job.py`
 
@@ -139,6 +140,7 @@ print(f"  Database: {settings.clickhouse_database}")
 ## Verification
 
 All components now correctly:
+
 1. ✅ Read from `.env` file using `CHAMPION_CLICKHOUSE_*` prefix
 2. ✅ Have sensible defaults matching ClickHouse standard configuration
 3. ✅ Allow parameter overrides when needed
@@ -170,12 +172,14 @@ $ poetry run python -c "from champion.warehouse.adapters import ClickHouseSink; 
 If you have existing code using the old `CLICKHOUSE_*` prefix (without `CHAMPION_`), update them to use `CHAMPION_CLICKHOUSE_*` for consistency.
 
 **Old (deprecated):**
+
 ```bash
 CLICKHOUSE_HOST=localhost
 CLICKHOUSE_PORT=8123
 ```
 
 **New (current):**
+
 ```bash
 CHAMPION_CLICKHOUSE_HOST=localhost
 CHAMPION_CLICKHOUSE_PORT=8123

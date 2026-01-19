@@ -3,17 +3,13 @@
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from champion.validation.error_streaming import ErrorStream
 
 
 def test_error_stream_keeps_samples():
     """ErrorStream.get_samples() returns only N items."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        stream = ErrorStream(
-            output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=10
-        )
+        stream = ErrorStream(output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=10)
 
         # Add 50 errors
         for i in range(50):
@@ -35,9 +31,7 @@ def test_error_stream_keeps_samples():
 def test_error_stream_writes_all_to_disk():
     """ErrorStream.iter_all_errors() returns ALL errors from disk."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        stream = ErrorStream(
-            output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=10
-        )
+        stream = ErrorStream(output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=10)
 
         # Add 50 errors
         for i in range(50):
@@ -53,9 +47,7 @@ def test_error_stream_writes_all_to_disk():
 def test_error_stream_total_errors_tracked():
     """ErrorStream tracks total errors written."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        stream = ErrorStream(
-            output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=100
-        )
+        stream = ErrorStream(output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=100)
 
         # Add 100 errors
         for i in range(100):
@@ -68,9 +60,7 @@ def test_error_stream_total_errors_tracked():
 def test_error_stream_batch_write():
     """ErrorStream.write_errors() batch write works."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        stream = ErrorStream(
-            output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=50
-        )
+        stream = ErrorStream(output_file=Path(tmp_dir) / "errors.jsonl", keep_samples=50)
 
         # Batch write 30 errors
         errors = [{"row_id": i, "value": i * 10} for i in range(30)]

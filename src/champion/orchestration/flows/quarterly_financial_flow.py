@@ -290,57 +290,83 @@ class QuarterlyResultsScraper:
                             sym_val = None
                             audited_status = "U"
                             period_end_date_str = ""
-                            
+
                             # Extract symbol from multiple possible column names
                             for key in ("symbol", "company symbol", "companysymbol"):
                                 if key in cols:
                                     sym_val = str(row[cols[key]]).strip()
                                     break
                             if not sym_val:
-                                for key in ("companyname", "name of company", "company_name", "company name"):
+                                for key in (
+                                    "companyname",
+                                    "name of company",
+                                    "company_name",
+                                    "company name",
+                                ):
                                     if key in cols:
                                         sym_val = str(row[cols[key]]).strip()
                                         break
                             if not sym_val:
                                 sym_val = "UNKNOWN"
-                            
+
                             # Extract audited status from multiple possible column names
                             audited_col = None
-                            for key in ("audited / unaudited", "audited/unaudited", "audited_status", "audited", "auditedstatus"):
+                            for key in (
+                                "audited / unaudited",
+                                "audited/unaudited",
+                                "audited_status",
+                                "audited",
+                                "auditedstatus",
+                            ):
                                 if key in cols:
                                     audited_col = cols[key]
                                     break
                             if audited_col is not None:
                                 aud_val = str(row[audited_col]).strip().upper()
                                 audited_status = "A" if aud_val.startswith("A") else "U"
-                            
+
                             # Extract period end date from multiple possible column names
                             period_col = None
-                            for key in ("todate", "to date", "to_date", "period_ended", "period ended", "period_end_date", "period end date"):
+                            for key in (
+                                "todate",
+                                "to date",
+                                "to_date",
+                                "period_ended",
+                                "period ended",
+                                "period_end_date",
+                                "period end date",
+                            ):
                                 if key in cols:
                                     period_col = cols[key]
                                     break
-                            
+
                             if period_col is not None and pd.notna(row[period_col]):
                                 dt_val = row[period_col]
                                 try:
                                     if isinstance(dt_val, str):
-                                        period_end_date_str = pd.to_datetime(dt_val, errors="coerce").strftime("%d%m%Y")
+                                        period_end_date_str = pd.to_datetime(
+                                            dt_val, errors="coerce"
+                                        ).strftime("%d%m%Y")
                                     else:
-                                        period_end_date_str = pd.to_datetime(dt_val, errors="coerce").strftime("%d%m%Y")
+                                        period_end_date_str = pd.to_datetime(
+                                            dt_val, errors="coerce"
+                                        ).strftime("%d%m%Y")
                                 except Exception:
                                     period_end_date_str = ""
                         except Exception as e:
                             logger.warning("filename_extraction_error", error=str(e))
                             sym_val = "UNKNOWN"
-                        
+
                         # sanitize symbol for filesystem
                         safe_sym = "".join(
                             c if (c.isalnum() or c in ("-", "_")) else "_" for c in sym_val
                         )[:50]
-                        
+
                         # Build filename: symbol_audited_date_originalname
-                        fn = out_path / f"{safe_sym}_{audited_status}_{period_end_date_str}_{Path(url).name}"
+                        fn = (
+                            out_path
+                            / f"{safe_sym}_{audited_status}_{period_end_date_str}_{Path(url).name}"
+                        )
                         # ensure extension
                         if not fn.suffix:
                             fn = fn.with_suffix(ext)
@@ -401,19 +427,22 @@ class QuarterlyResultsScraper:
                 .astype(str)
                 .str.strip()
                 .str.lower()
-                .map({
-                    "consolidated": "CONSOLIDATED",
-                    "standalone": "STANDALONE",
-                    "non-consolidated": "STANDALONE",
-                })
+                .map(
+                    {
+                        "consolidated": "CONSOLIDATED",
+                        "standalone": "STANDALONE",
+                        "non-consolidated": "STANDALONE",
+                    }
+                )
                 .fillna("STANDALONE")  # Default to STANDALONE if not mapped
             )
             pdf = pdf.drop(columns=["statement_type_raw"])
-        
+
         # Add ingest_time (current UTC timestamp)
         from datetime import datetime
+
         pdf["ingest_time"] = datetime.utcnow()
-        
+
         # Add symbol column by querying company_name → symbol mapping
         # For now, use a placeholder. In production, query ClickHouse symbol_master table
         if "symbol" not in pdf.columns:
@@ -424,13 +453,13 @@ class QuarterlyResultsScraper:
                     .astype(str)
                     .str.strip()
                     .str.upper()
-                    .str.replace(r'\s+(LIMITED|LTD|COMPANY|CO).*$', '', regex=True)
-                    .str.replace(r'\s+', '', regex=True)
+                    .str.replace(r"\s+(LIMITED|LTD|COMPANY|CO).*$", "", regex=True)
+                    .str.replace(r"\s+", "", regex=True)
                     .str[:20]  # Limit to 20 chars
                 )
             else:
                 pdf["symbol"] = "UNKNOWN"
-        
+
         # Normalize year
         if "year" in pdf.columns:
             try:
@@ -455,12 +484,14 @@ class QuarterlyResultsScraper:
                     )
                 except Exception:
                     pdf[dtcol] = None
-        
+
         # Parse exchange timestamps (DD-MMM-YYYY HH:MM:SS format)
         for dt_col in ("exchange_received_time", "exchange_dissemination_time"):
             if dt_col in pdf.columns:
                 try:
-                    pdf[dt_col] = pd.to_datetime(pdf[dt_col], format="%d-%b-%Y %H:%M:%S", errors="coerce")
+                    pdf[dt_col] = pd.to_datetime(
+                        pdf[dt_col], format="%d-%b-%Y %H:%M:%S", errors="coerce"
+                    )
                 except Exception:
                     pdf[dt_col] = None
 

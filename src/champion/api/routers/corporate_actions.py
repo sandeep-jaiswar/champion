@@ -5,10 +5,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
+from champion.api.config import get_api_settings
 from champion.api.dependencies import get_clickhouse_client, get_pagination_params
 from champion.warehouse.adapters import ClickHouseSink
 
 router = APIRouter(prefix="/corporate-actions", tags=["Corporate Actions"])
+settings = get_api_settings()
 
 
 @router.get("")

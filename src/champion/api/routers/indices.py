@@ -10,6 +10,7 @@ from champion.api.dependencies import get_clickhouse_client, get_pagination_para
 from champion.warehouse.adapters import ClickHouseSink
 
 router = APIRouter(prefix="/indices", tags=["Index Data"])
+settings = get_api_settings()
 
 
 @router.get("/{index}/constituents")

@@ -464,8 +464,9 @@ def etl_quarterly_financials(
         champion etl quarterly-financials --symbol TCS --load
     """
     try:
-        from champion.orchestration.flows.quarterly_financial_flow import QuarterlyResultsScraper
         import polars as pl
+
+        from champion.orchestration.flows.quarterly_financial_flow import QuarterlyResultsScraper
         from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
         if start_date and end_date:
@@ -476,7 +477,7 @@ def etl_quarterly_financials(
             ed = date.today()
 
         console.print("[bold]Phase 1: Fetching master data and downloading documents...[/bold]")
-        
+
         master_df = QuarterlyResultsScraper().get_master(
             from_date=sd.strftime("%d-%m-%Y"),
             to_date=ed.strftime("%d-%m-%Y"),
@@ -484,17 +485,17 @@ def etl_quarterly_financials(
             issuer=issuer,
             filter_audited=filter_audited,
         )
-        
+
         console.print(f"[green]✓[/green] Found {len(master_df)} quarterly financial records")
-        
+
         scraper = QuarterlyResultsScraper()
         # normalize dataframe and write canonical parquet
         norm_df = scraper.normalize_master_dataframe(master_df)
         # download documents and capture saved file paths (use normalized dataframe)
         saved_files = scraper.download_documents(master=norm_df)
-        
+
         console.print(f"[green]✓[/green] Downloaded {len(saved_files)} documents")
-        
+
         console.print(f"[green]✓[/green] Downloaded {len(saved_files)} documents")
 
         # Phase 2: Parse XBRL files and prepare for batch insert
@@ -524,25 +525,32 @@ def etl_quarterly_financials(
             try:
                 # Convert parsed rows to DataFrame for easier merging
                 import pandas as pd
+
                 parsed_df = pd.DataFrame(parsed_rows)
-                
+
                 # Ensure period_end_date is in the same format for both
-                if 'period_end_date' in parsed_df.columns:
-                    parsed_df['period_end_date'] = pd.to_datetime(parsed_df['period_end_date'], errors='coerce').dt.date
-                if 'period_end_date' in norm_df.columns:
-                    norm_df['period_end_date'] = pd.to_datetime(norm_df['period_end_date'], errors='coerce').dt.date
-                
+                if "period_end_date" in parsed_df.columns:
+                    parsed_df["period_end_date"] = pd.to_datetime(
+                        parsed_df["period_end_date"], errors="coerce"
+                    ).dt.date
+                if "period_end_date" in norm_df.columns:
+                    norm_df["period_end_date"] = pd.to_datetime(
+                        norm_df["period_end_date"], errors="coerce"
+                    ).dt.date
+
                 # Merge strategy: Use period_end_date as primary key since symbols may differ
                 # between master (full company name) and XBRL (exchange symbol)
                 # For each parsed row, find corresponding master row by period_end_date
                 merged_rows = []
                 for _, parsed_row in parsed_df.iterrows():
                     parsed_dict = parsed_row.to_dict()
-                    period_end = parsed_dict.get('period_end_date')
-                    
+                    period_end = parsed_dict.get("period_end_date")
+
                     # Find matching master row by period_end_date
-                    if period_end and period_end in norm_df['period_end_date'].values:
-                        matching_master = norm_df[norm_df['period_end_date'] == period_end].iloc[0].to_dict()
+                    if period_end and period_end in norm_df["period_end_date"].values:
+                        matching_master = (
+                            norm_df[norm_df["period_end_date"] == period_end].iloc[0].to_dict()
+                        )
                         # Merge: master metadata + XBRL financials
                         # Prefer master values for metadata fields, XBRL values for financial metrics
                         merged_row = {**parsed_dict, **matching_master}
@@ -555,16 +563,19 @@ def etl_quarterly_financials(
                     else:
                         # No matching master row, use XBRL data only
                         merged_rows.append(parsed_dict)
-                
+
                 if merged_rows:
                     norm_df = pd.DataFrame(merged_rows)
-                    console.print(f"[green]✓[/green] Merged {len(norm_df)} records with XBRL financials")
+                    console.print(
+                        f"[green]✓[/green] Merged {len(norm_df)} records with XBRL financials"
+                    )
                 else:
-                    console.print(f"[yellow]⚠ No records merged - using master data only[/yellow]")
+                    console.print("[yellow]⚠ No records merged - using master data only[/yellow]")
             except Exception as e:
                 console.print(f"[yellow]⚠ Merge failed: {e}[/yellow]")
                 if verbose:
                     import traceback
+
                     console.print(traceback.format_exc())
 
         # Phase 3: Batch load into ClickHouse
@@ -572,36 +583,34 @@ def etl_quarterly_financials(
             console.print("\n[bold]Phase 3: Batch loading to ClickHouse...[/bold]")
             try:
                 loader = ClickHouseLoader(
-                    host="localhost",
-                    port=8123,
-                    user="default",
-                    password="",
-                    database="champion"
+                    host="localhost", port=8123, user="default", password="", database="champion"
                 )
                 loader.connect()
-                
+
                 total_rows = 0
-                
+
                 # Load merged data (master + XBRL financials)
                 if norm_df is not None and len(norm_df) > 0:
                     try:
                         pldf = pl.from_pandas(norm_df)
                         rows_inserted = loader.insert_polars_dataframe(
-                            table="quarterly_financials",
-                            df=pldf,
-                            batch_size=10000,
-                            dry_run=False
+                            table="quarterly_financials", df=pldf, batch_size=10000, dry_run=False
                         )
                         total_rows += rows_inserted
-                        console.print(f"[green]✓[/green] Loaded merged data: {rows_inserted:,} rows")
+                        console.print(
+                            f"[green]✓[/green] Loaded merged data: {rows_inserted:,} rows"
+                        )
                     except Exception as e:
                         console.print(f"[red]✗[/red] Failed to load data: {e}")
                         if verbose:
                             import traceback
+
                             console.print(traceback.format_exc())
-                
+
                 loader.disconnect()
-                console.print(f"\n[bold]Batch load complete:[/bold] {total_rows:,} total rows loaded into ClickHouse")
+                console.print(
+                    f"\n[bold]Batch load complete:[/bold] {total_rows:,} total rows loaded into ClickHouse"
+                )
             except Exception as e:
                 console.print(f"[red]✗ Batch load failed: {e}[/red]")
                 if verbose:
@@ -849,11 +858,11 @@ def orchestrate_backfill(
             console.print("[red]Backfill only supported for bhavcopy[/red]")
             raise typer.Exit(1)
 
-        from pathlib import Path
+        import polars as pl
+
+        from champion.config import config
         from champion.scrapers.bhavcopy import BhavcopyScraper
         from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
-        from champion.config import config
-        import polars as pl
 
         scraper = BhavcopyScraper()
 
@@ -878,12 +887,14 @@ def orchestrate_backfill(
 
             current = current + timedelta(days=1)
 
-        console.print(f"\n[bold]Download phase complete:[/bold] {len(successful_dates)} downloaded, {download_failures} failed\n")
+        console.print(
+            f"\n[bold]Download phase complete:[/bold] {len(successful_dates)} downloaded, {download_failures} failed\n"
+        )
 
         # Phase 2: Batch load all parquet files to ClickHouse using compressed HTTP
         if load_to_clickhouse and successful_dates:
             console.print("[bold]Phase 2: Batch loading to ClickHouse...[/bold]")
-            
+
             try:
                 # Initialize loader with compression for better batch performance
                 loader = ClickHouseLoader(
@@ -891,10 +902,10 @@ def orchestrate_backfill(
                     port=8123,  # HTTP port with compression
                     user="default",
                     password="",
-                    database="champion"
+                    database="champion",
                 )
                 loader.connect()
-                
+
                 total_rows = 0
                 for trade_date in successful_dates:
                     # Build path to parquet file
@@ -908,7 +919,7 @@ def orchestrate_backfill(
                         / f"day={trade_date.day:02d}"
                         / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
                     )
-                    
+
                     if parquet_path.exists():
                         try:
                             # Read parquet and insert using compressed HTTP
@@ -917,22 +928,28 @@ def orchestrate_backfill(
                                 table="normalized_equity_ohlc",
                                 df=df,
                                 batch_size=100000,
-                                dry_run=False
+                                dry_run=False,
                             )
                             total_rows += rows_inserted
-                            console.print(f"[green]✓ Loaded[/green] {trade_date} ({rows_inserted:,} rows)")
+                            console.print(
+                                f"[green]✓ Loaded[/green] {trade_date} ({rows_inserted:,} rows)"
+                            )
                             if verbose:
-                                logger.info("Loaded data for date", date=trade_date, rows=rows_inserted)
+                                logger.info(
+                                    "Loaded data for date", date=trade_date, rows=rows_inserted
+                                )
                         except Exception as e:
                             console.print(f"[red]✗ Load failed[/red] {trade_date}: {e}")
                             if verbose:
                                 logger.error("Load failed for date", date=trade_date, error=str(e))
                     else:
                         console.print(f"[yellow]⊘ Parquet not found[/yellow] {trade_date}")
-                
+
                 loader.disconnect()
-                console.print(f"\n[bold]Batch load complete:[/bold] {total_rows:,} rows loaded into ClickHouse")
-                
+                console.print(
+                    f"\n[bold]Batch load complete:[/bold] {total_rows:,} rows loaded into ClickHouse"
+                )
+
             except Exception as e:
                 console.print(f"[red]✗ Batch load failed: {e}[/red]")
                 if verbose:

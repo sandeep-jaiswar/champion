@@ -63,7 +63,7 @@ class ClickHouseSink(WarehouseSink):
         **kwargs,
     ):
         """Initialize ClickHouse sink.
-        
+
         Args:
             host: ClickHouse host (defaults to CHAMPION_CLICKHOUSE_HOST env var or 'localhost')
             port: ClickHouse HTTP port (defaults to CHAMPION_CLICKHOUSE_PORT env var or 8123)
@@ -72,7 +72,7 @@ class ClickHouseSink(WarehouseSink):
             database: ClickHouse database (defaults to CHAMPION_CLICKHOUSE_DATABASE env var or 'champion')
         """
         import os
-        
+
         self.host = host or os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost")
         self.port = port or int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123"))
         self.user = user or os.getenv("CHAMPION_CLICKHOUSE_USER", "default")
