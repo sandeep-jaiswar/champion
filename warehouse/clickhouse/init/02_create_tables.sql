@@ -94,8 +94,7 @@ PARTITION BY toYYYYMM(TradDt)
 ORDER BY (TckrSymb, FinInstrmId, TradDt)
 TTL TradDt + INTERVAL 5 YEAR DELETE
 SETTINGS
-    index_granularity = 8192,
-    max_insert_threads = 4;
+    index_granularity = 8192;
 
 -- Sparse indices for selective lookups (bloom for optional lookups only)
 
@@ -233,8 +232,7 @@ PARTITION BY toYYYYMM(trade_date)
 ORDER BY (symbol, trade_date, feature_timestamp)
 TTL trade_date + INTERVAL 1 YEAR DELETE
 SETTINGS
-    index_granularity = 8192,
-    max_insert_threads = 2;
+    index_granularity = 8192;
 
 -- ==============================================================================
 -- 4. CORPORATE ACTIONS TABLE (REFERENCE DATA, LOW-VOLUME)
@@ -530,41 +528,96 @@ CREATE TABLE IF NOT EXISTS champion.quarterly_financials
     period_type         LowCardinality(Nullable(String)) COMMENT 'Q/H/A (quarter/half/annual)',
     filing_date         Nullable(Date) CODEC(Delta, LZ4),
     
-    -- P&L ITEMS (in INR crore, all nullable)
-    revenue             Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    operating_profit    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    net_profit          Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    depreciation        Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    interest_expense    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    tax_expense         Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    -- NSE CSV METADATA FIELDS (all nullable)
+    audited_status      LowCardinality(Nullable(String)) COMMENT 'Audited/Un-Audited',
+    cumulative_status   LowCardinality(Nullable(String)) COMMENT 'Cumulative/Non-cumulative',
+    accounting_standard LowCardinality(Nullable(String)) COMMENT 'IND AS/Non IND AS',
+    period_description  Nullable(String) COMMENT 'Relating to (e.g., Second Quarter)',
+    xbrl_url            Nullable(String) COMMENT 'XBRL document URL',
+    exchange_received_time Nullable(DateTime) COMMENT 'Exchange received timestamp',
+    exchange_dissemination_time Nullable(DateTime) COMMENT 'Exchange dissemination timestamp',
+    time_taken          Nullable(String) COMMENT 'Time taken for dissemination',
     
-    -- BALANCE SHEET ITEMS (in INR crore, all nullable)
-    total_assets        Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    total_liabilities   Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    equity              Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    total_debt          Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_assets      Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    cash_and_equivalents Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    inventories         Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    
-    -- PER SHARE METRICS (all nullable)
-    eps                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    -- XBRL FINANCIAL METRICS (all nullable, no defaults)
+    adjustments_for_decrease_increase_in_inventories Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_decrease_increase_in_other_current_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_increase_decrease_in_current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_other_non_cash_items Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    asset_to_equity_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    asset_turnover Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    basic_earnings_loss_per_share_from_continuing_and_discontinued_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    basic_earnings_loss_per_share_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
     book_value_per_share Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    
-    -- COMPUTED RATIOS (all nullable)
-    roe                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    roa                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    debt_to_equity      Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_ratio       Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    operating_margin    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    net_margin          Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents_at_beginning_of_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents_at_end_of_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_financing_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_investing_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_operating_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period_attributable_to_owners_of_parent Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period_attributable_to_owners_of_parent_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    debt_service_coverage_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    debt_to_equity_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    deferred_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    depreciation_depletion_and_amortisation_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    description_of_nature_of_other_comprehensive_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    description_of_other_expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    diluted_earnings_loss_per_share_from_continuing_and_discontinued_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    diluted_earnings_loss_per_share_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    employee_benefit_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    equity Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    face_value_of_equity_share_capital Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    inter_segment_revenue Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    interest_coverage_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    inventories Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_increase_decrease_in_cash Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_margin Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_movement_in_regulatory_deferral_account_balances_related_to_profit_or_loss_and_the_related_deferred_tax_movement Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    number_of_shares_outstanding Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    operating_margin Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_comprehensive_income_for_the_period_attributable_to_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_comprehensive_income_net_of_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_unallocable_expenditure_net_off_un_allocable_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    paid_up_value_of_equity_share_capital Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_before_exceptional_items_and_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_before_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_loss_for_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_loss_for_period_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_or_loss_attributable_to_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_or_loss_attributable_to_owners_of_parent Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    quick_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    return_on_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    return_on_equity Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    revenue_from_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_profit_before_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_profit_loss_before_tax_and_finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_revenue Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_revenue_from_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    tax_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_debt Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    weighted_average_number_of_shares_outstanding_basic Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    weighted_average_number_of_shares_outstanding_diluted Nullable(Float64) CODEC(DoubleDelta, LZ4),
     
     -- METADATA
-    metadata            Map(String, String)
+    metadata Map(String, String)
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY (symbol, toYear(period_end_date), toQuarter(period_end_date))
+PARTITION BY toYear(period_end_date)
 ORDER BY (symbol, period_end_date, statement_type, ingest_time)
 TTL period_end_date + INTERVAL 10 YEAR DELETE
 SETTINGS

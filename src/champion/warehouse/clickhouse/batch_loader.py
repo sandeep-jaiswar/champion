@@ -51,6 +51,8 @@ class ClickHouseLoader:
         "normalized_equity_ohlc": "normalized",
         "features_equity_indicators": "features",
         "symbol_master": "reference",
+        "quarterly_financials": "reference",
+        "quarterly_financials_raw": "raw",
     }
 
     # Column name mapping: Parquet column -> ClickHouse column
@@ -90,6 +92,77 @@ class ClickHouseLoader:
         },
         "features_equity_indicators": {
             # Features table uses normalized names, no mapping needed yet
+        },
+        "quarterly_financials": {
+            # Map NSE quarterly results columns to ClickHouse schema
+            # Handle both uppercase with spaces and lowercase with underscores
+            "SYMBOL": "symbol",
+            "COMPANY NAME": "company_name",
+            "companyName": "company_name",
+            "ISIN": "cin",
+            "isin": "cin",
+            "CIN": "cin",
+            "PERIOD END DATE": "period_end_date",
+            "periodEndDate": "period_end_date",
+            "toDate": "period_end_date",
+            "PERIOD ENDED": "period_end_date",
+            "PERIOD TYPE": "period_type",
+            "periodType": "period_type",
+            "period": "period_type",
+            "PERIOD": "period_type",
+            "FILING DATE": "filing_date",
+            "filingDate": "filing_date",
+            "STATEMENT TYPE": "statement_type",
+            "statementType": "statement_type",
+            "CONSOLIDATED / NON-CONSOLIDATED": "statement_type",
+            "AUDITED / UNAUDITED": "audited_status",
+            "CUMULATIVE / NON-CUMULATIVE": "cumulative_status",
+            "IND AS/ NON IND AS": "accounting_standard",
+            "RELATING TO": "period_description",
+            "** XBRL": "xbrl_url",
+            "Exchange Received Time": "exchange_received_time",
+            "Exchange Dissemination Time": "exchange_dissemination_time",
+            "Time Taken": "time_taken",
+            "REVENUE": "revenue",
+            "OPERATING PROFIT": "operating_profit",
+            "operatingProfit": "operating_profit",
+            "NET PROFIT": "net_profit",
+            "netProfit": "net_profit",
+            "DEPRECIATION": "depreciation",
+            "INTEREST EXPENSE": "interest_expense",
+            "interestExpense": "interest_expense",
+            "TAX EXPENSE": "tax_expense",
+            "taxExpense": "tax_expense",
+            "TOTAL ASSETS": "total_assets",
+            "totalAssets": "total_assets",
+            "TOTAL LIABILITIES": "total_liabilities",
+            "totalLiabilities": "total_liabilities",
+            "EQUITY": "equity",
+            "TOTAL DEBT": "total_debt",
+            "totalDebt": "total_debt",
+            "CURRENT ASSETS": "current_assets",
+            "currentAssets": "current_assets",
+            "CURRENT LIABILITIES": "current_liabilities",
+            "currentLiabilities": "current_liabilities",
+            "CASH AND EQUIVALENTS": "cash_and_equivalents",
+            "cashAndEquivalents": "cash_and_equivalents",
+            "INVENTORIES": "inventories",
+            "EPS": "eps",
+            "BOOK VALUE PER SHARE": "book_value_per_share",
+            "bookValuePerShare": "book_value_per_share",
+            "ROE": "roe",
+            "ROA": "roa",
+            "DEBT TO EQUITY": "debt_to_equity",
+            "debtToEquity": "debt_to_equity",
+            "CURRENT RATIO": "current_ratio",
+            "currentRatio": "current_ratio",
+            "OPERATING MARGIN": "operating_margin",
+            "operatingMargin": "operating_margin",
+            "NET MARGIN": "net_margin",
+            "netMargin": "net_margin",
+            "_xbrl_raw_values": None,  # Exclude XBRL internal columns
+            "_parsed_from": None,
+            "_xbrl_metadata": None,
         },
     }
 
@@ -309,6 +382,23 @@ class ClickHouseLoader:
         # Prepare column mapping (handle datetime conversions)
         df = self._prepare_dataframe_for_insert(df, table)
 
+        # Get table columns and filter DataFrame to only include columns that exist in table
+        try:
+            table_columns_query = f"DESCRIBE TABLE {self.database}.{table}"
+            result = self.client.query(table_columns_query)
+            table_columns = {row[0] for row in result.result_rows}  # Get column names
+            
+            # Filter DataFrame to only columns that exist in target table
+            df_columns = set(df.columns)
+            columns_to_keep = df_columns.intersection(table_columns)
+            columns_to_drop = df_columns - table_columns
+            
+            if columns_to_drop:
+                logger.info(f"Dropping columns not in target table: {columns_to_drop}")
+                df = df.select([col for col in df.columns if col in columns_to_keep])
+        except Exception as e:
+            logger.warning(f"Could not get table schema, inserting all columns: {e}")
+
         total_rows = len(df)
         rows_inserted = 0
 
@@ -365,10 +455,20 @@ class ClickHouseLoader:
 
             # Only rename columns that exist in the DataFrame
             rename_map = {}
+            cols_to_drop = []
             for source_col, target_col in mapping.items():
                 if source_col in df.columns:
-                    rename_map[source_col] = target_col
-                    logger.debug(f"Mapping column: {source_col} -> {target_col}")
+                    if target_col is None:
+                        # Column mapped to None means drop it
+                        cols_to_drop.append(source_col)
+                    else:
+                        rename_map[source_col] = target_col
+                        logger.debug(f"Mapping column: {source_col} -> {target_col}")
+
+            # Drop columns marked for exclusion
+            if cols_to_drop:
+                logger.info(f"Dropping excluded columns: {cols_to_drop}")
+                df = df.drop(cols_to_drop)
 
             if rename_map:
                 df = df.rename(rename_map)
@@ -404,6 +504,8 @@ class ClickHouseLoader:
             "FininstrmActlXpryDt",
             "trade_date",
             "adjustment_date",
+            "period_end_date",
+            "filing_date",
         ]
         for col in date_cols:
             if col in df.columns:

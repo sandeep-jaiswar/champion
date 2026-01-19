@@ -26,21 +26,14 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Install all Python dependencies
-RUN pip install --no-cache-dir \
-    pydantic==2.5.0 pydantic-settings==2.1.0 \
-    fastapi uvicorn polars pyarrow pandas numpy \
-    httpx beautifulsoup4 lxml tenacity \
-    clickhouse-connect brotli \
-    python-dotenv jsonschema cerberus python-dateutil \
-    redis sqlalchemy psutil \
-    mlflow optuna scikit-learn tensorflow scipy \
-    pytest pytest-cov pytest-mock pytest-asyncio \
-    requests prefect confluent-kafka fastavro \
-    structlog prometheus-client \
-    opentelemetry-api opentelemetry-sdk \
-    typer python-jose passlib python-multipart \
-    ruff mypy
+# Install poetry and dependencies
+RUN pip install --no-cache-dir poetry==1.7.1
+
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-dev --no-interaction --no-ansi 2>&1
+
+# Ensure critical packages are installed
+RUN pip install --no-cache-dir uvicorn fastapi typer
 
 # Copy application code
 COPY --chown=champion:champion src/ ./src/
@@ -62,4 +55,4 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src
 
 # Default command - start API server
-CMD ["python", "-m", "champion", "api", "start", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "champion", "api", "serve", "--host", "0.0.0.0", "--port", "8000"]
