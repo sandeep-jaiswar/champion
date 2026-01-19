@@ -327,14 +327,32 @@ def etl_ohlc(
                 typer.secho("start_date must be before or equal to end_date", fg=typer.colors.RED)
                 raise typer.Exit(1)
             cur = start_dt
+            failed_dates = []
             while cur <= end_dt:
-                nse_bhavcopy_etl_flow(
-                    trade_date=cur,
-                    output_base_path=output_base_path,
-                    load_to_clickhouse=load_to_clickhouse,
-                    start_metrics_server_flag=False,
-                )
+                # Skip weekends to avoid unnecessary network calls
+                if cur.weekday() >= 5:
+                    typer.secho(f"Skipping weekend: {cur}", fg=typer.colors.BLUE)
+                    cur = cur + timedelta(days=1)
+                    continue
+                try:
+                    nse_bhavcopy_etl_flow(
+                        trade_date=cur,
+                        output_base_path=output_base_path,
+                        load_to_clickhouse=load_to_clickhouse,
+                        start_metrics_server_flag=False,
+                    )
+                except Exception as e:
+                    typer.secho(
+                        f"Warning: Skipping {cur} due to: {str(e)[:100]}",
+                        fg=typer.colors.YELLOW,
+                    )
+                    failed_dates.append(str(cur))
                 cur = cur + timedelta(days=1)
+            if failed_dates:
+                typer.secho(
+                    f"Completed with {len(failed_dates)} skipped dates: {', '.join(failed_dates[:5])}{'...' if len(failed_dates) > 5 else ''}",
+                    fg=typer.colors.YELLOW,
+                )
             return
 
         td = validate_date_format(trade_date) if trade_date else None
