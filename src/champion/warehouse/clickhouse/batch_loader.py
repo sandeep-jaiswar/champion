@@ -53,6 +53,8 @@ class ClickHouseLoader:
         "symbol_master": "reference",
         "quarterly_financials": "reference",
         "quarterly_financials_raw": "raw",
+        "trading_calendar": "reference",
+        "bulk_block_deals": "reference",
     }
 
     # Column name mapping: Parquet column -> ClickHouse column
