@@ -75,7 +75,6 @@ class ScraperConfig(BaseSettings):
     retry_delay: int = Field(default=60, ge=1)
     timeout: int = Field(default=300, ge=30)
     user_agent: str = Field(default="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
-
     model_config = SettingsConfigDict(env_prefix="SCRAPER_")
 
 

@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-import os
 
 from champion.orchestration.flows.corporate_actions_flow import corporate_actions_etl_flow
 

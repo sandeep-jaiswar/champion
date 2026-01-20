@@ -1,30 +1,44 @@
 """Core validation utilities for Parquet datasets."""
 
 import json
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import polars as pl
 import structlog
 from jsonschema import Draft7Validator
+
+from .error_streaming import ErrorStream
 
 logger = structlog.get_logger()
 
 
 @dataclass
 class ValidationResult:
-    """Result of validation operation."""
+    """Result of validation operation.
+
+    Note: For large files, error_details contains only samples.
+    Use error_file path to access all errors if needed.
+    """
 
     total_rows: int
     valid_rows: int
     critical_failures: int
     warnings: int
-    error_details: list[dict[str, Any]]
+    error_details: list[dict[str, Any]]  # Sample errors only for memory efficiency
     validation_rules_applied: list[str] = field(default_factory=list)
     validation_timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    error_file: str | None = None  # Path to full error log if streamed to disk
+    is_memory_efficient: bool = False  # True if using streamed errors
+
+    @property
+    def is_valid(self) -> bool:
+        """Check if validation passed."""
+        return self.critical_failures == 0
 
 
 class ParquetValidator:
@@ -116,8 +130,19 @@ class ParquetValidator:
         validator = Draft7Validator(schema)
 
         total_rows = len(df)
-        error_details = []
         rules_applied = ["schema_validation"]
+
+        # Determine if we need memory-efficient streaming
+        LARGE_FILE_THRESHOLD = 50_000  # 50K rows = ~2.5MB
+        error_stream = None
+        error_details = []
+        is_memory_efficient = False
+
+        if total_rows > LARGE_FILE_THRESHOLD:
+            error_stream = ErrorStream(
+                output_file=Path(f"/tmp/validation_errors_{uuid.uuid4()}.jsonl"), keep_samples=100
+            )
+            is_memory_efficient = True
 
         logger.info(
             "validating_dataframe",
@@ -125,6 +150,7 @@ class ParquetValidator:
             total_rows=total_rows,
             columns=df.columns,
             batch_size=batch_size,
+            memory_efficient=is_memory_efficient,
         )
 
         # Use streaming validation with iter_slices for memory efficiency
@@ -144,7 +170,12 @@ class ParquetValidator:
                             "validator": error.validator,
                             "record": record,
                         }
-                        error_details.append(error_detail)
+
+                        # Write to error stream or in-memory list
+                        if error_stream:
+                            error_stream.write_error(error_detail)
+                        else:
+                            error_details.append(error_detail)
 
                         logger.warning(
                             "validation_error",
@@ -157,19 +188,39 @@ class ParquetValidator:
         # Note: Business logic uses Polars operations which are memory-efficient
         # as they don't materialize data until needed (e.g., only violations)
         business_errors, business_rules = self._validate_business_logic(df, schema_name)
-        error_details.extend(business_errors)
+
+        # Add business errors to stream or list
+        if business_errors:
+            if error_stream:
+                error_stream.write_errors(business_errors)
+            else:
+                error_details.extend(business_errors)
+
         rules_applied.extend(business_rules)
 
-        critical_failures = len(error_details)
-        valid_rows = total_rows - len({e["row_index"] for e in error_details})
+        # Calculate statistics
+        if error_stream:
+            error_samples = error_stream.get_samples()
+            critical_failures = (
+                error_stream.total_errors
+                if hasattr(error_stream, "total_errors")
+                else len(error_samples)
+            )
+        else:
+            error_samples = error_details
+            critical_failures = len(error_details)
+
+        valid_rows = total_rows - critical_failures
 
         result = ValidationResult(
             total_rows=total_rows,
             valid_rows=valid_rows,
             critical_failures=critical_failures,
             warnings=0,
-            error_details=error_details,
+            error_details=error_samples,
             validation_rules_applied=rules_applied,
+            error_file=str(error_stream.output_file) if error_stream else None,
+            is_memory_efficient=is_memory_efficient,
         )
 
         logger.info(
@@ -179,6 +230,8 @@ class ParquetValidator:
             valid_rows=valid_rows,
             critical_failures=critical_failures,
             rules_applied=len(rules_applied),
+            memory_efficient=is_memory_efficient,
+            error_file=result.error_file,
         )
 
         return result
@@ -302,9 +355,15 @@ class ParquetValidator:
                 if rule_errors:
                     errors.extend(rule_errors)
                 rules_applied.append(f"custom_{validator_name}")
-            except Exception as e:
+            except (ValueError, KeyError, TypeError) as e:
                 logger.error(
                     "custom_validator_failed",
+                    validator_name=validator_name,
+                    error=str(e),
+                )
+            except Exception as e:
+                logger.exception(
+                    "custom_validator_unexpected_error",
                     validator_name=validator_name,
                     error=str(e),
                 )

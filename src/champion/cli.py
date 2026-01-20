@@ -327,14 +327,32 @@ def etl_ohlc(
                 typer.secho("start_date must be before or equal to end_date", fg=typer.colors.RED)
                 raise typer.Exit(1)
             cur = start_dt
+            failed_dates = []
             while cur <= end_dt:
-                nse_bhavcopy_etl_flow(
-                    trade_date=cur,
-                    output_base_path=output_base_path,
-                    load_to_clickhouse=load_to_clickhouse,
-                    start_metrics_server_flag=False,
-                )
+                # Skip weekends to avoid unnecessary network calls
+                if cur.weekday() >= 5:
+                    typer.secho(f"Skipping weekend: {cur}", fg=typer.colors.BLUE)
+                    cur = cur + timedelta(days=1)
+                    continue
+                try:
+                    nse_bhavcopy_etl_flow(
+                        trade_date=cur,
+                        output_base_path=output_base_path,
+                        load_to_clickhouse=load_to_clickhouse,
+                        start_metrics_server_flag=False,
+                    )
+                except Exception as e:
+                    typer.secho(
+                        f"Warning: Skipping {cur} due to: {str(e)[:100]}",
+                        fg=typer.colors.YELLOW,
+                    )
+                    failed_dates.append(str(cur))
                 cur = cur + timedelta(days=1)
+            if failed_dates:
+                typer.secho(
+                    f"Completed with {len(failed_dates)} skipped dates: {', '.join(failed_dates[:5])}{'...' if len(failed_dates) > 5 else ''}",
+                    fg=typer.colors.YELLOW,
+                )
             return
 
         td = validate_date_format(trade_date) if trade_date else None
@@ -446,7 +464,10 @@ def etl_quarterly_financials(
         champion etl quarterly-financials --symbol TCS --load
     """
     try:
+        import polars as pl
+
         from champion.orchestration.flows.quarterly_financial_flow import QuarterlyResultsScraper
+        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
         if start_date and end_date:
             sd = validate_date_format(start_date)
@@ -455,6 +476,8 @@ def etl_quarterly_financials(
             sd = date.today()
             ed = date.today()
 
+        console.print("[bold]Phase 1: Fetching master data and downloading documents...[/bold]")
+
         master_df = QuarterlyResultsScraper().get_master(
             from_date=sd.strftime("%d-%m-%Y"),
             to_date=ed.strftime("%d-%m-%Y"),
@@ -462,225 +485,137 @@ def etl_quarterly_financials(
             issuer=issuer,
             filter_audited=filter_audited,
         )
+
+        console.print(f"[green]✓[/green] Found {len(master_df)} quarterly financial records")
+
         scraper = QuarterlyResultsScraper()
         # normalize dataframe and write canonical parquet
         norm_df = scraper.normalize_master_dataframe(master_df)
-        # download documents and capture saved file paths
-        saved_files = scraper.download_documents(master=master_df)
+        # download documents and capture saved file paths (use normalized dataframe)
+        saved_files = scraper.download_documents(master=norm_df)
 
-        # Parse downloaded XBRL/XML files into rows (if any) so we can optionally
-        # insert parsed facts directly into ClickHouse without relying only on Parquet.
+        console.print(f"[green]✓[/green] Downloaded {len(saved_files)} documents")
+
+        console.print(f"[green]✓[/green] Downloaded {len(saved_files)} documents")
+
+        # Phase 2: Parse XBRL files and prepare for batch insert
+        console.print("\n[bold]Phase 2: Parsing XBRL documents...[/bold]")
         parsed_rows = []
         try:
-            # local import to avoid adding heavy deps at module import time
-            import polars as pl
-
             from champion.parsers.xbrl_parser import parse_xbrl_file
 
-            for p in saved_files:
+            for idx, p in enumerate(saved_files):
                 try:
                     if str(p).lower().endswith(".xml"):
                         rec = parse_xbrl_file(Path(p))
                         parsed_rows.append(rec)
-                except Exception:
-                    # be tolerant; we still proceed with Parquet write/load
-                    typer.secho(f"Failed to parse XBRL: {p}", fg=typer.colors.YELLOW)
-        except Exception:
-            # parser missing or failed import; skip parsed insert
+                        if (idx + 1) % 100 == 0:
+                            console.print(f"  Parsed {idx + 1}/{len(saved_files)} files...")
+                except Exception as e:
+                    if verbose:
+                        console.print(f"[yellow]⊘ Failed to parse: {p} - {e}[/yellow]")
+            console.print(f"[green]✓[/green] Successfully parsed {len(parsed_rows)} XBRL files")
+        except Exception as e:
+            console.print(f"[yellow]⚠ XBRL parser not available or failed: {e}[/yellow]")
             parsed_rows = []
-        # Optionally write Parquet and upload master rows into ClickHouse in batch
-        if load_to_clickhouse:
+
+        # Phase 2.5: Merge master metadata with parsed XBRL data
+        if parsed_rows and norm_df is not None and len(norm_df) > 0:
+            console.print("\n[bold]Phase 2.5: Merging master data with XBRL financials...[/bold]")
             try:
+                # Convert parsed rows to DataFrame for easier merging
                 import pandas as pd
-                import polars as pl
 
-                from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
+                parsed_df = pd.DataFrame(parsed_rows)
 
-                # Normalize/master -> Parquet column mapping to match ClickHouse schema
-                today = date.today().isoformat()
-                # Canonical path: include date partition; when `--symbol` provided
-                # write directly under a symbol subfolder so loader can target
-                # the exact file produced by this run and avoid cross-writes.
-                base = Path("data/lake/raw/quarterly_financials") / f"date={today}"
-                base.mkdir(parents=True, exist_ok=True)
+                # Ensure period_end_date is in the same format for both
+                if "period_end_date" in parsed_df.columns:
+                    parsed_df["period_end_date"] = pd.to_datetime(
+                        parsed_df["period_end_date"], errors="coerce"
+                    ).dt.date
+                if "period_end_date" in norm_df.columns:
+                    norm_df["period_end_date"] = pd.to_datetime(
+                        norm_df["period_end_date"], errors="coerce"
+                    ).dt.date
 
-                # Work on a pandas copy to rename and coerce types
-                # use normalized dataframe if available
-                pdf = norm_df.copy() if norm_df is not None else master_df.copy()
+                # Merge strategy: Use period_end_date as primary key since symbols may differ
+                # between master (full company name) and XBRL (exchange symbol)
+                # For each parsed row, find corresponding master row by period_end_date
+                merged_rows = []
+                for _, parsed_row in parsed_df.iterrows():
+                    parsed_dict = parsed_row.to_dict()
+                    period_end = parsed_dict.get("period_end_date")
 
-                # Common mappings from NSE master to ClickHouse schema
-                rename_map = {
-                    "companyName": "company_name",
-                    "financialYear": "year",
-                    "filingDate": "filing_date",
-                    "fromDate": "period_start",
-                    "toDate": "period_end_date",
-                    "period": "period_type",
-                    "isin": "cin",
-                }
-
-                # Only rename columns that exist
-                existing_rename = {k: v for k, v in rename_map.items() if k in pdf.columns}
-                if existing_rename:
-                    pdf = pdf.rename(columns=existing_rename)
-
-                # Coerce year to integer when possible
-                if "year" in pdf.columns:
-                    try:
-                        pdf["year"] = (
-                            pdf["year"]
-                            .astype(str)
-                            .str.extract(r"(\d{4})")[0]
-                            .astype(float)
-                            .astype("Int64")
+                    # Find matching master row by period_end_date
+                    if period_end and period_end in norm_df["period_end_date"].values:
+                        matching_master = (
+                            norm_df[norm_df["period_end_date"] == period_end].iloc[0].to_dict()
                         )
-                    except Exception:
-                        pass
-
-                # Try to derive quarter from period_type or fromDate/toDate if available
-                if "quarter" not in pdf.columns:
-                    qseries = None
-                    if "period_type" in pdf.columns:
-                        try:
-                            qseries = pdf["period_type"].astype(str).str.extract(r"Q([1-4])")[0]
-                        except Exception:
-                            qseries = None
-                    if qseries is None or qseries.isnull().all():
-                        # Try parsing period_end_date month to quarter
-                        if "period_end_date" in pdf.columns:
-                            try:
-                                pdf["period_end_date"] = pd.to_datetime(
-                                    pdf["period_end_date"], errors="coerce"
-                                )
-                                qseries = pdf["period_end_date"].dt.quarter
-                            except Exception:
-                                qseries = None
-                    if qseries is not None:
-                        try:
-                            pdf["quarter"] = qseries.astype("Int64")
-                        except Exception:
-                            pass
-
-                # Ensure company_name exists
-                if "company_name" not in pdf.columns:
-                    if "companyName" in master_df.columns:
-                        pdf["company_name"] = master_df["companyName"]
+                        # Merge: master metadata + XBRL financials
+                        # Prefer master values for metadata fields, XBRL values for financial metrics
+                        merged_row = {**parsed_dict, **matching_master}
+                        # But keep XBRL financial metrics (don't overwrite with master NULLs)
+                        for key, value in parsed_dict.items():
+                            if value is not None and pd.notna(value):
+                                # Keep non-null XBRL values
+                                merged_row[key] = value
+                        merged_rows.append(merged_row)
                     else:
-                        pdf["company_name"] = None
+                        # No matching master row, use XBRL data only
+                        merged_rows.append(parsed_dict)
 
-                # Convert to Polars and write Parquet
-                try:
-                    pldf = pl.from_pandas(pdf)
-                except Exception:
-                    pldf = pl.DataFrame(pdf)
-
-                # If a single symbol was requested, write into a dedicated
-                # symbol subfolder and only include rows for that symbol.
-                written = 0
-                if symbol:
-                    safe_sym = str(symbol)
-                    out_dir = base / f"symbol={safe_sym}"
-                    out_dir.mkdir(parents=True, exist_ok=True)
-                    out_path = out_dir / "quarterly_financials.parquet"
-                    try:
-                        sub_pdf = pdf[pdf.get("symbol") == symbol]
-                        try:
-                            pldf_sub = pl.from_pandas(sub_pdf)
-                        except Exception:
-                            pldf_sub = pl.DataFrame(sub_pdf)
-                        pldf_sub.write_parquet(out_path)
-                        written = 1
-                    except Exception:
-                        try:
-                            import pyarrow as pa
-                            import pyarrow.parquet as pq
-
-                            table = pa.Table.from_pandas(sub_pdf)
-                            pq.write_table(table, out_path)
-                            written = 1
-                        except Exception:
-                            sub_pdf.to_parquet(out_path)
-                            written = 1
-                else:
-                    # Write one folder per distinct symbol found in the dataframe
-                    try:
-                        syms = pldf.select("symbol").unique().to_series().to_list()
-                    except Exception:
-                        syms = (
-                            pdf.get("symbol").dropna().unique().tolist()
-                            if "symbol" in pdf.columns
-                            else []
-                        )
-
-                    for sym in syms:
-                        safe_sym = str(sym) if sym is not None else ""
-                        out_dir = base / f"symbol={safe_sym}"
-                        out_dir.mkdir(parents=True, exist_ok=True)
-                        out_path = out_dir / "quarterly_financials.parquet"
-                        try:
-                            sub = pldf.filter(pl.col("symbol") == sym)
-                            sub.write_parquet(out_path)
-                            written += 1
-                        except Exception:
-                            pdf_sub = pdf[pdf.get("symbol") == sym]
-                            try:
-                                import pyarrow as pa  # optional, may raise if missing
-                                import pyarrow.parquet as pq
-
-                                table = pa.Table.from_pandas(pdf_sub)
-                                pq.write_table(table, out_path)
-                                written += 1
-                            except Exception:
-                                try:
-                                    pdf_sub.to_parquet(out_path)
-                                    written += 1
-                                except Exception:
-                                    pass
-
-                typer.echo(f"Wrote {written} Parquet file(s) under: {base}")
-
-                # Load Parquet files into ClickHouse using existing loader (batch mode)
-                loader = ClickHouseLoader()
-                dry_run = bool(os.environ.get("CLICKHOUSE_DRY"))
-                # Target the staging table by default to keep production safe
-                target_table = "quarterly_financials_raw"
-                # If we wrote a single symbol file, point loader at that symbol folder
-                source_path = str(base)
-                if symbol:
-                    source_path = str(base / f"symbol={symbol}")
-
-                if dry_run:
-                    stats = loader.load_parquet_files(
-                        table=target_table, source_path=source_path, dry_run=True
+                if merged_rows:
+                    norm_df = pd.DataFrame(merged_rows)
+                    console.print(
+                        f"[green]✓[/green] Merged {len(norm_df)} records with XBRL financials"
                     )
                 else:
-                    loader.connect()
-                    stats = loader.load_parquet_files(
-                        table=target_table, source_path=source_path, dry_run=False
-                    )
-                    # If we parsed XBRL files above, try inserting them directly
-                    try:
-                        if parsed_rows:
-                            try:
-                                import polars as pl
-
-                                pldf = pl.from_dicts(parsed_rows)
-                            except Exception:
-                                pldf = None
-                            if pldf is not None and len(pldf) > 0:
-                                # Insert parsed facts into canonical table
-                                loader.insert_polars_dataframe(
-                                    table="quarterly_financials", df=pldf, dry_run=dry_run
-                                )
-                    except Exception as e:
-                        typer.secho(
-                            f"ClickHouse insert of parsed XBRL failed: {e}", fg=typer.colors.RED
-                        )
-                    loader.disconnect()
-                typer.echo(f"ClickHouse load result: {stats}")
+                    console.print("[yellow]⚠ No records merged - using master data only[/yellow]")
             except Exception as e:
-                typer.secho(f"ClickHouse load failed: {e}", fg=typer.colors.RED)
-                raise typer.Exit(1) from e
+                console.print(f"[yellow]⚠ Merge failed: {e}[/yellow]")
+                if verbose:
+                    import traceback
+
+                    console.print(traceback.format_exc())
+
+        # Phase 3: Batch load into ClickHouse
+        if load_to_clickhouse and (norm_df is not None or parsed_rows):
+            console.print("\n[bold]Phase 3: Batch loading to ClickHouse...[/bold]")
+            try:
+                loader = ClickHouseLoader(
+                    host="localhost", port=8123, user="default", password="", database="champion"
+                )
+                loader.connect()
+
+                total_rows = 0
+
+                # Load merged data (master + XBRL financials)
+                if norm_df is not None and len(norm_df) > 0:
+                    try:
+                        pldf = pl.from_pandas(norm_df)
+                        rows_inserted = loader.insert_polars_dataframe(
+                            table="quarterly_financials", df=pldf, batch_size=10000, dry_run=False
+                        )
+                        total_rows += rows_inserted
+                        console.print(
+                            f"[green]✓[/green] Loaded merged data: {rows_inserted:,} rows"
+                        )
+                    except Exception as e:
+                        console.print(f"[red]✗[/red] Failed to load data: {e}")
+                        if verbose:
+                            import traceback
+
+                            console.print(traceback.format_exc())
+
+                loader.disconnect()
+                console.print(
+                    f"\n[bold]Batch load complete:[/bold] {total_rows:,} total rows loaded into ClickHouse"
+                )
+            except Exception as e:
+                console.print(f"[red]✗ Batch load failed: {e}[/red]")
+                if verbose:
+                    logger.error("Batch load failed", error=str(e))
+                raise
     except (ImportError, ModuleNotFoundError) as e:
         typer.secho(
             f"quarterly financials ETL failed to start: {e}. Did tasks migrate to champion.*?",
@@ -902,9 +837,12 @@ def orchestrate_backfill(
     start_date: str = typer.Option(..., "--start", help="Start date (YYYY-MM-DD)"),
     end_date: str = typer.Option(..., "--end", help="End date (YYYY-MM-DD)"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Parse without producing to Kafka"),
+    load_to_clickhouse: bool = typer.Option(
+        True, "--load/--no-load", help="Load results into ClickHouse"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
 ) -> None:
-    """Backfill NSE data for a date range.
+    """Backfill NSE data for a date range (two-phase: download then batch load).
 
     [bold]Example:[/bold]
         champion orchestrate backfill --start 2024-01-01 --end 2024-01-31
@@ -920,28 +858,107 @@ def orchestrate_backfill(
             console.print("[red]Backfill only supported for bhavcopy[/red]")
             raise typer.Exit(1)
 
+        import polars as pl
+
+        from champion.config import config
         from champion.scrapers.bhavcopy import BhavcopyScraper
+        from champion.warehouse.clickhouse.batch_loader import ClickHouseLoader
 
         scraper = BhavcopyScraper()
 
+        # Phase 1: Download all data files for the date range
+        console.print("[bold]Phase 1: Downloading data files...[/bold]")
         current = start
-        successes = 0
-        failures = 0
+        successful_dates = []
+        download_failures = 0
 
         while current <= end:
             try:
                 scraper.scrape(current, dry_run=dry_run)
-                successes += 1
-                console.print(f"[green]✓[/green] {current}")
-            except Exception as e:
-                failures += 1
-                console.print(f"[red]✗[/red] {current}: {e}")
+                successful_dates.append(current)
+                console.print(f"[green]✓ Downloaded[/green] {current}")
                 if verbose:
-                    logger.error("Backfill failed for date", date=current, error=str(e))
+                    logger.info("Downloaded data for date", date=current)
+            except Exception as e:
+                download_failures += 1
+                console.print(f"[yellow]⊘ Skipped[/yellow] {current}: {e}")
+                if verbose:
+                    logger.warning("Download failed for date", date=current, error=str(e))
 
             current = current + timedelta(days=1)
 
-        console.print(f"\n[bold]Backfill complete:[/bold] {successes} succeeded, {failures} failed")
+        console.print(
+            f"\n[bold]Download phase complete:[/bold] {len(successful_dates)} downloaded, {download_failures} failed\n"
+        )
+
+        # Phase 2: Batch load all parquet files to ClickHouse using compressed HTTP
+        if load_to_clickhouse and successful_dates:
+            console.print("[bold]Phase 2: Batch loading to ClickHouse...[/bold]")
+
+            try:
+                # Initialize loader with compression for better batch performance
+                loader = ClickHouseLoader(
+                    host="localhost",
+                    port=8123,  # HTTP port with compression
+                    user="default",
+                    password="",
+                    database="champion",
+                )
+                loader.connect()
+
+                total_rows = 0
+                for trade_date in successful_dates:
+                    # Build path to parquet file
+                    parquet_path = (
+                        config.storage.data_dir
+                        / "lake"
+                        / "normalized"
+                        / "equity_ohlc"
+                        / f"year={trade_date.year}"
+                        / f"month={trade_date.month:02d}"
+                        / f"day={trade_date.day:02d}"
+                        / f"bhavcopy_{trade_date.strftime('%Y%m%d')}.parquet"
+                    )
+
+                    if parquet_path.exists():
+                        try:
+                            # Read parquet and insert using compressed HTTP
+                            df = pl.read_parquet(str(parquet_path))
+                            rows_inserted = loader.insert_polars_dataframe(
+                                table="normalized_equity_ohlc",
+                                df=df,
+                                batch_size=100000,
+                                dry_run=False,
+                            )
+                            total_rows += rows_inserted
+                            console.print(
+                                f"[green]✓ Loaded[/green] {trade_date} ({rows_inserted:,} rows)"
+                            )
+                            if verbose:
+                                logger.info(
+                                    "Loaded data for date", date=trade_date, rows=rows_inserted
+                                )
+                        except Exception as e:
+                            console.print(f"[red]✗ Load failed[/red] {trade_date}: {e}")
+                            if verbose:
+                                logger.error("Load failed for date", date=trade_date, error=str(e))
+                    else:
+                        console.print(f"[yellow]⊘ Parquet not found[/yellow] {trade_date}")
+
+                loader.disconnect()
+                console.print(
+                    f"\n[bold]Batch load complete:[/bold] {total_rows:,} rows loaded into ClickHouse"
+                )
+
+            except Exception as e:
+                console.print(f"[red]✗ Batch load failed: {e}[/red]")
+                if verbose:
+                    logger.error("Batch load failed", error=str(e))
+                raise
+        elif not load_to_clickhouse:
+            console.print("[yellow]Skipping load phase (--no-load flag set)[/yellow]")
+        else:
+            console.print("[yellow]No data to load (all downloads failed)[/yellow]")
 
     except Exception as e:
         logger.error("Backfill failed", error=str(e), exc_info=True)

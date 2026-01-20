@@ -11,7 +11,7 @@
 -- 8. Memory/Merge Tuning: Optimized for 50K-100K partitions per table
 -- =============================================================================
 
-CREATE DATABASE IF NOT EXISTS default COMMENT 'Champion Market Data Platform';
+CREATE DATABASE IF NOT EXISTS champion COMMENT 'Champion Market Data Platform';
 
 -- ==============================================================================
 -- 1. RAW EQUITY OHLC TABLE (HIGH-VOLUME TIME SERIES)
@@ -30,50 +30,50 @@ CREATE DATABASE IF NOT EXISTS default COMMENT 'Champion Market Data Platform';
 -- - Order by (symbol, instrument, date, event_time) for temporal locality
 -- - Skip secondary indices on high-volume columns; rely on partition pruning
 
-CREATE TABLE IF NOT EXISTS default.raw_equity_ohlc
+CREATE TABLE IF NOT EXISTS champion.raw_equity_ohlc
 (
     -- PRIMARY KEY COLUMNS (NOT NULL, mandatory)
     TckrSymb            String NOT NULL COMMENT 'Trading symbol (NSE)',
     FinInstrmId         String NOT NULL COMMENT 'Financial instrument ID',
-    TradDt              Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Trade date (partition key)',
+    TradDt              Date NOT NULL COMMENT 'Trade date (partition key)' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (metadata, all nullable for flexibility)
     event_id            Nullable(String) COMMENT 'Unique event identifier',
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4) COMMENT 'Event timestamp',
-    ingest_time         Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4) COMMENT 'Ingest timestamp',
+    event_time          DateTime64(3, 'UTC') NOT NULL COMMENT 'Event timestamp' CODEC(Delta, LZ4),
+    ingest_time           DateTime64(3, 'UTC') NOT NULL COMMENT 'Ingest timestamp' CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)) COMMENT 'Data source (NSE)',
     schema_version      LowCardinality(Nullable(String)) COMMENT 'Schema version',
     entity_id           Nullable(String) COMMENT 'Entity identifier',
     
     -- NSE BHAVCOPY PAYLOAD (all nullable)
-    BizDt               Nullable(Date) CODEC(Delta, LZ4) COMMENT 'Business date',
+    BizDt               Nullable(Date) COMMENT 'Business date' CODEC(Delta, LZ4),
     Sgmt                LowCardinality(Nullable(String)) COMMENT 'Segment (CM/FM/CD)',
     Src                 LowCardinality(Nullable(String)) COMMENT 'Source (NSE)',
     FinInstrmTp         LowCardinality(Nullable(String)) COMMENT 'Instrument type',
     ISIN                Nullable(String) COMMENT 'ISIN code',
     SctySrs             LowCardinality(Nullable(String)) COMMENT 'Security series (EQ/BE/GB)',
-    XpryDt              Nullable(Date) CODEC(Delta, LZ4) COMMENT 'Expiry date',
-    FininstrmActlXpryDt Nullable(Date) CODEC(Delta, LZ4) COMMENT 'Actual expiry date',
-    StrkPric            Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Strike price',
+    XpryDt              Nullable(Date) COMMENT 'Expiry date' CODEC(Delta, LZ4),
+    FininstrmActlXpryDt Nullable(Date) COMMENT 'Actual expiry date' CODEC(Delta, LZ4),
+    StrkPric            Nullable(Float64) COMMENT 'Strike price' CODEC(DoubleDelta, LZ4),
     OptnTp              LowCardinality(Nullable(String)) COMMENT 'Option type (CE/PE)',
     FinInstrmNm         Nullable(String) COMMENT 'Instrument name',
     
     -- OHLCV DATA
-    OpnPric             Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Open price',
-    HghPric             Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'High price',
-    LwPric              Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Low price',
-    ClsPric             Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Close price',
-    LastPric            Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Last price',
-    PrvsClsgPric        Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Previous close',
-    UndrlygPric         Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Underlying price',
-    SttlmPric           Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Settlement price',
+    OpnPric             Nullable(Float64) COMMENT 'Open price' CODEC(DoubleDelta, LZ4),
+    HghPric             Nullable(Float64) COMMENT 'High price' CODEC(DoubleDelta, LZ4),
+    LwPric              Nullable(Float64) COMMENT 'Low price' CODEC(DoubleDelta, LZ4),
+    ClsPric             Nullable(Float64) COMMENT 'Close price' CODEC(DoubleDelta, LZ4),
+    LastPric            Nullable(Float64) COMMENT 'Last price' CODEC(DoubleDelta, LZ4),
+    PrvsClsgPric        Nullable(Float64) COMMENT 'Previous close' CODEC(DoubleDelta, LZ4),
+    UndrlygPric         Nullable(Float64) COMMENT 'Underlying price' CODEC(DoubleDelta, LZ4),
+    SttlmPric           Nullable(Float64) COMMENT 'Settlement price' CODEC(DoubleDelta, LZ4),
     
     -- VOLUME & METRICS
-    OpnIntrst           Nullable(Int64) CODEC(DoubleDelta, LZ4) COMMENT 'Open interest',
-    ChngInOpnIntrst     Nullable(Int64) CODEC(DoubleDelta, LZ4) COMMENT 'Change in OI',
-    TtlTradgVol         Nullable(Int64) CODEC(DoubleDelta, LZ4) COMMENT 'Total trading volume',
-    TtlTrfVal           Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Total turnover value',
-    TtlNbOfTxsExctd     Nullable(Int64) CODEC(DoubleDelta, LZ4) COMMENT 'Total transactions',
+    OpnIntrst           Nullable(Int64) COMMENT 'Open interest' CODEC(DoubleDelta, LZ4),
+    ChngInOpnIntrst     Nullable(Int64) COMMENT 'Change in OI' CODEC(DoubleDelta, LZ4),
+    TtlTradgVol         Nullable(Int64) COMMENT 'Total trading volume' CODEC(DoubleDelta, LZ4),
+    TtlTrfVal           Nullable(Float64) COMMENT 'Total turnover value' CODEC(DoubleDelta, LZ4),
+    TtlNbOfTxsExctd     Nullable(Int64) COMMENT 'Total transactions' CODEC(DoubleDelta, LZ4),
     
     -- TRADING SESSION METADATA
     SsnId               Nullable(String) COMMENT 'Session ID',
@@ -85,29 +85,18 @@ CREATE TABLE IF NOT EXISTS default.raw_equity_ohlc
     Rsvd04              Nullable(String) COMMENT 'Reserved field 4',
     
     -- CORPORATE ACTION ADJUSTMENTS
-    adjustment_date     Nullable(Date) CODEC(Delta, LZ4) COMMENT 'Adjustment effective date',
-    adjustment_factor   Nullable(Float64) CODEC(DoubleDelta, LZ4) COMMENT 'Price adjustment factor',
+    adjustment_date     Nullable(Date) COMMENT 'Adjustment effective date' CODEC(Delta, LZ4),
+    adjustment_factor   Nullable(Float64) COMMENT 'Price adjustment factor' CODEC(DoubleDelta, LZ4),
     is_trading_day      Nullable(UInt8) COMMENT 'Trading day indicator (1=yes, 0=no, NULL=unknown)'
 )
 ENGINE = ReplacingMergeTree(ingest_time)
 PARTITION BY toYYYYMM(TradDt)
-ORDER BY (TckrSymb, FinInstrmId, TradDt, event_time)
+ORDER BY (TckrSymb, FinInstrmId, TradDt)
 TTL TradDt + INTERVAL 5 YEAR DELETE
 SETTINGS
-    index_granularity = 8192,
-    merge_tree_max_bytes_to_merge_at_max_space_ratio = 0.9,
-    parts_to_throw_insert_select = 300,
-    max_parts_in_total = 500,
-    max_insert_threads = 4;
+    index_granularity = 8192;
 
 -- Sparse indices for selective lookups (bloom for optional lookups only)
-CREATE INDEX IF NOT EXISTS idx_raw_isin 
-ON default.raw_equity_ohlc (ISIN) 
-TYPE bloom_filter(0.01) GRANULARITY 4 COMMENT 'Bloom filter for ISIN lookups (sparse)';
-
-CREATE INDEX IF NOT EXISTS idx_raw_segment 
-ON default.raw_equity_ohlc (Sgmt) 
-TYPE set(100) GRANULARITY 1 COMMENT 'Set index for segment filtering';
 
 -- ==============================================================================
 -- 2. NORMALIZED EQUITY OHLC TABLE (UPSERTABLE CLEAN DATA)
@@ -120,19 +109,19 @@ TYPE set(100) GRANULARITY 1 COMMENT 'Set index for segment filtering';
 --           Final() aggregation to get latest version
 -- OPTIMIZATION: Mandatory primary key; all non-key fields nullable
 
-CREATE TABLE IF NOT EXISTS default.normalized_equity_ohlc
+CREATE TABLE IF NOT EXISTS champion.normalized_equity_ohlc
 (
     -- PRIMARY KEY COLUMNS (NOT NULL, mandatory for upserts)
     TckrSymb            String NOT NULL COMMENT 'Trading symbol',
     FinInstrmId         String NOT NULL COMMENT 'Financial instrument ID',
-    TradDt              Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Trade date (partition key)',
+    TradDt              Date NOT NULL COMMENT 'Trade date (partition key)' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL (for ReplacingMergeTree)
-    ingest_time         DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Ingest timestamp (version)',
+    ingest_time         DateTime64(3, 'UTC') NOT NULL COMMENT 'Ingest timestamp (version)' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (metadata, all nullable)
     event_id            Nullable(String) COMMENT 'Event identifier',
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4) COMMENT 'Event timestamp',
+    event_time          DateTime64(3, 'UTC') NOT NULL COMMENT 'Event timestamp' CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)) COMMENT 'Source',
     schema_version      LowCardinality(Nullable(String)) COMMENT 'Schema version',
     entity_id           Nullable(String) COMMENT 'Entity ID',
@@ -177,18 +166,13 @@ CREATE TABLE IF NOT EXISTS default.normalized_equity_ohlc
 )
 ENGINE = ReplacingMergeTree(ingest_time)
 PARTITION BY toYYYYMM(TradDt)
-ORDER BY (TckrSymb, FinInstrmId, TradDt, event_time)
+ORDER BY (TckrSymb, FinInstrmId, TradDt)
 TTL TradDt + INTERVAL 3 YEAR DELETE
 SETTINGS
     index_granularity = 8192,
-    merge_tree_max_bytes_to_merge_at_max_space_ratio = 0.9,
-    parts_to_throw_insert_select = 300,
     max_parts_in_total = 500;
 
 -- Selective indices for late-arriving data joins
-CREATE INDEX IF NOT EXISTS idx_norm_isin 
-ON default.normalized_equity_ohlc (ISIN) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
 
 -- ==============================================================================
 -- 3. FEATURES EQUITY INDICATORS TABLE (APPEND-ONLY FEATURES)
@@ -200,14 +184,14 @@ TYPE bloom_filter(0.01) GRANULARITY 4;
 -- Strategy: MergeTree for immutable, lightweight features
 -- OPTIMIZATION: Simple primary key (symbol, trade_date); all indicators nullable
 
-CREATE TABLE IF NOT EXISTS default.features_equity_indicators
+CREATE TABLE IF NOT EXISTS champion.features_equity_indicators
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
-    trade_date          Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Trade date',
+    trade_date          Date NOT NULL COMMENT 'Trade date' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL
-    feature_timestamp   DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Feature generation time',
+    feature_timestamp   DateTime64(3, 'UTC') NOT NULL COMMENT 'Feature generation time' CODEC(Delta, LZ4),
     
     -- FEATURE METADATA
     feature_version     LowCardinality(Nullable(String)) COMMENT 'Feature set version',
@@ -248,8 +232,7 @@ PARTITION BY toYYYYMM(trade_date)
 ORDER BY (symbol, trade_date, feature_timestamp)
 TTL trade_date + INTERVAL 1 YEAR DELETE
 SETTINGS
-    index_granularity = 8192,
-    max_insert_threads = 2;
+    index_granularity = 8192;
 
 -- ==============================================================================
 -- 4. CORPORATE ACTIONS TABLE (REFERENCE DATA, LOW-VOLUME)
@@ -261,17 +244,17 @@ SETTINGS
 -- Strategy: MergeTree for immutable reference; yearly partition for archive
 -- OPTIMIZATION: Mandatory composite PK (symbol, ex_date, ca_id); rest nullable
 
-CREATE TABLE IF NOT EXISTS default.corporate_actions
+CREATE TABLE IF NOT EXISTS champion.corporate_actions
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
-    ex_date             Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Ex-date (partition key)',
+    ex_date             Date NOT NULL COMMENT 'Ex-date (partition key)' CODEC(Delta, LZ4),
     ca_id               String NOT NULL COMMENT 'Corporate action ID',
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
-    ingest_time         Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
+    ingest_time           DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -308,21 +291,14 @@ CREATE TABLE IF NOT EXISTS default.corporate_actions
     status              LowCardinality(Nullable(String)) COMMENT 'ANNOUNCED/EFFECTIVE/COMPLETED',
     raw_purpose         Nullable(String)
 )
-ENGINE = ReplacingMergeTree(event_time)
+ENGINE = ReplacingMergeTree(ingest_time)
 PARTITION BY toYear(ex_date)
-ORDER BY (symbol, ex_date, ca_id, event_time)
+ORDER BY (symbol, ex_date, ca_id)
 TTL ex_date + INTERVAL 10 YEAR DELETE
 SETTINGS
     index_granularity = 8192;
 
 -- Selective indices for common lookups
-CREATE INDEX IF NOT EXISTS idx_ca_isin 
-ON default.corporate_actions (isin) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
-
-CREATE INDEX IF NOT EXISTS idx_ca_action_type 
-ON default.corporate_actions (action_type) 
-TYPE set(20) GRANULARITY 1;
 
 -- ==============================================================================
 -- 5. SYMBOL MASTER TABLE (SLOWLY CHANGING DIMENSION - SCD Type 2)
@@ -334,19 +310,19 @@ TYPE set(20) GRANULARITY 1;
 -- Strategy: ReplacingMergeTree(ingest_time) for SCD Type 2 with temporal range
 -- OPTIMIZATION: Mandatory PK (symbol, valid_from, exchange); ingest_time for version
 
-CREATE TABLE IF NOT EXISTS default.symbol_master
+CREATE TABLE IF NOT EXISTS champion.symbol_master
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
     exchange            LowCardinality(String) NOT NULL COMMENT 'Exchange (NSE/BSE)',
-    valid_from          Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Effective date (version key)',
+    valid_from          Date NOT NULL COMMENT 'Effective date (version key)' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL
-    ingest_time         DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Version timestamp',
+    ingest_time         DateTime64(3, 'UTC') NOT NULL COMMENT 'Version timestamp' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -376,7 +352,7 @@ CREATE TABLE IF NOT EXISTS default.symbol_master
     -- STATUS & TEMPORAL VALIDITY
     status              LowCardinality(Nullable(String)) COMMENT 'ACTIVE/SUSPENDED/DELISTED',
     delisting_date      Nullable(Date) CODEC(Delta, LZ4),
-    valid_to            Nullable(Date) CODEC(Delta, LZ4) COMMENT 'Expiry date (NULL = current)',
+    valid_to            Nullable(Date) COMMENT 'Expiry date (NULL = current)' CODEC(Delta, LZ4),
     
     -- METADATA
     metadata            Map(String, String)
@@ -389,13 +365,6 @@ SETTINGS
     index_granularity = 8192;
 
 -- Selective indices for enrichment lookups
-CREATE INDEX IF NOT EXISTS idx_sm_isin 
-ON default.symbol_master (isin) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
-
-CREATE INDEX IF NOT EXISTS idx_sm_status 
-ON default.symbol_master (status) 
-TYPE set(10) GRANULARITY 1;
 
 -- ==============================================================================
 -- 6. INDEX CONSTITUENT TABLE (TIME SERIES REFERENCE)
@@ -407,17 +376,17 @@ TYPE set(10) GRANULARITY 1;
 -- Strategy: MergeTree for immutable index history; multi-key partition for sharding
 -- OPTIMIZATION: Mandatory PK (index_name, symbol, effective_date); rest nullable
 
-CREATE TABLE IF NOT EXISTS default.index_constituent
+CREATE TABLE IF NOT EXISTS champion.index_constituent
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     index_name          LowCardinality(String) NOT NULL COMMENT 'Index name (NIFTY50, etc)',
     symbol              String NOT NULL COMMENT 'Constituent symbol',
-    effective_date      Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Effective date',
+    effective_date      Date NOT NULL COMMENT 'Effective date' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
-    ingest_time         Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
+    ingest_time           DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -439,21 +408,14 @@ CREATE TABLE IF NOT EXISTS default.index_constituent
     -- METADATA
     metadata            Map(String, String)
 )
-ENGINE = ReplacingMergeTree(event_time)
+ENGINE = ReplacingMergeTree(ingest_time)
 PARTITION BY (index_name, toYear(effective_date))
-ORDER BY (index_name, symbol, effective_date, event_time)
+ORDER BY (index_name, symbol, effective_date)
 TTL effective_date + INTERVAL 10 YEAR DELETE
 SETTINGS
     index_granularity = 8192;
 
 -- Selective indices for cross-index lookups
-CREATE INDEX IF NOT EXISTS idx_ic_isin 
-ON default.index_constituent (isin) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
-
-CREATE INDEX IF NOT EXISTS idx_ic_action 
-ON default.index_constituent (action) 
-TYPE set(10) GRANULARITY 1;
 
 -- ==============================================================================
 -- 7. TRADING CALENDAR TABLE (REFERENCE DATA, TINY)
@@ -465,11 +427,11 @@ TYPE set(10) GRANULARITY 1;
 -- Strategy: ReplacingMergeTree for SCD Type 1 (updates allowed); small size
 -- OPTIMIZATION: Mandatory PK (exchange, trade_date); rest nullable
 
-CREATE TABLE IF NOT EXISTS default.trading_calendar
+CREATE TABLE IF NOT EXISTS champion.trading_calendar
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     exchange            LowCardinality(String) NOT NULL COMMENT 'Exchange (NSE/BSE)',
-    trade_date          Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Calendar date',
+    trade_date          Date NOT NULL COMMENT 'Calendar date' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL
     ingest_time         DateTime NOT NULL COMMENT 'Last update time',
@@ -488,9 +450,6 @@ SETTINGS
     index_granularity = 8192;
 
 -- Set index for day_type filtering
-CREATE INDEX IF NOT EXISTS idx_tc_day_type 
-ON default.trading_calendar (day_type) 
-TYPE set(20) GRANULARITY 1;
 
 -- ==============================================================================
 -- 8. BULK & BLOCK DEALS TABLE (TIME SERIES TRANSACTION DATA)
@@ -502,17 +461,17 @@ TYPE set(20) GRANULARITY 1;
 -- Strategy: MergeTree with multi-level partitioning for efficient purges
 -- OPTIMIZATION: Mandatory PK (symbol, deal_date, deal_id); rest nullable
 
-CREATE TABLE IF NOT EXISTS default.bulk_block_deals
+CREATE TABLE IF NOT EXISTS champion.bulk_block_deals
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
-    deal_date           Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Deal date (partition key)',
+    deal_date           Date NOT NULL COMMENT 'Deal date (partition key)' CODEC(Delta, LZ4),
     deal_id             String NOT NULL COMMENT 'Unique deal identifier',
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
-    ingest_time         Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
+    ingest_time           DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -521,25 +480,18 @@ CREATE TABLE IF NOT EXISTS default.bulk_block_deals
     client_name         Nullable(String),
     quantity            Nullable(Int64) CODEC(DoubleDelta, LZ4),
     avg_price           Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    deal_type           LowCardinality(Nullable(String)) COMMENT 'BULK/BLOCK',
+    deal_type           LowCardinality(String) NOT NULL COMMENT 'BULK/BLOCK',
     transaction_type    LowCardinality(Nullable(String)) COMMENT 'BUY/SELL',
     exchange            LowCardinality(Nullable(String)) COMMENT 'NSE/BSE'
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY (deal_type, toYear(deal_date), toMonth(deal_date))
-ORDER BY (symbol, deal_date, deal_id, event_time)
+PARTITION BY toYYYYMM(deal_date)
+ORDER BY (symbol, deal_date, deal_id)
 TTL deal_date + INTERVAL 10 YEAR DELETE
 SETTINGS
     index_granularity = 8192;
 
 -- Sparse indices for surveillance lookups
-CREATE INDEX IF NOT EXISTS idx_bbd_client 
-ON default.bulk_block_deals (client_name) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
-
-CREATE INDEX IF NOT EXISTS idx_bbd_transaction_type 
-ON default.bulk_block_deals (transaction_type) 
-TYPE set(2) GRANULARITY 1;
 
 -- ==============================================================================
 -- 9. QUARTERLY FINANCIALS TABLE (SCD Type 2 - LATE-ARRIVING DATA)
@@ -551,19 +503,19 @@ TYPE set(2) GRANULARITY 1;
 -- Strategy: ReplacingMergeTree(ingest_time) for late-arriving corrections
 -- OPTIMIZATION: Mandatory PK (symbol, period_end_date, statement_type); ingest_time for version
 
-CREATE TABLE IF NOT EXISTS default.quarterly_financials
+CREATE TABLE IF NOT EXISTS champion.quarterly_financials
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
-    period_end_date     Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Period end date',
+    period_end_date     Date NOT NULL COMMENT 'Period end date' CODEC(Delta, LZ4),
     statement_type      LowCardinality(String) NOT NULL COMMENT 'STANDALONE/CONSOLIDATED',
     
     -- VERSION CONTROL (for ReplacingMergeTree)
-    ingest_time         DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Ingest timestamp (version)',
+    ingest_time         DateTime64(3, 'UTC') NOT NULL COMMENT 'Ingest timestamp (version)' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -576,54 +528,102 @@ CREATE TABLE IF NOT EXISTS default.quarterly_financials
     period_type         LowCardinality(Nullable(String)) COMMENT 'Q/H/A (quarter/half/annual)',
     filing_date         Nullable(Date) CODEC(Delta, LZ4),
     
-    -- P&L ITEMS (in INR crore, all nullable)
-    revenue             Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    operating_profit    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    net_profit          Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    depreciation        Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    interest_expense    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    tax_expense         Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    -- NSE CSV METADATA FIELDS (all nullable)
+    audited_status      LowCardinality(Nullable(String)) COMMENT 'Audited/Un-Audited',
+    cumulative_status   LowCardinality(Nullable(String)) COMMENT 'Cumulative/Non-cumulative',
+    accounting_standard LowCardinality(Nullable(String)) COMMENT 'IND AS/Non IND AS',
+    period_description  Nullable(String) COMMENT 'Relating to (e.g., Second Quarter)',
+    xbrl_url            Nullable(String) COMMENT 'XBRL document URL',
+    exchange_received_time Nullable(DateTime) COMMENT 'Exchange received timestamp',
+    exchange_dissemination_time Nullable(DateTime) COMMENT 'Exchange dissemination timestamp',
+    time_taken          Nullable(String) COMMENT 'Time taken for dissemination',
     
-    -- BALANCE SHEET ITEMS (in INR crore, all nullable)
-    total_assets        Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    total_liabilities   Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    equity              Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    total_debt          Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_assets      Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    cash_and_equivalents Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    inventories         Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    
-    -- PER SHARE METRICS (all nullable)
-    eps                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    -- XBRL FINANCIAL METRICS (all nullable, no defaults)
+    adjustments_for_decrease_increase_in_inventories Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_decrease_increase_in_other_current_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_increase_decrease_in_current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    adjustments_for_other_non_cash_items Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    asset_to_equity_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    asset_turnover Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    basic_earnings_loss_per_share_from_continuing_and_discontinued_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    basic_earnings_loss_per_share_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
     book_value_per_share Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    
-    -- COMPUTED RATIOS (all nullable)
-    roe                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    roa                 Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    debt_to_equity      Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    current_ratio       Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    operating_margin    Nullable(Float64) CODEC(DoubleDelta, LZ4),
-    net_margin          Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents_at_beginning_of_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_and_cash_equivalents_at_end_of_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_financing_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_investing_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    cash_flows_from_operating_activities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period_attributable_to_owners_of_parent Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    comprehensive_income_for_the_period_attributable_to_owners_of_parent_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    current_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    debt_service_coverage_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    debt_to_equity_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    deferred_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    depreciation_depletion_and_amortisation_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    description_of_nature_of_other_comprehensive_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    description_of_other_expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    diluted_earnings_loss_per_share_from_continuing_and_discontinued_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    diluted_earnings_loss_per_share_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    employee_benefit_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    equity Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    face_value_of_equity_share_capital Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    inter_segment_revenue Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    interest_coverage_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    inventories Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_increase_decrease_in_cash Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_margin Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    net_movement_in_regulatory_deferral_account_balances_related_to_profit_or_loss_and_the_related_deferred_tax_movement Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    number_of_shares_outstanding Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    operating_margin Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_comprehensive_income_for_the_period_attributable_to_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_comprehensive_income_net_of_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_expenses Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    other_unallocable_expenditure_net_off_un_allocable_income Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    paid_up_value_of_equity_share_capital Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_before_exceptional_items_and_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_before_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_loss_for_period Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_loss_for_period_from_continuing_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_or_loss_attributable_to_non_controlling_interests Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    profit_or_loss_attributable_to_owners_of_parent Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    quick_ratio Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    return_on_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    return_on_equity Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    revenue_from_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_profit_before_tax Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_profit_loss_before_tax_and_finance_costs Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_revenue Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    segment_revenue_from_operations Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    tax_expense Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_assets Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_debt Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    total_liabilities Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    weighted_average_number_of_shares_outstanding_basic Nullable(Float64) CODEC(DoubleDelta, LZ4),
+    weighted_average_number_of_shares_outstanding_diluted Nullable(Float64) CODEC(DoubleDelta, LZ4),
     
     -- METADATA
-    metadata            Map(String, String)
+    metadata Map(String, String)
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY (symbol, toYear(period_end_date), toQuarter(period_end_date))
+PARTITION BY toYear(period_end_date)
 ORDER BY (symbol, period_end_date, statement_type, ingest_time)
 TTL period_end_date + INTERVAL 10 YEAR DELETE
 SETTINGS
     index_granularity = 8192;
 
 -- Set indices for period filtering
-CREATE INDEX IF NOT EXISTS idx_qf_period_type 
-ON default.quarterly_financials (period_type) 
-TYPE set(5) GRANULARITY 1;
-
-CREATE INDEX IF NOT EXISTS idx_qf_cin 
-ON default.quarterly_financials (cin) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
 
 -- ==============================================================================
 -- 10. SHAREHOLDING PATTERN TABLE (SCD Type 2 - LATE-ARRIVING DATA)
@@ -635,18 +635,18 @@ TYPE bloom_filter(0.01) GRANULARITY 4;
 -- Strategy: ReplacingMergeTree(ingest_time) for late-arriving updates
 -- OPTIMIZATION: Mandatory PK (symbol, quarter_end_date); ingest_time for version
 
-CREATE TABLE IF NOT EXISTS default.shareholding_pattern
+CREATE TABLE IF NOT EXISTS champion.shareholding_pattern
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     symbol              String NOT NULL COMMENT 'Trading symbol',
-    quarter_end_date    Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Quarter end date',
+    quarter_end_date    Date NOT NULL COMMENT 'Quarter end date' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL
-    ingest_time         DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Ingest timestamp',
+    ingest_time         DateTime64(3, 'UTC') NOT NULL COMMENT 'Ingest timestamp' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
@@ -697,9 +697,6 @@ SETTINGS
     index_granularity = 8192;
 
 -- Sparse indices for lookups
-CREATE INDEX IF NOT EXISTS idx_sp_isin 
-ON default.shareholding_pattern (isin) 
-TYPE bloom_filter(0.01) GRANULARITY 4;
 
 -- ==============================================================================
 -- 11. MACRO INDICATORS TABLE (TIME SERIES, REFERENCE DATA)
@@ -711,25 +708,25 @@ TYPE bloom_filter(0.01) GRANULARITY 4;
 -- Strategy: ReplacingMergeTree(ingest_time) for revisions; storage-optimized
 -- OPTIMIZATION: Mandatory PK (indicator_code, indicator_date); rest nullable
 
-CREATE TABLE IF NOT EXISTS default.macro_indicators
+CREATE TABLE IF NOT EXISTS champion.macro_indicators
 (
     -- PRIMARY KEY COLUMNS (NOT NULL)
     indicator_code      LowCardinality(String) NOT NULL COMMENT 'Indicator code (REPO_RATE, etc)',
-    indicator_date      Date NOT NULL CODEC(Delta, LZ4) COMMENT 'Indicator effective date',
+    indicator_date      Date NOT NULL COMMENT 'Indicator effective date' CODEC(Delta, LZ4),
     
     -- VERSION CONTROL
-    ingest_time         DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4) COMMENT 'Ingest timestamp',
+    ingest_time         DateTime64(3, 'UTC') NOT NULL COMMENT 'Ingest timestamp' CODEC(Delta, LZ4),
     
     -- ENVELOPE FIELDS (all nullable)
     event_id            Nullable(String),
-    event_time          Nullable(DateTime64(3, 'UTC')) CODEC(Delta, LZ4),
+    event_time          DateTime64(3, 'UTC') NOT NULL CODEC(Delta, LZ4),
     source              LowCardinality(Nullable(String)),
     schema_version      LowCardinality(Nullable(String)),
     entity_id           Nullable(String),
     
     -- INDICATOR METADATA (all nullable)
     indicator_name      Nullable(String),
-    indicator_category  LowCardinality(Nullable(String)) COMMENT 'POLICY_RATE/INFLATION/FX/GDP',
+    indicator_category  LowCardinality(String) NOT NULL COMMENT 'POLICY_RATE/INFLATION/FX/GDP',
     value               Nullable(Float64) CODEC(DoubleDelta, LZ4),
     unit                LowCardinality(Nullable(String)) COMMENT '% / crore / index',
     frequency           LowCardinality(Nullable(String)) COMMENT 'DAILY/WEEKLY/MONTHLY/QUARTERLY',
@@ -739,41 +736,19 @@ CREATE TABLE IF NOT EXISTS default.macro_indicators
     metadata            Map(String, String)
 )
 ENGINE = ReplacingMergeTree(ingest_time)
-PARTITION BY (indicator_category, toYear(indicator_date))
+PARTITION BY toYear(indicator_date)
 ORDER BY (indicator_code, indicator_date, ingest_time)
 TTL indicator_date + INTERVAL 20 YEAR DELETE
 SETTINGS
     index_granularity = 8192;
 
 -- Set indices for category/frequency filtering
-CREATE INDEX IF NOT EXISTS idx_mi_category 
-ON default.macro_indicators (indicator_category) 
-TYPE set(20) GRANULARITY 1;
-
-CREATE INDEX IF NOT EXISTS idx_mi_frequency 
-ON default.macro_indicators (frequency) 
-TYPE set(10) GRANULARITY 1;
 
 -- ==============================================================================
 -- MATERIALIZED VIEWS & AGGREGATE TABLES (Optional, for pre-aggregation)
 -- ==============================================================================
 
 -- High-performance daily OHLC summary (pre-aggregated)
-CREATE MATERIALIZED VIEW IF NOT EXISTS default.equity_ohlc_daily_summary ENGINE = SummingMergeTree()
-PARTITION BY toYYYYMM(trade_date)
-ORDER BY (trade_date, exchange)
-COMMENT 'Pre-aggregated daily OHLC summary for dashboards'
-AS SELECT
-    TradDt AS trade_date,
-    coalesce(Sgmt, 'UNKNOWN') AS exchange,
-    count() AS total_symbols,
-    sum(coalesce(TtlTradgVol, 0)) AS total_volume,
-    sum(coalesce(TtlTrfVal, 0.0)) AS total_turnover,
-    avg(coalesce(ClsPric, 0.0)) AS avg_close_price,
-    max(coalesce(HghPric, 0.0)) AS max_high_price,
-    min(coalesce(LwPric, 0.0)) AS min_low_price
-FROM default.normalized_equity_ohlc
-GROUP BY TradDt, coalesce(Sgmt, 'UNKNOWN');
 
 -- ==============================================================================
 -- NOTES FOR PRODUCTION DEPLOYMENT

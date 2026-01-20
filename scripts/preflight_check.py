@@ -9,12 +9,12 @@ Checks:
 """
 from __future__ import annotations
 
-import sys
 import os
-import urllib.request
-import urllib.parse
 import subprocess
+import sys
 import time
+import urllib.parse
+import urllib.request
 
 
 def check_python_version() -> None:
@@ -29,10 +29,10 @@ def http_get(url: str, timeout: int = 5) -> int:
 
 
 def check_clickhouse() -> None:
-    host = os.environ.get("CLICKHOUSE_HOST", "localhost")
-    port = os.environ.get("CLICKHOUSE_PORT", "8123")
-    user = os.environ.get("CLICKHOUSE_USER")
-    password = os.environ.get("CLICKHOUSE_PASSWORD")
+    host = os.environ.get("CHAMPION_CLICKHOUSE_HOST", "localhost")
+    port = os.environ.get("CHAMPION_CLICKHOUSE_PORT", "8123")
+    user = os.environ.get("CHAMPION_CLICKHOUSE_USER", "default")
+    password = os.environ.get("CHAMPION_CLICKHOUSE_PASSWORD", "")
 
     base = f"http://{host}:{port}"
 

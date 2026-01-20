@@ -1,16 +1,13 @@
 """Simple XBRL/XML parser for quarterly financials.
 
-This parser extracts common facts and context metadata from company XBRL
-instance documents and returns a normalized dict suitable for the
-`quarterly_financials` ClickHouse table.
-
-The implementation is intentionally conservative: it extracts a fixed set
-of commonly-used tags (Revenue, Profit, EPS, Assets, Liabilities etc.) and
-stores any unmapped facts into `metadata` to avoid data loss.
+This parser extracts all facts from company XBRL instance documents and
+returns a normalized dict with snake_case column names matching the
+`quarterly_financials` ClickHouse table schema.
 """
 
 from __future__ import annotations
 
+import re
 import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -22,6 +19,13 @@ def _local_name(tag: str) -> str:
     if "}" in tag:
         return tag.split("}", 1)[1]
     return tag
+
+
+def _camel_to_snake(name: str) -> str:
+    """Convert CamelCase to snake_case."""
+    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    s2 = re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
+    return s2.lower()
 
 
 def _to_float(text: str | None) -> float | None:
@@ -102,88 +106,12 @@ def parse_xbrl_file(path: Path) -> dict[str, Any]:
         if measure is not None and measure.text:
             units[uid] = measure.text.strip()
 
-    # mapping heuristics: local tag -> target field name
-    field_map = {
-        "RevenueFromOperations": "revenue",
-        "SegmentRevenueFromOperations": "revenue",
-        "Income": "income",
-        "OtherIncome": "other_income",
-        "EmployeeBenefitExpense": "employee_benefit_expense",
-        "FinanceCosts": "interest_expense",
-        "SegmentFinanceCosts": "interest_expense",
-        "DepreciationDepletionAndAmortisationExpense": "depreciation",
-        "OtherExpenses": "other_expenses",
-        "DescriptionOfOtherExpenses": "other_expenses_description",
-        "Expenses": "expenses",
-        "ProfitBeforeExceptionalItemsAndTax": "operating_profit",
-        "ProfitBeforeTax": "profit_before_tax",
-        "ProfitLossForPeriodFromContinuingOperations": "net_profit",
-        "ProfitLossForPeriod": "net_profit",
-        "ProfitOrLossAttributableToOwnersOfParent": "profit_or_loss_attributable_to_parent",
-        "ProfitOrLossAttributableToNonControllingInterests": "profit_or_loss_attributable_to_non_controlling",
-        "TaxExpense": "tax_expense",
-        "CurrentTax": "current_tax",
-        "DeferredTax": "deferred_tax",
-        "NetMovementInRegulatoryDeferralAccountBalancesRelatedToProfitOrLossAndTheRelatedDeferredTaxMovement": "regulatory_deferral_movement",
-        "PaidUpValueOfEquityShareCapital": "paid_up_value_of_equity_share_capital",
-        "FaceValueOfEquityShareCapital": "face_value_of_equity_share_capital",
-        "BasicEarningsLossPerShareFromContinuingOperations": "eps",
-        "DilutedEarningsLossPerShareFromContinuingOperations": "diluted_eps",
-        "BasicEarningsLossPerShareFromContinuingAndDiscontinuedOperations": "eps",
-        "DilutedEarningsLossPerShareFromContinuingAndDiscontinuedOperations": "diluted_eps",
-        "TotalAssets": "total_assets",
-        "SegmentAssets": "total_assets",
-        "TotalLiabilities": "total_liabilities",
-        "SegmentLiabilities": "total_liabilities",
-        "Equity": "equity",
-        "TotalDebt": "total_debt",
-        "CurrentAssets": "current_assets",
-        "CurrentLiabilities": "current_liabilities",
-        "CashAndCashEquivalents": "cash_and_equivalents",
-        "Inventories": "inventories",
-        "InterSegmentRevenue": "inter_segment_revenue",
-        "SegmentProfitLossBeforeTaxAndFinanceCosts": "segment_profit_before_tax_and_finance_costs",
-        "SegmentProfitBeforeTax": "segment_profit_before_tax",
-        "OtherUnallocableExpenditureNetOffUnAllocableIncome": "other_unallocable_expenditure",
-        "ComprehensiveIncomeForThePeriod": "comprehensive_income_for_the_period",
-        "ComprehensiveIncomeForThePeriodAttributableToOwnersOfParent": "comprehensive_income_attributable_to_parent",
-        "ComprehensiveIncomeForThePeriodAttributableToOwnersOfParentNonControllingInterests": "comprehensive_income_attributable_to_non_controlling",
-        "SegmentRevenue": "segment_revenue",
-    }
-
     record: dict[str, Any] = {
         "event_id": str(uuid.uuid4()),
         "event_time": datetime.utcnow(),
         "ingest_time": datetime.utcnow(),
         "source": "BSE",
         "schema_version": "xbrl-v1",
-        "entity_id": None,
-        "symbol": None,
-        "company_name": None,
-        "cin": None,
-        "period_end_date": None,
-        "period_type": None,
-        "statement_type": None,
-        "filing_date": None,
-        # financials
-        "revenue": None,
-        "operating_profit": None,
-        "net_profit": None,
-        "depreciation": None,
-        "interest_expense": None,
-        "tax_expense": None,
-        "total_assets": None,
-        "total_liabilities": None,
-        "equity": None,
-        "total_debt": None,
-        "current_assets": None,
-        "current_liabilities": None,
-        "cash_and_equivalents": None,
-        "inventories": None,
-        "eps": None,
-        "book_value_per_share": None,
-        "metadata": {},
-        "_xbrl_raw_values": {},
     }
 
     # detect level of rounding (Crores, Lakhs, Thousands) to derive scaling
@@ -214,29 +142,8 @@ def parse_xbrl_file(path: Path) -> dict[str, Any]:
             decimals = elem.attrib.get("decimals")
             value_text = elem.text.strip() if elem.text else None
 
-            mapped = None
-            # direct mapping by exact name
-            if tag_local in field_map:
-                mapped = field_map[tag_local]
-            else:
-                # fallback: match common keywords
-                tl = tag_local.lower()
-                if "revenue" in tl and record.get("revenue") is None:
-                    mapped = "revenue"
-                elif "profit" in tl and ("loss" not in tl or "net" in tl or "profitbefore" in tl):
-                    # try to detect operating vs net
-                    if "beforetax" in tl or "profitbefore" in tl:
-                        mapped = "operating_profit"
-                    elif "net" in tl or "forperiod" in tl or "profitlossforperiod" in tl:
-                        mapped = "net_profit"
-                elif "eps" in tl or "earnings" in tl:
-                    mapped = "eps"
-                elif "asset" in tl and record.get("total_assets") is None:
-                    mapped = "total_assets"
-                elif "liabil" in tl and record.get("total_liabilities") is None:
-                    mapped = "total_liabilities"
-                elif "equity" in tl and record.get("equity") is None:
-                    mapped = "equity"
+            # Convert CamelCase tag to snake_case column name
+            col_name = _camel_to_snake(tag_local)
 
             # assign value (apply scaling using decimals or detected rounding)
             raw_val = _to_float(value_text)
@@ -275,30 +182,18 @@ def parse_xbrl_file(path: Path) -> dict[str, Any]:
             except Exception:
                 scaled_val = raw_val
 
-            if mapped:
-                record[mapped] = scaled_val
-            else:
-                # not mapped: push to metadata
-                k = tag_local
-                # if duplicate key, append index
-                if k in record["metadata"]:
-                    i = 1
-                    while f"{k}_{i}" in record["metadata"]:
-                        i += 1
-                    k = f"{k}_{i}"
-                record["metadata"][k] = value_text
-
-            # always store raw original numeric in a raw map for auditing
-            if raw_val is not None:
-                record["_xbrl_raw_values"][tag_local] = raw_val
+            # Store value directly with snake_case column name
+            # Only store if not already set (first value wins for duplicates)
+            if col_name not in record or record.get(col_name) is None:
+                record[col_name] = scaled_val
 
             # attach entity/context info if available
             if ctxt and ctxt in contexts:
                 ctx = contexts[ctxt]
                 # prefer period_end if present
-                if ctx.get("period_end") and record.get("period_end_date") is None:
+                if ctx.get("period_end") and not record.get("period_end_date"):
                     record["period_end_date"] = ctx.get("period_end")
-                if ctx.get("entity_identifier") and record.get("entity_id") is None:
+                if ctx.get("entity_identifier") and not record.get("entity_id"):
                     record["entity_id"] = ctx.get("entity_identifier")
 
     # fill symbol from entity_id when possible (NSESymbol scheme sometimes present)

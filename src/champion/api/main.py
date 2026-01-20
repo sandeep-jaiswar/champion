@@ -4,10 +4,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from champion.api.config import get_api_settings
 from champion.api.middleware import add_cache_middleware, add_cors_middleware
 from champion.api.routers import auth, corporate_actions, indicators, indices, ohlc
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -15,9 +20,29 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     print("Starting Champion API...")
+
+    # Initialize database tables
+    from champion.api.dependencies import get_clickhouse_client
+    from champion.api.repositories import UserRepository
+
+    try:
+        clickhouse = get_clickhouse_client()
+        clickhouse.connect()
+        repo = UserRepository(clickhouse)
+        repo.init_table()
+        print("Database tables initialized successfully")
+    except Exception as e:
+        print(f"Warning: Failed to initialize database tables: {e}")
+
     yield
+
     # Shutdown
     print("Shutting down Champion API...")
+    try:
+        if clickhouse:
+            clickhouse.disconnect()
+    except Exception:
+        pass
 
 
 def create_app() -> FastAPI:
@@ -60,6 +85,11 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
+
+    # Add rate limiter
+    app.state.limiter = limiter
+    # TODO: Fix slowapi exception handler - method doesn't exist in current version
+    # app.add_exception_handler(Exception, limiter.limit_exception_handler)
 
     # Add middleware
     add_cors_middleware(app)

@@ -51,6 +51,10 @@ class ClickHouseLoader:
         "normalized_equity_ohlc": "normalized",
         "features_equity_indicators": "features",
         "symbol_master": "reference",
+        "quarterly_financials": "reference",
+        "quarterly_financials_raw": "raw",
+        "trading_calendar": "reference",
+        "bulk_block_deals": "reference",
     }
 
     # Column name mapping: Parquet column -> ClickHouse column
@@ -91,44 +95,119 @@ class ClickHouseLoader:
         "features_equity_indicators": {
             # Features table uses normalized names, no mapping needed yet
         },
+        "quarterly_financials": {
+            # Map NSE quarterly results columns to ClickHouse schema
+            # Handle both uppercase with spaces and lowercase with underscores
+            "SYMBOL": "symbol",
+            "COMPANY NAME": "company_name",
+            "companyName": "company_name",
+            "ISIN": "cin",
+            "isin": "cin",
+            "CIN": "cin",
+            "PERIOD END DATE": "period_end_date",
+            "periodEndDate": "period_end_date",
+            "toDate": "period_end_date",
+            "PERIOD ENDED": "period_end_date",
+            "PERIOD TYPE": "period_type",
+            "periodType": "period_type",
+            "period": "period_type",
+            "PERIOD": "period_type",
+            "FILING DATE": "filing_date",
+            "filingDate": "filing_date",
+            "STATEMENT TYPE": "statement_type",
+            "statementType": "statement_type",
+            "CONSOLIDATED / NON-CONSOLIDATED": "statement_type",
+            "AUDITED / UNAUDITED": "audited_status",
+            "CUMULATIVE / NON-CUMULATIVE": "cumulative_status",
+            "IND AS/ NON IND AS": "accounting_standard",
+            "RELATING TO": "period_description",
+            "** XBRL": "xbrl_url",
+            "Exchange Received Time": "exchange_received_time",
+            "Exchange Dissemination Time": "exchange_dissemination_time",
+            "Time Taken": "time_taken",
+            "REVENUE": "revenue",
+            "OPERATING PROFIT": "operating_profit",
+            "operatingProfit": "operating_profit",
+            "NET PROFIT": "net_profit",
+            "netProfit": "net_profit",
+            "DEPRECIATION": "depreciation",
+            "INTEREST EXPENSE": "interest_expense",
+            "interestExpense": "interest_expense",
+            "TAX EXPENSE": "tax_expense",
+            "taxExpense": "tax_expense",
+            "TOTAL ASSETS": "total_assets",
+            "totalAssets": "total_assets",
+            "TOTAL LIABILITIES": "total_liabilities",
+            "totalLiabilities": "total_liabilities",
+            "EQUITY": "equity",
+            "TOTAL DEBT": "total_debt",
+            "totalDebt": "total_debt",
+            "CURRENT ASSETS": "current_assets",
+            "currentAssets": "current_assets",
+            "CURRENT LIABILITIES": "current_liabilities",
+            "currentLiabilities": "current_liabilities",
+            "CASH AND EQUIVALENTS": "cash_and_equivalents",
+            "cashAndEquivalents": "cash_and_equivalents",
+            "INVENTORIES": "inventories",
+            "EPS": "eps",
+            "BOOK VALUE PER SHARE": "book_value_per_share",
+            "bookValuePerShare": "book_value_per_share",
+            "ROE": "roe",
+            "ROA": "roa",
+            "DEBT TO EQUITY": "debt_to_equity",
+            "debtToEquity": "debt_to_equity",
+            "CURRENT RATIO": "current_ratio",
+            "currentRatio": "current_ratio",
+            "OPERATING MARGIN": "operating_margin",
+            "operatingMargin": "operating_margin",
+            "NET MARGIN": "net_margin",
+            "netMargin": "net_margin",
+            "_xbrl_raw_values": None,  # Exclude XBRL internal columns
+            "_parsed_from": None,
+            "_xbrl_metadata": None,
+        },
     }
 
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 8123,
-        user: str = "champion_user",
-        password: str = "champion_pass",
-        database: str = "champion_market",
+        host: str | None = None,
+        port: int | None = None,
+        user: str | None = None,
+        password: str | None = None,
+        database: str | None = None,
     ):
         """
         Initialize ClickHouse loader.
 
         Args:
-            host: ClickHouse server host
-            port: ClickHouse HTTP port
-            user: Database user
-            password: Database password
-            database: Database name
+            host: ClickHouse server host (defaults to CHAMPION_CLICKHOUSE_HOST env var or 'localhost')
+            port: ClickHouse HTTP port (defaults to CHAMPION_CLICKHOUSE_PORT env var or 8123)
+            user: Database user (defaults to CHAMPION_CLICKHOUSE_USER env var or 'default')
+            password: Database password (defaults to CHAMPION_CLICKHOUSE_PASSWORD env var or '')
+            database: Database name (defaults to CHAMPION_CLICKHOUSE_DATABASE env var or 'champion')
         """
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.database = database
+        import os
+
+        self.host = host or os.getenv("CHAMPION_CLICKHOUSE_HOST", "localhost")
+        self.port = port or int(os.getenv("CHAMPION_CLICKHOUSE_PORT", "8123"))
+        self.user = user or os.getenv("CHAMPION_CLICKHOUSE_USER", "default")
+        self.password = password or os.getenv("CHAMPION_CLICKHOUSE_PASSWORD", "")
+        self.database = database or os.getenv("CHAMPION_CLICKHOUSE_DATABASE", "champion")
         self.client: Client | None = None
 
     def connect(self) -> None:
-        """Establish connection to ClickHouse."""
+        """Establish connection to ClickHouse with compression for batch operations."""
         try:
+            # Use LZ4 compression for better batch insert performance
             self.client = clickhouse_connect.get_client(
                 host=self.host,
                 port=self.port,
                 username=self.user,
                 password=self.password,
                 database=self.database,
+                compress="lz4",  # Use LZ4 compression for batch performance
             )
-            logger.info(f"Connected to ClickHouse at {self.host}:{self.port}")
+            logger.info(f"Connected to ClickHouse at {self.host}:{self.port} with LZ4 compression")
 
             # Test connection
             _ = self.client.command("SELECT 1")
@@ -143,6 +222,52 @@ class ClickHouseLoader:
         if self.client:
             self.client.close()
             logger.info("Disconnected from ClickHouse")
+
+    def insert_polars_dataframe(
+        self,
+        table: str,
+        df: pl.DataFrame,
+        batch_size: int = 100000,
+        dry_run: bool = False,
+    ) -> int:
+        """
+        Insert a Polars DataFrame directly into ClickHouse table.
+
+        This is a public wrapper for convenient direct insertion of DataFrames
+        without requiring separate parquet file handling.
+
+        Args:
+            table: Target ClickHouse table name
+            df: Polars DataFrame to insert
+            batch_size: Number of rows per batch insert
+            dry_run: If True, only validate without loading
+
+        Returns:
+            Number of rows inserted (or would be inserted if dry_run=True)
+        """
+        if table not in self.SUPPORTED_TABLES:
+            raise ValueError(
+                f"Unsupported table: {table}. "
+                f"Supported tables: {list(self.SUPPORTED_TABLES.keys())}"
+            )
+
+        rows = len(df)
+
+        if dry_run:
+            logger.info(f"[DRY RUN] Would insert {rows:,} rows into {table}")
+            logger.info(f"[DRY RUN] Sample schema: {df.schema}")
+            return rows
+
+        # Ensure we're connected
+        if not self.client:
+            self.connect()
+
+        # Insert the dataframe
+        return self._insert_dataframe(
+            df=df,
+            table=table,
+            batch_size=batch_size,
+        )
 
     def load_parquet_files(
         self,
@@ -243,7 +368,7 @@ class ClickHouseLoader:
         batch_size: int,
     ) -> int:
         """
-        Insert Polars DataFrame into ClickHouse table.
+        Insert Polars DataFrame into ClickHouse table using Arrow format.
 
         Args:
             df: DataFrame to insert
@@ -259,21 +384,41 @@ class ClickHouseLoader:
         # Prepare column mapping (handle datetime conversions)
         df = self._prepare_dataframe_for_insert(df, table)
 
-        # Convert to pandas for clickhouse-connect compatibility
-        pdf = df.to_pandas()
+        # Get table columns and filter DataFrame to only include columns that exist in table
+        try:
+            table_columns_query = f"DESCRIBE TABLE {self.database}.{table}"
+            result = self.client.query(table_columns_query)
+            table_columns = {row[0] for row in result.result_rows}  # Get column names
 
-        total_rows = len(pdf)
+            # Filter DataFrame to only columns that exist in target table
+            df_columns = set(df.columns)
+            columns_to_keep = df_columns.intersection(table_columns)
+            columns_to_drop = df_columns - table_columns
+
+            if columns_to_drop:
+                logger.info(f"Dropping columns not in target table: {columns_to_drop}")
+                df = df.select([col for col in df.columns if col in columns_to_keep])
+        except Exception as e:
+            logger.warning(f"Could not get table schema, inserting all columns: {e}")
+
+        total_rows = len(df)
         rows_inserted = 0
 
-        # Insert in batches
+        # Insert in batches using Arrow (avoids pandas timestamp conversion issues)
         for i in range(0, total_rows, batch_size):
-            batch = pdf.iloc[i : i + batch_size]
+            batch_df = df.slice(i, min(batch_size, total_rows - i))
 
             try:
-                self.client.insert_df(
-                    table=table, df=batch, settings={"async_insert": 0, "wait_for_async_insert": 0}
+                # Convert Polars DataFrame to Arrow Table (native format, no pandas)
+                arrow_table = batch_df.to_arrow()
+
+                # Use clickhouse_connect's insert_arrow method
+                self.client.insert_arrow(
+                    table=table,
+                    arrow_table=arrow_table,
+                    settings={"async_insert": 0, "wait_for_async_insert": 0},
                 )
-                rows_inserted += len(batch)
+                rows_inserted += len(batch_df)
 
                 if rows_inserted % (batch_size * 10) == 0:
                     logger.info(f"Progress: {rows_inserted:,} / {total_rows:,} rows")
@@ -299,16 +444,33 @@ class ClickHouseLoader:
         Returns:
             Prepared DataFrame with columns mapped to ClickHouse schema
         """
+        # Remove partition columns that may have been added by Parquet reader from path
+        partition_cols = {"year", "month", "day"}
+        cols_to_drop = [c for c in df.columns if c in partition_cols]
+        if cols_to_drop:
+            logger.info(f"Dropping partition columns: {cols_to_drop}")
+            df = df.drop(cols_to_drop)
+
         # Apply column name mapping if configured for this table
         if table in self.COLUMN_MAPPINGS and len(self.COLUMN_MAPPINGS[table]) > 0:
             mapping = self.COLUMN_MAPPINGS[table]
 
             # Only rename columns that exist in the DataFrame
             rename_map = {}
+            cols_to_drop = []
             for source_col, target_col in mapping.items():
                 if source_col in df.columns:
-                    rename_map[source_col] = target_col
-                    logger.debug(f"Mapping column: {source_col} -> {target_col}")
+                    if target_col is None:
+                        # Column mapped to None means drop it
+                        cols_to_drop.append(source_col)
+                    else:
+                        rename_map[source_col] = target_col
+                        logger.debug(f"Mapping column: {source_col} -> {target_col}")
+
+            # Drop columns marked for exclusion
+            if cols_to_drop:
+                logger.info(f"Dropping excluded columns: {cols_to_drop}")
+                df = df.drop(cols_to_drop)
 
             if rename_map:
                 df = df.rename(rename_map)
@@ -326,7 +488,14 @@ class ClickHouseLoader:
             if col in df.columns:
                 if df[col].dtype in [pl.Int64, pl.Int32]:
                     # Convert from milliseconds since epoch to datetime
-                    df = df.with_columns(pl.from_epoch(pl.col(col), time_unit="ms").alias(col))
+                    # Use dt.cast to convert properly without pandas overflow issues
+                    try:
+                        # Convert int milliseconds to timestamp in millisecond units
+                        df = df.with_columns(
+                            pl.from_epoch(pl.col(col), time_unit="ms").alias(col)
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to convert {col} from int ms to timestamp: {e}")
 
         # Handle date columns
         date_cols = [
@@ -336,6 +505,8 @@ class ClickHouseLoader:
             "FininstrmActlXpryDt",
             "trade_date",
             "adjustment_date",
+            "period_end_date",
+            "filing_date",
         ]
         for col in date_cols:
             if col in df.columns:
@@ -348,6 +519,20 @@ class ClickHouseLoader:
                     except (pl.ComputeError, ValueError) as e:
                         logger.warning(f"Failed to parse date column {col}: {e}")
                         pass  # Keep as is if parsing fails
+                elif df[col].dtype in [pl.Int64, pl.Int32]:
+                    # TradDt comes as YYYYMMDD (e.g., 20260116)
+                    # Convert to Date by first converting to string then parsing
+                    try:
+                        df = df.with_columns(
+                            pl.col(col)
+                            .cast(pl.Utf8)  # Convert int to string: 20260116 -> "20260116"
+                            .str.strptime(pl.Date, format="%Y%m%d")  # Parse as YYYYMMDD
+                            .alias(col)
+                        )
+                        logger.debug(f"Converted {col} from YYYYMMDD int to Date")
+                    except (pl.ComputeError, ValueError) as e:
+                        logger.warning(f"Failed to convert {col} from YYYYMMDD int to Date: {e}")
+                        pass
 
         return df
 
