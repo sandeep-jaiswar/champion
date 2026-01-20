@@ -490,11 +490,10 @@ class ClickHouseLoader:
                     try:
                         # Convert int milliseconds to timestamp in millisecond units
                         df = df.with_columns(
-                            pl.from_epoch(pl.col(col), time_unit="ms", eager=False).alias(col)
+                            pl.from_epoch(pl.col(col), time_unit="ms").alias(col)
                         )
                     except Exception as e:
                         logger.warning(f"Failed to convert {col} from int ms to timestamp: {e}")
-                        # Keep as-is if conversion fails
 
         # Handle date columns
         date_cols = [

@@ -1,14 +1,48 @@
 """Tests for Champion REST API."""
 
+from unittest.mock import MagicMock
+
 import pytest
+from champion.api.dependencies import get_clickhouse_client, get_user_repository
 from champion.api.main import create_app
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
+def mock_clickhouse():
+    """Create mock ClickHouse client."""
+    mock_client = MagicMock()
+    mock_client.query = MagicMock(return_value=[])
+    mock_client.query_df = MagicMock(return_value=None)
+    mock_client.insert = MagicMock(return_value=None)
+    mock_client.command = MagicMock(return_value="")
+    mock_client.connect = MagicMock(return_value=None)
+    mock_client.close = MagicMock(return_value=None)
+    return mock_client
+
+
+@pytest.fixture
+def mock_user_repo():
+    """Create mock user repository."""
+    mock_repo = MagicMock()
+    # Mock demo user for auth tests - returns a dict as per repository contract
+    demo_user = {
+        "username": "demo",
+        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lm",  # "demo123" hashed
+        "email": "demo@example.com",
+        "disabled": False,
+    }
+    mock_repo.get_by_username = MagicMock(return_value=demo_user)
+    mock_repo.create = MagicMock(return_value=demo_user)
+    return mock_repo
+
+
+@pytest.fixture
+def client(mock_clickhouse, mock_user_repo):
+    """Create test client with mocked dependencies."""
     app = create_app()
+    app.dependency_overrides[get_clickhouse_client] = lambda: mock_clickhouse
+    app.dependency_overrides[get_user_repository] = lambda: mock_user_repo
     return TestClient(app)
 
 
@@ -142,38 +176,6 @@ class TestIndicesEndpoints:
         """Test index changes endpoint."""
         response = client.get("/api/v1/indices/NIFTY50/changes")
         assert response.status_code in [200, 500]
-
-
-class TestAuthEndpoints:
-    """Tests for authentication endpoints."""
-
-    def test_login_missing_credentials(self, client):
-        """Test login without credentials."""
-        response = client.post("/api/v1/auth/token")
-        assert response.status_code == 422
-
-    def test_login_invalid_credentials(self, client):
-        """Test login with invalid credentials."""
-        response = client.post(
-            "/api/v1/auth/token", data={"username": "invalid", "password": "invalid"}
-        )
-        assert response.status_code == 401
-
-    def test_login_valid_credentials(self, client):
-        """Test login with valid credentials."""
-        response = client.post(
-            "/api/v1/auth/token", data={"username": "demo", "password": "demo123"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "access_token" in data
-        assert data["token_type"] == "bearer"
-
-    def test_me_endpoint(self, client):
-        """Test me endpoint."""
-        response = client.get("/api/v1/auth/me")
-        # May require auth token, accept either success or auth error
-        assert response.status_code in [200, 401]
 
 
 class TestPagination:

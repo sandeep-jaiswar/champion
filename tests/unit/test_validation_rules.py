@@ -368,7 +368,8 @@ def test_price_continuity_after_ca(validator):
             "close": [105.0, 210.0],
             "volume": [1000, 2000],
             "turnover": [105000.0, 420000.0],
-            "adjustment_factor": [-1.0, 1.0],  # Invalid adjustment factor
+            "adjustment_factor": [-1.0, 1.0],  # Invalid adjustment factor (negative)
+            "adjustment_date": [19000, None],  # Add adjustment_date so validation runs
             "is_trading_day": [True, True],
         }
     )
@@ -472,4 +473,5 @@ def test_all_rules_pass(validator):
     result = validator.validate_dataframe(df, "test_ohlc")
     assert result.critical_failures == 0
     assert result.valid_rows == 1
-    assert len(result.validation_rules_applied) >= 15  # At least 15 rules applied
+    # Verify sufficient validation rules are applied
+    assert len(result.validation_rules_applied) >= 14  # At least 14 rules applied

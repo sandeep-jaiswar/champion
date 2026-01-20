@@ -117,13 +117,22 @@ class TestExceptionHandling:
 
         assert result == 10
 
+    @patch("champion.orchestration.tasks.trading_calendar_tasks.ClickHouseLoader")
     @patch("polars.read_parquet")
-    def test_load_trading_calendar_clickhouse_success(self, mock_read_parquet):
+    def test_load_trading_calendar_clickhouse_success(self, mock_read_parquet, mock_clickhouse_loader):
         """Test successful parquet read returns correct row count."""
         # Create a mock DataFrame with 252 rows (typical trading days in a year)
         mock_df = MagicMock()
         mock_df.__len__ = Mock(return_value=252)
+        mock_df.height = 252
         mock_read_parquet.return_value = mock_df
+        
+        # Mock the ClickHouse loader to return success
+        mock_loader_instance = MagicMock()
+        mock_loader_instance.connect.return_value = None
+        mock_loader_instance.insert_polars_dataframe.return_value = 252
+        mock_loader_instance.disconnect.return_value = None
+        mock_clickhouse_loader.return_value = mock_loader_instance
 
         result = load_trading_calendar_clickhouse("/some/file.parquet")
 
