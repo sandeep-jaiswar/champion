@@ -101,9 +101,7 @@ def main():
 
     # Configure logging
     if args.verbose:
-        structlog.configure(
-            wrapper_class=structlog.make_filtering_bound_logger(logging_level=10)
-        )
+        structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging_level=10))
 
     logger.info(
         "Starting partition cleanup",

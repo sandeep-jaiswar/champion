@@ -144,9 +144,9 @@ def test_write_df_safe_with_quarantine(schema_dir, tmp_path):
             quarantine_dir=quarantine_dir,
         )
 
-    # Verify quarantine file was created
-    quarantine_file = quarantine_dir / "test_schema_failures.parquet"
-    assert quarantine_file.exists()
+    # Verify quarantine file was created (with timestamp in name)
+    quarantine_files = list(quarantine_dir.glob("test_schema_failures_*.parquet"))
+    assert len(quarantine_files) > 0, "No quarantine files found"
 
 
 def test_write_df_safe_continue_on_errors(schema_dir, tmp_path):

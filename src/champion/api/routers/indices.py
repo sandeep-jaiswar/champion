@@ -5,10 +5,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
+from champion.api.config import APISettings, get_api_settings
 from champion.api.dependencies import get_clickhouse_client, get_pagination_params
 from champion.warehouse.adapters import ClickHouseSink
 
 router = APIRouter(prefix="/indices", tags=["Index Data"])
+settings = get_api_settings()
 
 
 @router.get("/{index}/constituents")
@@ -50,7 +52,7 @@ async def get_index_constituents(
             company_name,
             weightage,
             effective_date
-        FROM index_constituents
+        FROM {settings.clickhouse_database}.index_constituents
         WHERE {where_clause}
         ORDER BY weightage DESC NULLS LAST, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
@@ -195,11 +197,13 @@ async def get_index_changes(
 @router.get("")
 async def list_indices(
     db: ClickHouseSink = Depends(get_clickhouse_client),
+    settings: APISettings = Depends(get_api_settings),
 ) -> JSONResponse:
     """List all available indices.
 
     Args:
         db: ClickHouse client
+        settings: API settings
 
     Returns:
         List of available indices
@@ -209,9 +213,9 @@ async def list_indices(
     """
     try:
         # Query distinct index names
-        query = """
+        query = f"""
         SELECT DISTINCT index_name
-        FROM index_constituents
+        FROM {settings.clickhouse_database}.index_constituents
         ORDER BY index_name
         """
 

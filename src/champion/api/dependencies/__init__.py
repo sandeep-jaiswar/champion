@@ -8,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from champion.api.config import APISettings, get_api_settings
+from champion.api.repositories import UserRepository
 from champion.api.schemas import TokenData
 from champion.warehouse.adapters import ClickHouseSink
 
@@ -56,6 +57,20 @@ def get_redis_client(
     )
 
 
+def get_user_repository(
+    clickhouse: ClickHouseSink = Depends(get_clickhouse_client),
+) -> UserRepository:
+    """Get user repository instance.
+
+    Args:
+        clickhouse: ClickHouse client
+
+    Returns:
+        UserRepository instance
+    """
+    return UserRepository(clickhouse)
+
+
 def verify_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     settings: APISettings = Depends(get_api_settings),
@@ -85,8 +100,8 @@ def verify_token(
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError as err:
-        raise credentials_exception from err
+    except JWTError as e:
+        raise credentials_exception from e
 
     return token_data
 
@@ -115,7 +130,7 @@ async def rate_limiter(
 
     try:
         # Increment counter
-        current = redis_client.incr(key)
+        current: int = redis_client.incr(key)  # type: ignore[assignment]
 
         # Set expiration on first request
         if current == 1:
@@ -170,3 +185,14 @@ def get_pagination_params(
         "page": page,
         "page_size": page_size,
     }
+
+
+__all__ = [
+    "get_clickhouse_client",
+    "get_redis_client",
+    "get_user_repository",
+    "verify_token",
+    "rate_limiter",
+    "get_pagination_params",
+    "security",
+]

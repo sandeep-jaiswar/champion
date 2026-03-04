@@ -157,9 +157,21 @@ async def send_validation_alert(
             slack = await SlackWebhook.load(slack_webhook_block)
             await slack.notify(message)
             logger.info("slack_alert_sent", webhook_block=slack_webhook_block)
-        except Exception as e:
+        except (ConnectionError, TimeoutError) as e:
             logger.error(
-                "failed_to_send_slack_alert",
+                "slack_connection_failed",
+                error=str(e),
+                webhook_block=slack_webhook_block,
+            )
+        except (ValueError, AttributeError) as e:
+            logger.error(
+                "slack_invalid_webhook",
+                error=str(e),
+                webhook_block=slack_webhook_block,
+            )
+        except Exception as e:
+            logger.exception(
+                "failed_to_send_slack_alert_unexpected",
                 error=str(e),
                 webhook_block=slack_webhook_block,
             )

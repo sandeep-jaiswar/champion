@@ -5,10 +5,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
+from champion.api.config import get_api_settings
 from champion.api.dependencies import get_clickhouse_client, get_pagination_params
 from champion.warehouse.adapters import ClickHouseSink
 
 router = APIRouter(prefix="/corporate-actions", tags=["Corporate Actions"])
+settings = get_api_settings()
 
 
 @router.get("")
@@ -60,7 +62,7 @@ async def get_corporate_actions(
             purpose AS description,
             ratio,
             dividend_amount AS amount
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC, symbol
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
@@ -149,7 +151,7 @@ async def get_stock_splits(
             ex_date,
             ratio,
             purpose AS description
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}
@@ -246,7 +248,7 @@ async def get_dividends(
             dividend_amount,
             ca_type AS dividend_type,
             purpose AS description
-        FROM corporate_actions
+        FROM {settings.clickhouse_database}.corporate_actions
         WHERE {where_clause}
         ORDER BY ex_date DESC
         LIMIT {pagination['limit']} OFFSET {pagination['offset']}

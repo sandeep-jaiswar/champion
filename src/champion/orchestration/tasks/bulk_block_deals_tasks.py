@@ -247,6 +247,9 @@ def write_bulk_block_deals_parquet(
         ]
     )
 
+    # Drop duplicate events on (entity_id, trade_date) before validation/load
+    df = df.unique(subset=["entity_id", "trade_date"], keep="first")
+
     try:
         # Use write_df_safe with validation
         output_path = write_df_safe(

@@ -1,0 +1,131 @@
+version: "3.8"
+
+networks:
+  champion-network:
+    driver: bridge
+
+volumes:
+  clickhouse-data:
+    driver: local
+  redis-data:
+    driver: local
+
+services:
+  # ============================================================================
+  # ClickHouse - Core OLAP database
+  # ============================================================================
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.1-alpine
+    container_name: champion-clickhouse
+    hostname: clickhouse
+    networks:
+      - champion-network
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native protocol
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    environment:
+      - CLICKHOUSE_DB=champion
+      - CLICKHOUSE_DEFAULT_USER=default
+      - CLICKHOUSE_DEFAULT_PASSWORD=password
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+
+  # ============================================================================
+  # Redis - Cache & session store
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: champion-redis
+    hostname: redis
+    networks:
+      - champion-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ============================================================================
+  # Champion API - Main application
+  # ============================================================================
+  champion-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: champion-api
+    hostname: champion-api
+    networks:
+      - champion-network
+    ports:
+      - "8000:8000"  # API
+      - "9090:9090"  # Metrics
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    environment:
+      ENVIRONMENT: dev
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      # API Config
+      CHAMPION_API_HOST: 0.0.0.0
+      CHAMPION_API_PORT: 8000
+      CHAMPION_API_CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8000"]'
+      # ClickHouse Config
+      CHAMPION_CLICKHOUSE_HOST: clickhouse
+      CHAMPION_CLICKHOUSE_PORT: 8123
+      CHAMPION_CLICKHOUSE_USER: default
+      CHAMPION_CLICKHOUSE_PASSWORD: password
+      CHAMPION_CLICKHOUSE_DATABASE: champion
+      # Redis Config
+      CHAMPION_REDIS_HOST: redis
+      CHAMPION_REDIS_PORT: 6379
+      # JWT Config
+      CHAMPION_JWT_SECRET_KEY: dev-secret-key-change-in-production
+      CHAMPION_JWT_EXPIRATION_MINUTES: 60
+    depends_on:
+      clickhouse:
+        condition: service_started
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "1.0"
+          memory: 2G

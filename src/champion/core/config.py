@@ -146,9 +146,9 @@ class ClickHouseConfig(BaseSettings):
     host: str = Field(default="localhost", description="ClickHouse server host")
     http_port: int = Field(default=8123, description="HTTP port")
     native_port: int = Field(default=9000, description="Native protocol port")
-    user: str = Field(default="champion_user", description="Database user")
-    password: str = Field(default="champion_pass", description="Database password")
-    database: str = Field(default="champion_market", description="Database name")
+    user: str = Field(default="default", description="Database user")
+    password: str = Field(default="", description="Database password")
+    database: str = Field(default="champion", description="Database name")
 
     # Performance tuning
     connect_timeout: int = Field(default=10)
@@ -156,7 +156,7 @@ class ClickHouseConfig(BaseSettings):
     recv_timeout: int = Field(default=30)
     batch_size: int = Field(default=100000, description="Batch size for bulk operations")
 
-    model_config = SettingsConfigDict(env_prefix="CLICKHOUSE_", extra="allow")
+    model_config = SettingsConfigDict(env_prefix="CHAMPION_CLICKHOUSE_", extra="allow")
 
 
 # ============================================================================

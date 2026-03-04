@@ -14,9 +14,9 @@ python = "^3.11"
 
 # ============ Data Processing ============
 polars = "^0.20.0"
-pyarrow = "^15.0.0"
+pyarrow = "^17.0.0"
 pandas = "^2.1.0"
-numpy = "^1.26.0"
+numpy = ">=1.26.4,<2.7"
 
 # ============ HTTP & Scraping ============
 httpx = "^0.26.0"
@@ -56,12 +56,18 @@ opentelemetry-sdk = "^1.22.0"
 # ============ Experiment Tracking & Logging ============
 mlflow = "^3.5.0"
 
+# ============ Machine Learning ============
+scikit-learn = "1.8.0"
+tensorflow = "2.20.0"
+scipy = "1.17.0"
+
 # ============ CLI ============
 typer = { extras = ["all"], version = "^0.12.5" }
 
 # ============ API & Web ============
 fastapi = "^0.115.0"
 uvicorn = { extras = ["standard"], version = "^0.32.0" }
+slowapi = "^0.1.9"
 redis = "^5.0.0"
 python-jose = { extras = ["cryptography"], version = "^3.3.0" }
 passlib = { extras = ["bcrypt"], version = "^1.7.4" }
